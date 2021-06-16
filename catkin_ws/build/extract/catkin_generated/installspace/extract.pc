@@ -1,0 +1,8 @@
+prefix=/constraint_model/catkin_ws/install
+
+Name: extract
+Description: Description of extract
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

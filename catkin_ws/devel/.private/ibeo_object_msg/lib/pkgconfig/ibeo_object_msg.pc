@@ -1,0 +1,8 @@
+prefix=/constraint_model/catkin_ws/devel/.private/ibeo_object_msg
+
+Name: ibeo_object_msg
+Description: Description of ibeo_object_msg
+Version: 0.0.0
+Cflags: -I/constraint_model/catkin_ws/devel/.private/ibeo_object_msg/include
+Libs: -L${prefix}/lib 
+Requires: message_generation message_runtime nav_msgs geometry_msgs sensor_msgs shape_msgs

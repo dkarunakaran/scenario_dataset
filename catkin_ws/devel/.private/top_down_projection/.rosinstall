@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /constraint_model/catkin_ws/devel/.private/top_down_projection/setup.sh

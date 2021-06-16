@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /constraint_model/catkin_ws/install/setup.sh

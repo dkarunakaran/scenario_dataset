@@ -1,0 +1,15 @@
+[31m[1mCMake Error[0m at /opt/ros/melodic/share/catkin/cmake/catkinConfig.cmake:83 (find_package):
+  Could not find a package configuration file provided by "h264_bag_playback"
+  with any of the following names:
+
+    h264_bag_playbackConfig.cmake
+    h264_bag_playback-config.cmake
+
+  Add the installation prefix of "h264_bag_playback" to CMAKE_PREFIX_PATH or
+  set "h264_bag_playback_DIR" to a directory containing one of the above
+  files.  If "h264_bag_playback" provides a separate development package or
+  SDK, be sure it has been installed.
+[36mCall Stack (most recent call first):[0m
+  CMakeLists.txt:5 (find_package)
+
+
