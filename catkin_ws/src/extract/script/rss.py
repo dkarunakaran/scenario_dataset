@@ -57,12 +57,14 @@ class RSS:
         return d_min    
 
     def lat_safe_dist(self, V_lat_ego, V_lat_other):
-
-        v_1_p = V_lat_ego + (self.res_ego*self.lat_accel_max) 
-        v_2_p = V_lat_other - (self.res_ego*self.lat_accel_max) 
-        first_term = ((V_lat_ego+v_1_p)/2)*self.res_ego
+        
+        # v1 is the velocity of other vehicle
+        # v2 is the velocity of ego-vehicle
+        v_1_p = V_lat_other - (self.res_other*self.lat_accel_max) 
+        v_2_p = V_lat_ego + (self.res_ego*self.lat_accel_max) 
+        first_term = ((V_lat_other+v_1_p)/2)*self.res_other
         second_term = (v_1_p*v_1_p)/(2*self.lat_break_min)
-        third_term = ((V_lat_other+v_1_p)/2)*self.res_ego
+        third_term = ((V_lat_ego+v_2_p)/2)*self.res_ego
         fourth_term = (v_2_p*v_2_p)/(2*self.lat_break_min)
         d_min = self.mu+first_term+second_term-(third_term-fourth_term)
 

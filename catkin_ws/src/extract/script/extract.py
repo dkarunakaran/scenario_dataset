@@ -34,9 +34,9 @@ class Extract:
         self.extracted_data = {
             'ego':{
                 'long_vel': [],
-                'rss_long_no_front_vehicle': [],
+                'lat_vel': [],
                 'accel': [],
-                'rss_long_with_vehicle': []
+                'yaw': []
             },
             'other_car': {
                 'long_vel': [],
@@ -48,7 +48,10 @@ class Extract:
             },
             'tracked_objects': None,
             'all_objects_timesteps': None,
-            'closest_cars': None
+            'closest_cars': None,
+            'rss': {
+                'cut-in': {}
+            }
         }
         rospy.Subscriber('/ibeo/odometry', Odometry, self.ego_odometry)    
         rospy.Subscriber('/ibeo/objects', IbeoObject, self.ibeo_objects)  
@@ -132,15 +135,101 @@ class Extract:
         
     def ego_odometry(self, data):
         v_long_ego = data.twist.twist.linear.x
-        self.extracted_data['ego']['long_vel'].append(v_long_ego)
+        v_lat_ego = data.twist.twist.linear.y
+        quaternion = (
+            data.pose.pose.orientation.x,
+            data.pose.pose.orientation.y,
+            data.pose.pose.orientation.z,
+            data.pose.pose.orientation.w
+        )
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+        roll = euler[0]
+        pitch = euler[1]
+        yaw = euler[2]
+        self.extracted_data['ego']['yaw'].append(yaw)
+        
         name = str(data.header.stamp.secs)
-        name = int(name)     
-        if name in self.tracked_objects and self.previous is not name:
+        name = int(name)
+        nsec = int(data.header.stamp.nsecs)
+        
+        # Logic to capture the data at each second
+        diff = 1  
+        if self.previous is not None:
+            diff = name-self.previous   
+        if name in self.tracked_objects:# and diff >= 1:
             objects = self.tracked_objects[name]
-            temp_tracked_objects = {}
+            print(name)
+            front_car = None
+            front_side_car = []
+            front_side_each_car = {}
+            #print(objects)
+            for _object in objects:
+                key = _object['id']
+
+                # Detecting the front vehicle from dataset
+                # If this condition satisfied for one of the object then, we found the car infront of it. 
+                if _object is not None and (_object['rel_pos_y'] >= -1.5 and _object['rel_pos_y'] <= 1.5) and _object['rel_pos_x'] > 0:
+                    front_car = {'key': key, 'rel_pos_y': _object['rel_pos_y'] , 'rel_pos_x': _object['rel_pos_x'], 'long_vel': _object['long_vel']}
+
+                # Detect the lateral vehicle at the front_side
+                if _object is not None  and (_object['rel_pos_y'] <= -1.5 or _object['rel_pos_y'] >= 1.5) and _object['rel_pos_x'] > 0:
+                    t = rospy.Time(name, nsec)
+                    front_side_each_car[key] = {'timestamp':t.to_sec(), 'id': key, 'rel_pos_y': _object['rel_pos_y'] , 'rel_pos_x': _object['rel_pos_x'], 'long_vel': _object['long_vel'], 'lat_vel': _object['lat_vel'], 'yaw': _object['yaw']}
+                    
+            
+            # We need to worry about the vehicle at the front only for deteting the cut-in scenario. 
+            # The below logic finds the cars that is more relavant in cut in scenario
+            # We have put 100m as threshold to detect the vehicle near the ego-vehicles.
+            threshold_dist = 100 #meter
+            for id in front_side_each_car.keys():
+                _object = front_side_each_car[id]
+                if _object['rel_pos_x'] <= threshold_dist:            
+                    if id in self.closest_cars.keys():
+                        self.closest_cars[id].append(_object)
+                    else:
+                        self.closest_cars[id] = []
+                        
+            # Automatic detection of cut-in lane change event
+            # Compute RSS - if the lateral vehicle is tryig to cut in, then longitudinal and lateral safe distance to the lateral vehicle based on RSS needs to be computed.
+            for car_id in self.closest_cars.keys():
+                _object = self.closest_cars[car_id]
+                for index in range(len(_object)):
+                    if _object[index] is not None and (_object[index]['rel_pos_y'] >= -1.75 and _object[index]['rel_pos_y'] <= 1.75) and _object[index]['rel_pos_x'] > 0:
+                        lat_rss = self.rss.lat_safe_dist(v_lat_ego, abs(_object[index]['lat_vel']))
+                        long_rss = self.rss.long_safe_dist(v_long_ego,abs(_object[index]['long_vel']))
+                        if car_id is 78:
+                            print(abs(_object[index]['lat_vel']))
+                            print(abs(_object[index]['long_vel']))
+                            print("Lateral RSS: {}".format(lat_rss))
+                            print("Longitudinal RSS: {}".format(long_rss))
+                        
+                        if car_id in self.extracted_data['rss']['cut-in'].keys():
+                            self.extracted_data['rss']['cut-in'][car_id].append({
+                                'car_id': car_id,
+                                'lat_vel': _object[index]['lat_vel'],
+                                'long_vel': _object[index]['long_vel'],
+                                'rel_pos_y': _object[index]['rel_pos_y'],
+                                'rel_pos_x': _object[index]['rel_pos_x'],
+                                'yaw': _object[index]['yaw'],
+                                'lat_rss': lat_rss,
+                                'long_rss': long_rss,
+                                'ego': {
+                                    'lat_vel': v_lat_ego,
+                                    'long_vel': v_long_ego
+                                },
+                                'timestamp':_object[index]['timestamp']
+                            })
+                        else:
+                            self.extracted_data['rss']['cut-in'][car_id] = []
+                        self.extracted_data['ego']['long_vel'].append(v_long_ego)
+                        self.extracted_data['ego']['lat_vel'].append(v_lat_ego)
+        
+            self.all_objects_timesteps.append(name)
+            
+            '''temp_tracked_objects = {}
             for index in range(len(objects)):
                 if objects[index]['id'] in temp_tracked_objects.keys():
-                    '''temp_tracked_objects[objects[index]['id']].append(
+                    temp_tracked_objects[objects[index]['id']].append(
                         {
                             'rel_pos_x': objects[index]['rel_pos_x'],
                             'rel_pos_y': objects[index]['rel_pos_y'],
@@ -148,17 +237,9 @@ class Extract:
                             'lat_vel': objects[index]['lat_vel'],
                             'yaw': objects[index]['yaw']
                         }
-                    )'''
-                    
-                    temp_tracked_objects[objects[index]['id']] = {
-                        'rel_pos_x': objects[index]['rel_pos_x'],
-                        'rel_pos_y': objects[index]['rel_pos_y'],
-                        'long_vel': objects[index]['long_vel'],
-                        'lat_vel': objects[index]['lat_vel'],
-                        'yaw': objects[index]['yaw']
-                    }
+                    )
                 else:
-                    temp_tracked_objects[objects[index]['id']] = None #[]
+                    temp_tracked_objects[objects[index]['id']] = []
             front_car = None
             front_side_car = []
             front_side_each_car = {}
@@ -198,11 +279,7 @@ class Extract:
                         else:
                             self.closest_cars[id] = []
                             
-            
             self.all_objects_timesteps.append(name)
-                        
-            #print(smallest_dist_object)
-                
             
             # Longitudinal RSS from the perspective of ego-vehicle        
             if front_car is not None:   
@@ -217,7 +294,7 @@ class Extract:
                 self.extracted_data['ego']['rss_long_with_vehicle'].append(self.rss.calculate_rss_safe_dist(v_long_ego, 0))  
             else:
                 self.extracted_data['ego']['rss_long_with_vehicle'].append(0)       
-                
+        '''       
         self.previous = name    
                         
                 
@@ -227,23 +304,12 @@ class Extract:
         # Calculate longitudinal RSS - Done
         # ----------------------------------------------------------------------------
         # 15/06/21 - week
-        # Plot lane change activity of each car
+        # Plot lane change activity of each car -  Done
+        # Find the objects in the side:rel_pos_x and rel_pos_y will be helpful - Done
         # Plot 3d plot with timesteps, rel_lateral_distance, rel_long_distance
         # Automatic detection of the events such as lane_change and cut-in
-        # Find the objects in the side:rel_pos_x and rel_pos_y will be helpful
         # Calculate lateral RSS
         # Find the timestamps where list of events happening and that will be useful for start and stop.
-
-    
-        '''
-        accel = 0
-        self.extracted_data['ego']['rss_long_no_front_vehicle'].append(self.rss.calculate_rss_safe_dist(v_long_ego, 0))
-        self.extracted_data['ego']['long_vel'].append(v_long_ego)
-        if self.previous is not None:
-            accel = self.average_acceleration(v_long_ego, self.previous)
-        self.extracted_data['ego']['accel'].append(accel)
-        self.previous = v_long_ego
-        '''
         
         #Detect the front vehicle and calculate longitudinal RSS.
         

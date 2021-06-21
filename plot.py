@@ -19,7 +19,8 @@ evaluation = {
         'rss_long_no_front_vehicle': [],
         'timesteps': [],
         'accel': [],
-        'rss_long_with_vehicle': []
+        'rss_long_with_vehicle': [],
+        'yaw': []
     },
     'other_car': {
         'long_vel': [],
@@ -31,7 +32,10 @@ evaluation = {
     },
     'tracked_objects': None,
     'closest_cars': None,
-    'all_objects_timesteps': None
+    'all_objects_timesteps': None,
+    'rss':{
+        'cut-in': None
+    }
 }
 path_to_file = '/constraint_model/extracted_data.txt'
 path_to_save_dir = '/constraint_model/plots/'
@@ -41,12 +45,6 @@ with open(path_to_file) as json_file:
         km_hr = (data['ego']['long_vel'][index]*18)/5
         evaluation['ego']['long_vel'].append(km_hr)
         evaluation['ego']['timesteps'].append(index)
-    
-    for index in range(len(data['ego']['rss_long_no_front_vehicle'])):
-        evaluation['ego']['rss_long_no_front_vehicle'].append(data['ego']['rss_long_no_front_vehicle'][index])
-        
-    for index in range(len(data['ego']['rss_long_with_vehicle'])):
-        evaluation['ego']['rss_long_with_vehicle'].append(data['ego']['rss_long_with_vehicle'][index])
     
     for index in range(len(data['ego']['accel'])):
         evaluation['ego']['accel'].append(data['ego']['accel'][index])
@@ -69,55 +67,27 @@ with open(path_to_file) as json_file:
     for index in range(len(data['other_car']['yaw'])):
         evaluation['other_car']['yaw'].append(data['other_car']['yaw'][index])
         
+    for index in range(len(data['ego']['yaw'])):
+        evaluation['ego']['yaw'].append(data['ego']['yaw'][index])
+    
+    
+    evaluation['rss']['cut-in'] = data['rss']['cut-in']
     evaluation['tracked_objects'] = data['tracked_objects']
     evaluation['closest_cars'] = data['closest_cars']
     evaluation['all_objects_timesteps'] = data['all_objects_timesteps']
     
-    
-    
+
+
+
+
+
+name = path_to_save_dir+"histo_yaw_ego"
+plt.figure()
+plt.hist(evaluation['ego']['yaw'], bins='auto')
+plt.savefig(name)
+plt.close()
 
 '''
-name = path_to_save_dir+"histo"
-plt.figure()
-plt.hist(evaluation['ego']['long_vel'], bins='auto')
-plt.title("Histogram of Longitudinal velocity")
-plt.xlabel("Longitudinal velocity(km/hr)")
-plt.ylabel("Frequency")
-plt.savefig(name)
-plt.close()
-
-name = path_to_save_dir+"histo_rss_long_no_front_vehicle"
-plt.figure()
-plt.hist(evaluation['ego']['rss_long_no_front_vehicle'], bins='auto')
-plt.savefig(name)
-plt.close()
-
-
-legend = []
-name = path_to_save_dir+"long_vel_timesteps"
-plt.figure(figsize=(8,6))
-plt.title("Longitudinal velocity vs timesteps")
-plt.xlabel("Timesteps")
-plt.ylabel("Longitudinal velocity(km/hr)")
-plt.plot(evaluation['ego']['timesteps'], evaluation['ego']['long_vel'], linewidth=2) 
-#plt.legend(legend)
-plt.savefig(name)
-plt.close()
-
-
-
-legend = []
-name = path_to_save_dir+"long_vs_rss_long"
-plt.figure(figsize=(8,6))
-plt.title("Longitudinal RSS with front vehicle is moving at 15m/s(72km/hr)")
-plt.xlabel("Longitudinal velocity(km/hr)")
-plt.ylabel("Longitudinal RSS(m)")
-plt.plot(evaluation['ego']['long_vel'], evaluation['ego']['rss_long_no_front_vehicle'], linewidth=2) 
-#plt.legend(legend)
-plt.savefig(name)
-plt.close()
-
-
 x = evaluation['ego']['timesteps']
 y = evaluation['ego']['long_vel']
 z = evaluation['ego']['rss_long_no_front_vehicle'] 
@@ -132,14 +102,10 @@ plt.title("3D plot with no front vehicle")
 ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=0.5)
 plt.savefig(name)
 plt.close()
-'''
+
 x = evaluation['ego']['timesteps']
 y = evaluation['ego']['long_vel']
 z = evaluation['ego']['rss_long_with_vehicle']
-print(len(x))
-print(len(y))
-print(len(z))
-
 name = path_to_save_dir+"3d"
 plt.figure(figsize=(6,6))
 ax = plt.axes(projection='3d')
@@ -148,64 +114,6 @@ ax.set_ylabel('Long_vel(km/hr)')
 ax.set_zlabel('Long_rss(m)')
 plt.title("3D plot with front vehicle")
 ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=0.5)
-plt.savefig(name)
-plt.close()
-
-'''
-
-name = path_to_save_dir+"accel_histo"
-plt.figure()
-plt.hist(evaluation['ego']['accel'], bins='auto', range=(-5,5))
-plt.title("Histogram of Longitudinal acceleration")
-plt.xlabel("Longitudinal acceleration(m/s2)")
-plt.ylabel("Frequency")
-plt.savefig(name)
-plt.close()
-
-'''
-'''
-name = path_to_save_dir+"other_long_histo"
-plt.figure()
-plt.hist(evaluation['other_car']['long_vel'], bins='auto')
-plt.title("Histogram of Longitudinal vel of other_cars")
-plt.xlabel("Longitudinal velocity(m/s)")
-plt.ylabel("Frequency")
-plt.savefig(name)
-plt.close()
-
-name = path_to_save_dir+"other_lat_histo"
-plt.figure()
-plt.hist(evaluation['other_car']['lat_vel'], bins='auto')
-plt.title("Histogram of lateral vel of other_cars")
-plt.xlabel("Lateral velocity(m/s)")
-plt.ylabel("Frequency")
-plt.savefig(name)
-plt.close()
-
-name = path_to_save_dir+"long_accel_histo_other"
-plt.figure()
-plt.hist(evaluation['other_car']['long_accel'], bins='auto', range=(-20,20))
-plt.title("Histogram of Longitudinal acceleration of other_cars")
-plt.xlabel("Longitudinal acceleration(m/s2)")
-plt.ylabel("Frequency")
-plt.savefig(name)
-plt.close()
-
-name = path_to_save_dir+"other_rel_pos_y_histo"
-plt.figure()
-plt.hist(evaluation['other_car']['rel_pos_y'], bins='auto')
-plt.title("Histogram of relative pose in y direction of other_cars")
-plt.xlabel("Relative pos y(m)")
-plt.ylabel("Frequency")
-plt.savefig(name)
-plt.close()
-
-name = path_to_save_dir+"other_rel_pos_x_histo"
-plt.figure()
-plt.hist(evaluation['other_car']['rel_pos_x'], bins='auto')
-plt.title("Histogram of relative pose in x direction of other_cars")
-plt.xlabel("Relative pos x(m)")
-plt.ylabel("Frequency")
 plt.savefig(name)
 plt.close()
 
@@ -308,52 +216,165 @@ plt.savefig(name)
 plt.close()
 '''
 
+from datetime import datetime
+
+plt.figure()
+fig, ax = plt.subplots()
+cars = evaluation['rss']['cut-in'].keys()
+print(cars)
+#cars = ['144', '73', '11', '212', '23', '83', '112', '1', '122', '123', '73', '8', '235', '175', '249', '172']
+cars = ['202', '78', '205', '42', '53', '109', '5', '166', '85']
+for car in cars:
+    x = []
+    y = []
+    for index in range(len(evaluation['rss']['cut-in'][car])):
+        x.append(datetime.fromtimestamp(float(evaluation['rss']['cut-in'][car][index]['timestamp'])))
+        y.append(evaluation['rss']['cut-in'][car][index]['rel_pos_y']) 
+    r = lambda: random.randint(0,255)  
+    hex_number = '#%02X%02X%02X' % (r(),r(),r())
+    ax.plot(x, y, label=car, color=hex_number)
+plt.xlabel("Time")
+plt.ylabel("rel_pos_y")
+#plt.ylim((-0.2,0.2))
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+#name = path_to_save_dir+"yaw_histo_all"
+name = path_to_save_dir+"rel_pos_y_all"
+plt.savefig(name)
+plt.close()
+
+
+for car in cars:
+    x = []
+    y = []
+    for index in range(len(evaluation['rss']['cut-in'][car])):
+        x.append(datetime.fromtimestamp(float(evaluation['rss']['cut-in'][car][index]['timestamp'])))
+        y.append(evaluation['rss']['cut-in'][car][index]['yaw']) 
+    r = lambda: random.randint(0,255)  
+    hex_number = '#%02X%02X%02X' % (r(),r(),r())
+    ax.plot(x, y, label=car, color=hex_number)
+plt.xlabel("Time")
+plt.ylabel("Yaw(rad)")
+#plt.ylim((-0.2,0.2))
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+#name = path_to_save_dir+"yaw_histo_all"
+name = path_to_save_dir+"yaw_all"
+plt.savefig(name)
+plt.close()
+
+
+#-----------------------------------------------
 '''
+car = '78'
+
+name = path_to_save_dir+"rel_pos_y_"+car
+x = []
+y = []
+plt.figure()
+plt.xlabel("Timesteps")
+plt.ylabel("rel_pos_y")
+plt.plot(x, y)
+plt.savefig(name)
+plt.close()
+
+# 3D comaprison for yaw and rel_pos_y
+x = []
+y = []
+z = []
+for index in range(len(evaluation['closest_cars'][car])):
+    x.append(index)
+    y.append(evaluation['closest_cars'][car][index]['yaw'])   
+    z.append(evaluation['closest_cars'][car][index]['rel_pos_y'])
+
 # Not working
-name = path_to_save_dir+"3d_rel_dist_comparison"
+name = path_to_save_dir+"3d_rel_yaw_dist_comparison_"+car
 plt.figure()
 ax = plt.axes(projection='3d')
 ax.set_xlabel('Timesteps')
-ax.set_ylabel('Long_vel(km/hr)')
-ax.set_zlabel('Long_rss(m)')
-x = evaluation['ego']['timesteps']
-objects = evaluation['tracked_objects']
-#r = lambda: random.randint(0,255)
-for key in objects.keys():
-    long_pos = []
-    lat_pos = []
-    for index in range(len(objects[key])):
-        lat_pos.append(objects[key][index]['rel_pos_y'])
-        
-    y = lat_pos
-    #hex_number = '#%02X%02X%02X' % (r(),r(),r())
-    
-    for index in range(len(objects[key])):
-        long_pos.append(objects[key][index]['rel_pos_y'])
-    
-    z = long_pos
-    ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=0.5)
-    #plt.plot(y, label=key, color=hex_number)
-#plt.ylabel("Relative lateral position(m)")
-#plt.xlabel("Timesteps(s)")
+ax.set_ylabel('yaw')
+ax.set_zlabel('rel_pos_y')
+ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=0.5)
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+plt.savefig(name)
+plt.close()
+
+
+from datetime import datetime
+x = []
+y = []
+z = []
+for index in range(len(evaluation['closest_cars'][car])):
+    x.append(index)
+    y.append(evaluation['closest_cars'][car][index]['rel_pos_x'])   
+    z.append(evaluation['closest_cars'][car][index]['rel_pos_y'])
+
+# Not working
+name = path_to_save_dir+"3d_rel_dist_comparison_"+car
+plt.figure()
+ax = plt.axes(projection='3d')
+ax.set_xlabel('Timesteps')
+ax.set_ylabel('rel_pos_x')
+ax.set_zlabel('rel_pos_y')
+ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=0.5)
 plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()
 '''
-from datetime import datetime
+#---------------------------------------------------------
+cars = evaluation['closest_cars'].keys()
+#print(evaluation['rss']['cut-in'])
+
+car ='78'
+# 3D comaprison for yaw and rel_pos_y
 x = []
 y = []
-for index in range(len(evaluation['all_objects_timesteps'])):
-    x.append(datetime.fromtimestamp(evaluation['all_objects_timesteps'][index]))
-for index in range(len(evaluation['closest_cars']['144'])):
-    #x.append(index)
-    y.append(evaluation['closest_cars']['144'][index]['yaw'])
-name = path_to_save_dir+"yaw_histo_144"
-plt.figure()
-plt.plot_date(x, y[:len(x)])
-plt.xlabel("Timesteps")
-plt.ylabel("yaw(rad)")
-plt.ylim((-0.2,0.2))
+z = []
+for index in range(len(evaluation['rss']['cut-in'][car])):
+    x.append(index)
+    y.append(evaluation['rss']['cut-in'][car][index]['rel_pos_y'])   
+    z.append(evaluation['rss']['cut-in'][car][index]['lat_rss'])
 
+
+name = path_to_save_dir+"3d_rel_pos_y_lat_rss_comparison_"+car
+plt.figure()
+ax = plt.axes(projection='3d')
+ax.set_xlabel('Timesteps')
+ax.set_ylabel('rel_pos_y')
+ax.set_zlabel('lat_rss')
+ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=0.5)
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+plt.savefig(name)
+plt.close()
+
+# 3D comaprison for long_rss and rel_pos_x
+x = []
+y = []
+z = []
+for index in range(len(evaluation['rss']['cut-in'][car])):
+    x.append(index)
+    y.append(evaluation['rss']['cut-in'][car][index]['rel_pos_x'])   
+    z.append(evaluation['rss']['cut-in'][car][index]['long_rss'])
+name = path_to_save_dir+"3d_rel_pos_x_long_rss_comparison_"+car
+plt.figure()
+ax = plt.axes(projection='3d')
+ax.set_xlabel('Timesteps')
+ax.set_ylabel('rel_pos_x')
+ax.set_zlabel('long_rss')
+ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=0.5)
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+plt.savefig(name)
+plt.close()
+    
+
+
+name = path_to_save_dir+"lat_vel_"+car
+x = []
+y = []
+for index in range(len(evaluation['rss']['cut-in'][car])):
+    x.append(index)
+    y.append(evaluation['rss']['cut-in'][car][index]['lat_vel']) 
+plt.figure()
+plt.xlabel("Timesteps")
+plt.ylabel("lat_vel")
+plt.plot(x, y)
 plt.savefig(name)
 plt.close()
