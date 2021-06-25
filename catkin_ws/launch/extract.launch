@@ -1,3 +1,8 @@
 <launch>
+   <!-- declare arg to be passed in -->
+  <arg name="bag_file" /> 
+
+  <!-- read value of arg -->
+  <param name="bag_file" value="$(arg bag_file)"/>
   <node pkg="extract" type="extract.py" name="extract" output="screen"></node>
 </launch>

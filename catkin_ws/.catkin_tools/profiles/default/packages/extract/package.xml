@@ -50,6 +50,11 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>geometry_msgs</depend>
+  <depend>tf2_msgs</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
