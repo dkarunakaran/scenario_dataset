@@ -4,20 +4,15 @@ from __future__ import division
 import rospy
 from nav_msgs.msg import Odometry
 import json
-import os
 from rss import RSS
 from ibeo_object_msg.msg import IbeoObject
-import message_filters
 import tf
-import rosbag
-from ego_odom import EgoOdom
-from ibeo_object_odom import IbeoObjectOdom 
 import math
 from geometry_msgs.msg import PoseStamped
 import tf2_ros
-import numpy as np
 from tf.transformations import quaternion_matrix
 import tf2_geometry_msgs
+
 
 class Extract:
     ObjectClass_Unclassified = 0
@@ -33,8 +28,8 @@ class Extract:
     def __init__(self):
         rospy.init_node("Extract class initilization")
         #self.bag = rosbag.Bag(rospy.get_param("/bag_file"))
-        self.ego_odom  = EgoOdom()
-        self.ibeo_object = IbeoObjectOdom()
+        self.ego_odom  = []
+        self.ibeo_object = []
         self.previous = None
         self.previous_other = None
         self.count = 0
@@ -42,45 +37,16 @@ class Extract:
         self.closest_cars = {}
         self.rss = RSS()
         self.extracted_data = {
-            'tranforms': None,
             'ego_odom': None,
-            'other_odom': None
+            'ibeo_objects': None
         }
-        self.tranforms = {}
-        self.ego_odom = {}
-        self.other_odom = {}
         rospy.Subscriber('/ibeo/odometry', Odometry, self.ego_odometry)    
         rospy.Subscriber('/ibeo/objects', IbeoObject, self.ibeo_objects)  
         self.tf_buffer = tf2_ros.Buffer()
         tf2_ros.TransformListener(self.tf_buffer)
-        self.listener = tf.TransformListener()
-        '''
-        listener = tf.TransformListener()
-        while not rospy.is_shutdown():
-            try:
-                t = listener.getLatestCommonTime("/odom", "/base_link")
-                (trans, rot) = listener.lookupTransform("/odom", "/base_link", t)
-                t = t.to_nsec()
-                if t in self.tranforms:
-                    self.tranforms[t].append((trans, rot))
-                else:
-                    self.tranforms[t] = []
-                    self.tranforms[t].append((trans, rot))
-                #print("transforms: {}".format(t))
-                
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                print("Exception")
-                continue
-        '''
-    
-        # Storing the data for extracting the future state from the current state
-        #self.read_bag()
         
-        # Extraction of the scenario
-        #self.extract()
-        
-        #self.compute_the_ego_trajectory()
-        #self.compute_the_other_trajectory(cars=[144,123])
+        # Sepearte the other_object data based on each car_id
+        # plot the trajectory of each car.
         
         rospy.on_shutdown(self.shutdown)   
         rospy.spin()
@@ -97,86 +63,73 @@ class Extract:
         pitch = euler[1]
         yaw = euler[2]
         t = data.header.stamp
-        t = t.to_nsec()
-        if t in self.ego_odom:
-            self.ego_odom[t].append([data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z, roll, pitch, yaw])
-        else:
-            self.ego_odom[t] = []
-            self.ego_odom[t].append([data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z, roll, pitch, yaw])
+        #t = t.to_nsec()
+        msg = {
+            'linear_x': data.twist.twist.linear.x,
+            'linear_y': data.twist.twist.linear.y,
+            'linear_z': data.twist.twist.linear.z,
+            'position_x': data.pose.pose.position.x,
+            'position_y': data.pose.pose.position.y,
+            'position_z': data.pose.pose.position.z,
+            'roll': roll,
+            'pitch': pitch,
+            'yaw': yaw,
+            'sec': data.header.stamp.secs,
+            'nsec': data.header.stamp.nsecs
+        }
+        self.ego_odom.append(msg)
     
     def ibeo_objects(self, data):
         
+        # Considering only vehicle classes 
         if data.object_class in [self.ObjectClass_Car, self.ObjectClass_Motorbike, self.ObjectClass_Truck]:
             
-            # We need to convert this to tf2_geometry_msgs as ibeo_object is a custom object type.
-            pose_stamped = tf2_geometry_msgs.PoseStamped()
-            pose_stamped.pose = data.pose.pose
-            pose_stamped.header.frame_id = "base_link"
-            pose_stamped.header.stamp = data.header.stamp
-            try:
-                # ** It is important to wait for the listener to start listening. Hence the rospy.Duration(1)
-                data_odom = self.tf_buffer.transform(pose_stamped, "odom")
-                #print(data_odom)
-                quaternion = (
-                    data_odom.pose.orientation.x,
-                    data_odom.pose.orientation.y,
-                    data_odom.pose.orientation.z,
-                    data_odom.pose.orientation.w
-                )
-                euler = tf.transformations.euler_from_quaternion(quaternion)
-                roll = euler[0]
-                pitch = euler[1]
-                yaw = euler[2]
-                t = data_odom.header.stamp
-                t = t.to_nsec()
-                if t in self.other_odom:
-                        self.other_odom[t].append([
-                            data.twist.twist.linear.x, 
-                            data.twist.twist.linear.y, 
-                            data.twist.twist.linear.z, 
-                            data_odom.pose.position.x, 
-                            data_odom.pose.position.y, 
-                            data_odom.pose.position.z, 
-                            roll, pitch, yaw
-                        ])
-                else:
-                    self.other_odom[t] = []
-                    self.other_odom[t].append([
-                        data.twist.twist.linear.x, 
-                        data.twist.twist.linear.y, 
-                        data.twist.twist.linear.z, 
-                        data_odom.pose.position.x, 
-                        data_odom.pose.position.y, 
-                        data_odom.pose.position.z, 
-                        roll, pitch, yaw
-                    ])
-                
-                print(t)
-                
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                pass
-            
-
+            #Considering only vehicle at the front up to 100 meter
+            if data.pose.pose.position.x > 0 and data.pose.pose.position.x <= 100:
+                # We need to convert this to tf2_geometry_msgs as ibeo_object is a custom object type.
+                pose_stamped = tf2_geometry_msgs.PoseStamped()
+                pose_stamped.pose = data.pose.pose
+                pose_stamped.header.frame_id = "base_link"
+                pose_stamped.header.stamp = data.header.stamp
+                try:
+                    # ** It is important to wait for the listener to start listening. Hence the rospy.Duration(1)
+                    data_odom = self.tf_buffer.transform(pose_stamped, "odom")
+                    #print(data_odom)
+                    quaternion = (
+                        data_odom.pose.orientation.x,
+                        data_odom.pose.orientation.y,
+                        data_odom.pose.orientation.z,
+                        data_odom.pose.orientation.w
+                    )
+                    euler = tf.transformations.euler_from_quaternion(quaternion)
+                    roll = euler[0]
+                    pitch = euler[1]
+                    yaw = euler[2]
+                    t = data_odom.header.stamp
+                    print(data_odom.header.stamp.secs)
+                    #t = t.to_nsec()
+                    msg = {
+                        'object_id': data.object_id,
+                        'linear_x': data.twist.twist.linear.x,
+                        'linear_y': data.twist.twist.linear.y,
+                        'linear_z': data.twist.twist.linear.z,
+                        'position_x': data_odom.pose.position.x,
+                        'position_y': data_odom.pose.position.y,
+                        'position_z': data_odom.pose.position.z,
+                        'rel_pos_x': data.pose.pose.position.x,
+                        'rel_pos_y': data.pose.pose.position.y,
+                        'roll': roll,
+                        'pitch': pitch,
+                        'yaw': yaw,
+                        'sec': data_odom.header.stamp.secs,
+                        'nsec': data_odom.header.stamp.nsecs
+                        
+                    }
+                    self.ibeo_object.append(msg)
+                    
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    pass
         
-
-    
-    # Read and store data for considering the future state
-    def read_bag(self):
-        print("Reading {} ...".format(rospy.get_param("/bag_file")))
-        count = 1 
-        '''listener = tf.TransformListener()'''
-        for topic, msg, t in self.bag.read_messages():
-            '''try:
-               (trans,rot) = listener.lookupTransform('/odom', '/base_link', rospy.Time(0))
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-               continue'''
-            if topic == 'ibeo/odometry':
-                self.ego_odom.put(timestamp=t, msg=msg)
-            if topic == 'ibeo/objects' and msg.object_class in [self.ObjectClass_Car, self.ObjectClass_Motorbike, self.ObjectClass_Truck]:
-                self.ibeo_object.put(timestamp=t, msg=msg)
-        print("Finished reading {} ...".format(rospy.get_param("/bag_file")))       
-        self.ibeo_object.group_by_car()     
-        print(self.ibeo_object.group_objects.keys())
                 
     def compute_the_ego_trajectory(self):
   
@@ -339,11 +292,11 @@ class Extract:
         print("Extract node is shutting down!!!")
         
         self.extracted_data = {
-            'tranforms': self.tranforms,
             'ego_odom': self.ego_odom,
-            'other_odom': self.other_odom
+            'ibeo_objects': self.ibeo_object
         }
         
+        print(self.extracted_data['ibeo_objects'])
         
         # Save the json file
         with open('/constraint_model/extracted_data.txt', 'w') as outfile:

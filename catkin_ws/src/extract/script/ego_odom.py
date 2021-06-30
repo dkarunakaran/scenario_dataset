@@ -15,22 +15,12 @@ class EgoOdom:
     
     def put(self, timestamp= None, msg = None):
         self.data = Data()
-        self.data.long_vel = msg.twist.twist.linear.x
-        self.data.lat_vel = msg.twist.twist.linear.y
-        self.data.positon_x = msg.pose.pose.position.x
-        self.data.positon_y = msg.pose.pose.position.y
-        self.data.orientation_x = msg.pose.pose.orientation.x
-        self.data.orientation_y = msg.pose.pose.orientation.y
-        self.data.orientation_z = msg.pose.pose.orientation.z
-        self.data.orientation_w = msg.pose.pose.orientation.w
-        quaternion = (
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-            msg.pose.pose.orientation.w
-        )
-        euler = tf.transformations.euler_from_quaternion(quaternion)
-        self.data.yaw = euler[2]
+        self.data.linear_x = msg['linear_x']
+        self.data.linear_y = msg['linear_y']
+        self.data.linear_z = msg['linear_z']
+        self.data.roll = msg['roll']
+        self.data.pitch = msg['pitch']
+        self.data.yaw = msg['yaw']
         self.item_timestamp.append(timestamp.secs)
         self.item.append(self.data)
         
