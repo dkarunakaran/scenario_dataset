@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 import random
 plt.rcParams.update({'figure.max_open_warning': 0})
 from datetime import datetime 
+import numpy as np
 
 class Data:
     def __init__(self, **entries):
@@ -68,7 +69,8 @@ class Process:
             else:
                 self.ego_data[data.sec] = []
                 self.ego_data[data.sec].append(data)
-                
+
+        # Storing the plotting data        
         for sec in self.ego_data:
             item = self.ego_data[sec]
             if len(item) > 1:
@@ -141,8 +143,8 @@ class Process:
         #self.plot_a_car(car='ego')
         #self.plot_a_car(car=144)
         #cars = [128, 16, 240, 196, 5, 166, 200, 252, 110, 46, 176, 168, 178, 53, 218, 127, 28, 159, 'ego']
-        #cars = [144, 'ego']
-        #self.plot_multiple_car(cars = cars)
+        cars = [144, 221, 175, 'ego']
+        self.plot_multiple_car(cars = cars)
         
         self.extraction_logic()
     
@@ -150,42 +152,97 @@ class Process:
         
         # CUT-IN scenario
         # LOGIC: 
+        # We choose 8 secod as the projected ego dats arequired. For normal lane change, a peper estimated that duration is 8 second. 
         # 1. Loop through ego_data per second
-        #   a. find all the vehicle nearby ego at that second
-        #   b. find the trajectory each vehicle for next 8 second that meet with eg's trajectory for the next 8 second.
-        #   c. if there is any vehicle's trajectory is close(y distance is closer) at nth second, then nsecond-8 is the starting point of the scenaario extraction.
-        # There is a problem with "y dsitance is closer" logic as any vehicle was one the same lane can be detected as well.But it's wrong.
-        #
-        #
-
-        for sec in self.ego_data:
-            
-            #Find the vehicle in that sec
-            if sec in self.other_objects:
-                all_cars_at_sec = list(set(self.other_objects[sec]))
-                
-            else:
-                continue
-            '''
-            iter_sec = [index for index in range(sec+4, sec+8)]
-            other = []
-            for future_sec in iter_sec:
-                if future_sec in self.other_objects_data:
-                    projected_ego_data = self.ego_data[future_sec]
-                    
-                    # There are multiple ego data at each second
-                    for projected_ego_data_per_sec in projected_ego_data:
-                        projected_other_car_data = self.other_objects_data[future_sec]
-                        for each_car_data in projected_other_car_data:
-                            if each_car_data.object_id == 144:
-                                #print("ego position_y: original:{} projected:{}_{}, other_car position_y:{}".format(projected_ego_data_per_sec.position_y,projected_ego_data_per_sec.position_y-1.5, projected_ego_data_per_sec.position_y+1.5, each_car_data.position_y))
-                                print("ego: ({}, {}) car: ({},{})".format(projected_ego_data_per_sec.position_x, projected_ego_data_per_sec.position_y, each_car_data.position_x,each_car_data.position_y))
-                            #if ((projected_ego_data_per_sec.position_y-1.5) > each_car_data.position_y and (projected_ego_data_per_sec.position_y+1.5) < each_car_data.position_y) and ((each_car_data.position_x - projected_ego_data_per_sec.position_x) < 100):
-                            #    print("Found")   
+        # 2. Project the ego path for 8 second.
+        # 3. We now the the projected path of ego for 8 second.
+        # 4. Loop through each second untill the 8 second
+        # 5. At each second find the euclidean distance of the vehicle nearby with ego path.
+        # 6. If the euclidean distance is closer to zero of any vehicle at any second. then that has the lane change
         
-            
-        '''
-                                
+        count = 0 
+        lane_changed_car = {}
+        for sec in self.ego_data:
+            if True:
+                # This is for getting the projected data for ego motion
+                projected_secs = [key for key in range(sec, sec+8)]
+                all_ego_data_till_proj = []
+                for temp_sec in projected_secs:
+                    if temp_sec in self.ego_data:
+                        for temp_data in self.ego_data[temp_sec]:
+                            all_ego_data_till_proj.append(temp_data)   
+                              
+                for proj_sec in projected_secs:
+                    
+                    #Checking if we have any data for other objects in that sec.
+                    if proj_sec in self.other_objects:
+                        all_cars_at_sec = list(set(self.other_objects[proj_sec]))
+                        for car in all_cars_at_sec:
+                            if True:
+                                other_data_list = self.group_by_car[car] 
+                                for o_data in other_data_list:
+                                    
+                                    # Loop through ego_s trajectory till 8 second
+                                    for e_data in all_ego_data_till_proj:
+                                        x1, y1 = e_data.position_x, e_data.position_y
+                                        x2, y2 = o_data.position_x, o_data.position_y
+                                        
+                                        # Finding the euclidean distance is using this formula square root((x2-x1)^2+ (y2-y1)^2)
+                                        d = math.sqrt(
+                                            (
+                                                math.pow((x2-x1), 2)
+                                                +
+                                                math.pow((y2-y1), 2)
+                                            )
+                                        )
+                                        if d < 1:
+                                            if car in lane_changed_car:
+                                                lane_changed_car[car].append(d)
+                                            else:
+                                                lane_changed_car[car] = []
+                                                lane_changed_car[car].append(d)
+                                        
+                                    
+                                '''
+                                if(len(other_data_list) > 1):
+                                    first = 0
+                                    second = len(other_data_list)-1
+                                    x1, y1 = other_data_list[first].position_x, other_data_list[first].position_y
+                                    x2, y2 = other_data_list[second].position_x, other_data_list[second].position_y
+                                    # Finding the slope m = (y2-y1)/x2-x1)
+                                    m = (y2-y1)/(x2-x1)
+                                    #print(m)
+                                    b = y2-m*x2
+                                    #print(b)
+                                    
+                                    # Finding the middle point in the line:
+                                    x_mid = (x1+x2)/2     
+                                    y_mid = (y1+y2)/2
+                                    print("(x,y) = ({},{})".format(x_mid,y_mid))
+                                    
+                                    # Now I need to find the perpendicular line to the created line
+                                    # Negative reciprocal of the slope is the slope of the perpendicular line:
+                                    m_p = np.reciprocal(m)*-1 
+                                    # Finding the slope m = (y2-y1)/x2-x1)
+                                    # Now we need to find the perpendicular line that passes through (x,y) on the other line
+                                    # Based on this site : https://www.mathsisfun.com/algebra/line-parallel-perpendicular.html. We can find 
+                                    # the equation of the perpendicular line that passess through (x,y)
+                                    # call the point(x_mid, y_mid) to (x1p,y1p)
+                                    x1p, y1p = x_mid, y_mid
+                                    # The equation now is : (y-y1p) = m_p(x - x1p)
+                                    # y = (m_p*x - m_p*x1p)+y1p
+                                    print(m_p)         
+                                else:
+                                    print(other_data_list[0].position_x)
+                                    print(other_data_list[0].position_y)
+                                '''
+        #cars = [144, 221, 175] 
+        cars = [221]   
+        for car in cars:
+            print(car)
+            print(lane_changed_car[car])
+            print("-------------------------------")
+        
         # CUT-OUT scenario
         
         

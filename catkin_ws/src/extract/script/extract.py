@@ -40,6 +40,12 @@ class Extract:
             'ego_odom': None,
             'ibeo_objects': None
         }
+        
+        self.f_g = open('/constraint_model/data/stamped_groundtruth.txt', 'w')
+        self.f_g.write('# timestamp tx ty tz qx qy qz qw\n')
+        self.f_e = open('/constraint_model/data/stamped_traj_estimate.txt', 'w')
+        self.f_e.write('# timestamp tx ty tz qx qy qz qw\n')
+        
         rospy.Subscriber('/ibeo/odometry', Odometry, self.ego_odometry)    
         rospy.Subscriber('/ibeo/objects', IbeoObject, self.ibeo_objects)  
         self.tf_buffer = tf2_ros.Buffer()
@@ -71,13 +77,24 @@ class Extract:
             'position_x': data.pose.pose.position.x,
             'position_y': data.pose.pose.position.y,
             'position_z': data.pose.pose.position.z,
-            'roll': roll,
             'pitch': pitch,
             'yaw': yaw,
             'sec': data.header.stamp.secs,
-            'nsec': data.header.stamp.nsecs
+            'nsec': data.header.stamp.nsecs,
+            'to_sec': t.to_sec(),
+            'to_nsec': t.to_nsec()
+                        
         }
         self.ego_odom.append(msg)
+        
+        self.f_g.write('%.12f %.12f %.12f %.12f %.12f %.12f %.12f %.12f\n' % 
+                       (data.header.stamp.to_sec(),
+                        data.pose.pose.position.x, data.pose.pose.position.y,
+                        data.pose.pose.position.z,
+                        data.pose.pose.orientation.x,
+                        data.pose.pose.orientation.y,
+                        data.pose.pose.orientation.z,
+                        data.pose.pose.orientation.w))
     
     def ibeo_objects(self, data):
         
@@ -122,10 +139,21 @@ class Extract:
                         'pitch': pitch,
                         'yaw': yaw,
                         'sec': data_odom.header.stamp.secs,
-                        'nsec': data_odom.header.stamp.nsecs
+                        'nsec': data_odom.header.stamp.nsecs,
+                        'to_sec': t.to_sec(),
+                        'to_nsec': t.to_nsec()
                         
                     }
                     self.ibeo_object.append(msg)
+                    
+                    self.f_e.write('%.12f %.12f %.12f %.12f %.12f %.12f %.12f %.12f\n' % 
+                       (data_odom.header.stamp.to_sec(),
+                        data_odom.pose.position.x, data_odom.pose.position.y,
+                        data_odom.pose.position.z,
+                        data_odom.pose.orientation.x,
+                        data_odom.pose.orientation.y,
+                        data_odom.pose.orientation.z,
+                        data_odom.pose.orientation.w))
                     
                 except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                     pass
