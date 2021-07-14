@@ -13,45 +13,99 @@ import random
 plt.rcParams.update({'figure.max_open_warning': 0})
 from datetime import datetime 
 import numpy as np
+from collections import OrderedDict
 
 class Data:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
 class Process:
-    path_to_file = '/constraint_model/extracted_data_data1.txt'
+    path_to_dir = '/data/training_0000_bags/results/'
+
+    '''
+    path_to_file = '/constraint_model/extracted_data.txt'
+    #path_to_file = '/constraint_model/extracted_data_data1.txt'
     #path_to_file = '/constraint_model/extracted_data_gate_south-end_north-end_20180201_070554.0.txt'
+    #path_to_file = '/constraint_model/extracted_data_gate_south-end_north-end_20180202_054546.0.txt'
     evaluation = {
         'ego_odom':None,
-        'ibeo_objects': None
+        'other_objects': None
     }
 
     # Edo data per second
-    ego_data = {}
+    ego_data = OrderedDict()
 
     # This contains the all the objects data under each second
-    other_objects_data = {}
+    other_objects_data = OrderedDict()
     
     # This simply contains object_id per second
-    other_objects = {}
+    other_objects = OrderedDict()
 
     # It group by object_id and then store all data of the object id in each second
-    other_objects_sec = {}
-    group_ego_by_sec = {}
+    other_objects_sec = OrderedDict()
+    group_ego_by_sec = OrderedDict()
 
     # This contains all the data under object_id
-    group_by_car = {}
+    group_by_car = OrderedDict()
 
     # It is mainly for plotting
-    car_processed_data = {}
-    
+    car_processed_data = OrderedDict()
+   
+    deleted_objects = []
+    '''
+    current_file = None
     def __init__(self):
         
-        with open(self.path_to_file) as json_file:
-            data = json.load(json_file)
-            self.evaluation['ego_odom'] = data['ego_odom']
-            self.evaluation['ibeo_objects'] = data['ibeo_objects']
-            self.path_to_save_dir = '/constraint_model/plots/'
+        dirFiles = os.listdir(self.path_to_dir)
+        file_list = []
+        for _file in dirFiles: #filter out all non jpgs
+            if _file.endswith('.txt'):
+                file_list.append(_file)
+        file_list.sort(key=lambda f: int(filter(str.isdigit, f)))
+        file_count = 0
+        
+        #self.path_to_dir = '/data/training_0000_bags/results/'
+        #file_list = ['segment-10153695247769592104_787_000_807_000_with_camera_labels_bag.txt']
+        self.path_to_dir = '/constraint_model/data/new_ibeo_data/'
+        file_list = ['gate_south-end_north-end_20210528_064001_0_bag.txt']
+        
+        for _file in file_list:
+            print("Current file: {}".format(_file))
+            self.current_file = None
+            self.evaluation = {
+                'ego_odom':None,
+                'other_objects': None
+            }
+
+            # Edo data per second
+            self.ego_data = OrderedDict()
+
+            # This contains the all the objects data under each second
+            self.other_objects_data = OrderedDict()
+
+            # This simply contains object_id per second
+            self.other_objects = OrderedDict()
+
+            # It group by object_id and then store all data of the object id in each second
+            self.other_objects_sec = OrderedDict()
+            self.group_ego_by_sec = OrderedDict()
+
+            # This contains all the data under object_id
+            self.group_by_car = OrderedDict()
+
+            # It is mainly for plotting
+            self.car_processed_data = OrderedDict()
+
+            self.deleted_objects = []
+
+            # Each file iteration
+            with open(self.path_to_dir+_file) as json_file:
+                data = json.load(json_file)
+                self.evaluation['ego_odom'] = data['ego_odom']
+                self.evaluation['other_objects'] = data['other_objects']
+                self.current_file = os.path.splitext(_file)[0]
+            self.evaluate()
+
     
     def evaluate(self):
         self.car_processed_data['ego'] = {
@@ -69,19 +123,29 @@ class Process:
             else:
                 self.ego_data[data.sec] = []
                 self.ego_data[data.sec].append(data)
+       
 
         # Storing the plotting data        
         for sec in self.ego_data:
             item = self.ego_data[sec]
-            if len(item) > 1:
+            if len(item) > 1: #>1
                 data = item[0]
                 self.car_processed_data['ego']['x'].append(data.position_x)
                 self.car_processed_data['ego']['y'].append(data.position_y)
             else:
                 continue
         
+        for sec in self.ego_data.keys():
+            print("_____")
+            print(sec)
+            print(self.ego_data[sec][0].position_x)
+            print(self.ego_data[sec][0].position_y)
+            #for data in self.ego_data[sec]:
+            #    print(data.position_x)
+        
+        
         # Other objects odometry 
-        for item in self.evaluation['ibeo_objects']:
+        for item in self.evaluation['other_objects']:
             data  = Data(**item)
             if data.sec in self.other_objects_data:
                 self.other_objects_data[data.sec].append(data)
@@ -102,11 +166,16 @@ class Process:
                 self.other_objects_sec[data.object_id] = {}
                 self.other_objects_sec[data.object_id][data.sec] = []
                 self.other_objects_sec[data.object_id][data.sec].append(data)
-
+        
+        #print(self.other_objects.keys())
+        #print(self.ego_data.keys())
+        for o_id in self.other_objects_sec.keys():
+            if len(self.other_objects_sec[o_id].keys()) < 5:
+                self.deleted_objects.append(o_id)
         
         # Grouping the data by car
         previous = {}
-        for item in self.evaluation['ibeo_objects']:
+        for item in self.evaluation['other_objects']:
             data  = Data(**item)
             if data.object_id in self.group_by_car:
                 # Logic to capture the data at each second
@@ -118,8 +187,9 @@ class Process:
                     self.group_by_car[data.object_id].append(data)
                     
             else:
-                self.group_by_car[data.object_id] = []
-                self.group_by_car[data.object_id].append(data)
+                if data.object_id not in self.deleted_objects:
+                    self.group_by_car[data.object_id] = []
+                    self.group_by_car[data.object_id].append(data)
                 
             previous[data.object_id] = data.sec
         
@@ -138,17 +208,25 @@ class Process:
                 
         
         #print(self.group_by_car.keys())
-        
         #print(self.car_processed_data['ego'])
         #self.plot_a_car(car='ego')
         #self.plot_a_car(car=144)
-        #cars = [128, 16, 240, 196, 5, 166, 200, 252, 110, 46, 176, 168, 178, 53, 218, 127, 28, 159, 'ego']
-        cars = [144, 221, 175, 'ego']
-        self.plot_multiple_car(cars = cars)
+        #cars = [144, 221, 175, 'ego'] # data 1
+        #cars = [240, 46, 127, 'ego'] # extracted_data_gate_south-end_north-end_20180201_070554.0
+        #cars = [36, 164, 167, 'ego'] # extracted_data_gate_south-end_north-end_20180202_054546.0
+        cars = self.group_by_car.keys()
+        cars.append('ego')
+        self.plot_multiple_car(cars = cars, png_name = 'combined_trajectory')
         
-        self.extraction_logic()
+        '''cars = self.extraction_logic()
+        cars.append('ego')
+        self.plot_multiple_car(cars = cars, png_name = 'combined_trajectory_cut_in')'''
     
     def extraction_logic(self):
+        
+        # trainting_0000_bags/results/segment-10153695247769592104_787_000_807_000_with_camera_labels.bag is an example of cut out scenario and lane following. 
+        # Because the euclidean distance logic extract all cut0in, cut-out and lane -following scenario. Cut-out becuase it was lane following for a whicle beore the cut out.
+        # What we need the lane information. 
         
         # CUT-IN scenario
         # LOGIC: 
@@ -163,8 +241,9 @@ class Process:
         count = 0 
         lane_changed_car = {}
         for sec in self.ego_data:
+            print("Projecting {} second".format(sec))
             if True:
-                # This is for getting the projected data for ego motion
+                # This is for getting the projected data for ego motion from sec to sec+8 seconds
                 projected_secs = [key for key in range(sec, sec+8)]
                 all_ego_data_till_proj = []
                 for temp_sec in projected_secs:
@@ -178,7 +257,7 @@ class Process:
                     if proj_sec in self.other_objects:
                         all_cars_at_sec = list(set(self.other_objects[proj_sec]))
                         for car in all_cars_at_sec:
-                            if True:
+                            if car not in self.deleted_objects:
                                 other_data_list = self.group_by_car[car] 
                                 for o_data in other_data_list:
                                     
@@ -195,59 +274,39 @@ class Process:
                                                 math.pow((y2-y1), 2)
                                             )
                                         )
-                                        if d < 1:
+                                        if d < 0.25:
                                             if car in lane_changed_car:
                                                 lane_changed_car[car].append(d)
                                             else:
                                                 lane_changed_car[car] = []
                                                 lane_changed_car[car].append(d)
                                         
-                                    
-                                '''
-                                if(len(other_data_list) > 1):
-                                    first = 0
-                                    second = len(other_data_list)-1
-                                    x1, y1 = other_data_list[first].position_x, other_data_list[first].position_y
-                                    x2, y2 = other_data_list[second].position_x, other_data_list[second].position_y
-                                    # Finding the slope m = (y2-y1)/x2-x1)
-                                    m = (y2-y1)/(x2-x1)
-                                    #print(m)
-                                    b = y2-m*x2
-                                    #print(b)
-                                    
-                                    # Finding the middle point in the line:
-                                    x_mid = (x1+x2)/2     
-                                    y_mid = (y1+y2)/2
-                                    print("(x,y) = ({},{})".format(x_mid,y_mid))
-                                    
-                                    # Now I need to find the perpendicular line to the created line
-                                    # Negative reciprocal of the slope is the slope of the perpendicular line:
-                                    m_p = np.reciprocal(m)*-1 
-                                    # Finding the slope m = (y2-y1)/x2-x1)
-                                    # Now we need to find the perpendicular line that passes through (x,y) on the other line
-                                    # Based on this site : https://www.mathsisfun.com/algebra/line-parallel-perpendicular.html. We can find 
-                                    # the equation of the perpendicular line that passess through (x,y)
-                                    # call the point(x_mid, y_mid) to (x1p,y1p)
-                                    x1p, y1p = x_mid, y_mid
-                                    # The equation now is : (y-y1p) = m_p(x - x1p)
-                                    # y = (m_p*x - m_p*x1p)+y1p
-                                    print(m_p)         
-                                else:
-                                    print(other_data_list[0].position_x)
-                                    print(other_data_list[0].position_y)
-                                '''
         #cars = [144, 221, 175] 
-        cars = [221]   
+        '''cars = [843599169]   
         for car in cars:
             print(car)
             print(lane_changed_car[car])
-            print("-------------------------------")
+            print("-------------------------------")'''
+            
+        '''print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        for data in self.group_by_car[843599169]:
+           print(data.position_x)
+           print(data.position_y)
+           print("_____________")'''
+            
+            
+        
         
         # CUT-OUT scenario
         
         
         
         # Overtaking scenario
+        
+        
+        # Lane following
+        
+        return lane_changed_car.keys()
             
             
     def test_plot(self, cars =  None):
@@ -279,23 +338,25 @@ class Process:
         plt.savefig(name)
         plt.close()
     
-    def plot_multiple_car(self, cars = None):        
-        name = self.path_to_save_dir+"combined_trajectory"
-        plt.figure()
-        fig, ax = plt.subplots()
-        for car in cars:
-            if car == 'ego':
-                ax.plot(self.car_processed_data[car]['x'], self.car_processed_data[car]['y'], label=car, linewidth=3)
-            else:
-                ax.plot(self.car_processed_data[car]['x'], self.car_processed_data[car]['y'], label=car)
-        plt.xlabel("x(m)")
-        plt.ylabel("y(m)")
-        plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
-        plt.savefig(name)
-        plt.close()
+    def plot_multiple_car(self, cars = None, png_name = None):        
+        
+        if self.current_file is not None:
+            name = self.path_to_dir+self.current_file+"_"+png_name
+            print(name)
+            plt.figure()
+            fig, ax = plt.subplots()
+            for car in cars:
+                if car == 'ego':
+                    ax.plot(self.car_processed_data[car]['x'], self.car_processed_data[car]['y'], label=car, linewidth=3)
+                else:
+                    ax.plot(self.car_processed_data[car]['x'], self.car_processed_data[car]['y'], label=car)
+            plt.xlabel("x(m)")
+            plt.ylabel("y(m)")
+            plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+            plt.savefig(name)
+            plt.close()
                   
 
 
 if __name__=='__main__':
     p = Process()
-    p.evaluate()

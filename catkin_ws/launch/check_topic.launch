@@ -1,0 +1,11 @@
+<launch>
+	<node pkg="extract" type="check_topic.py" name="check_topic" output="screen"></node>
+	<node pkg="nodelet" type="nodelet" name="test_nodelet"  args="manager" output="screen"/>
+
+    <node pkg="nodelet" type="nodelet" name="pointcloud_transformer" args="load transform_pointcloud/transformPointcloud test_nodelet" output="screen">
+        <param name="to_frame" value="global"/>
+        <remap from="~input_pcl2" to="/lidar_pointcloud/top"/>
+        <!--<param name="to_frame" value="base_link"/>
+        <remap from="~input_pcl2" to="/ibeo/lidar/static"/>-->
+    </node>	
+</launch>

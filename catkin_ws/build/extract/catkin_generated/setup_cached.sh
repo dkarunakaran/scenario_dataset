@@ -8,6 +8,8 @@
 
 # modified environment variables
 export CMAKE_PREFIX_PATH="/constraint_model/catkin_ws/devel/.private/extract:$CMAKE_PREFIX_PATH"
+export LD_LIBRARY_PATH="/constraint_model/catkin_ws/devel/.private/extract/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH="/constraint_model/catkin_ws/devel/.private/extract/lib/pkgconfig:$PKG_CONFIG_PATH"
 export PWD='/constraint_model/catkin_ws/build/extract'
 export ROSLISP_PACKAGE_DIRECTORIES="/constraint_model/catkin_ws/devel/.private/extract/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
 export ROS_PACKAGE_PATH="/constraint_model/catkin_ws/src/extract:$ROS_PACKAGE_PATH"

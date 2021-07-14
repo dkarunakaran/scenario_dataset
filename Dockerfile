@@ -53,6 +53,10 @@ RUN apt-get update
 RUN apt-get install -y python-catkin-tools
 RUN apt-get install -y software-properties-common
 
+# Other important packages
+RUN apt-get install -y ros-melodic-tf2-sensor-msgs
+RUN apt-get install -y ros-melodic-tf2-sensor-msgs
+
 # Install carla-ros-bridge
 RUN apt-get update
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 81061A1A042F527D
