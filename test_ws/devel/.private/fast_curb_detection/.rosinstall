@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /constraint_model/test_ws/devel/.private/fast_curb_detection/setup.sh

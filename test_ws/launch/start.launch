@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="rs_to_velodyne" type="rs_to_velodyne" name="rs_to_velodyne" output="screen" required="true"/>
+  <node pkg="fast_curb_detection" type="main" name="fast_curb_detection" output="screen" required="true"/>
+</launch>

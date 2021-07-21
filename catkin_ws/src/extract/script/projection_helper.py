@@ -91,6 +91,9 @@ def birds_eye_point_cloud(points,
 
     # RESCALE THE HEIGHT VALUES - to be between the range 0-255
     pixel_values  = scale_to_255(pixel_values, min=i_min, max=i_max)
+    
+    # Set the all the remaining intensity(greater than 20) to 255
+    pixel_values[pixel_values > 20] = 255
 
     # FILL PIXEL VALUES IN IMAGE ARRAY
     x_max = int((side_range[1] - side_range[0])/res)
@@ -100,17 +103,14 @@ def birds_eye_point_cloud(points,
     im[-y_img, x_img] = pixel_values # -y because images start from top left
     
     # Convert from numpy array to a PIL image
-    im = Image.fromarray(im)
-    print("Image is saving..")
-    im.save(saveto)
+    #im = Image.fromarray(im)
+    #print("Image is saving..")
+    #im.save(saveto)
 
-    #combined_points = np.array([x_lidar[indices], y_lidar[indices], z_lidar[indices], i_lidar[indices]])
-    #points = combined_points.reshape((-1,4))
+    combined_points = np.array([x_lidar[indices], y_lidar[indices], z_lidar[indices], i_lidar[indices]])
+    points = combined_points.reshape((-1,4))
     
-    # return filtered points and then use code 1 for finding the lanes using RANSAC
-    
-    # https://github.com/Lukas-Justen/Lane-Marking-Detection has some filtering techniques
-    #return points[np.logical_and(points[:,3]>i_min, points[:,3]<i_max)]
+    return points, im
         
 def point_cloud_to_panorama(points,
                             v_res=0.42,

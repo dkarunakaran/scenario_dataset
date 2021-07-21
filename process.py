@@ -3,6 +3,7 @@ import os
 import json
 import math
 import matplotlib
+from scipy.sparse import data
 
 # For the error: Exception ignored in: <bound method Image.del of <tkinter.PhotoImage object at 0x7f1b5f86a710>> Traceback (most recent call last):
 matplotlib.use('Agg')
@@ -15,59 +16,74 @@ from datetime import datetime
 import numpy as np
 from collections import OrderedDict
 
+
+# Next step: Identify all below for IBEO and Waymo dataset.
+# 1. Compute the cut-in and overtaking without lane information - Done(This logic will not work if there is no vehicle behind. But in that case, it may not be critical to change the lane)
+#   A. Find example to see the logic is working for overtaking scenario - Done(We have a few examples)
+# 2. Extract the lane information 
+#   A. Find the region of interest, then only consider the points in that region to construct the lane(There is a concern of region of interest during the lane change)
+#       a. Yaw can determine the lane equation of two points of the vehicle odom. Consider the perpendicular line from each point of the constructed line, 
+#           then consider only all other points that are within a threshold meter. 
+#   B.    
+# 3. Identify content for OpenDrive format for IBEO data
+#   A. Road data: Number of lane
+#   B. Road structure
+#   C. Anyother static information possible such as building, trees, rad signs etc
+# 4. Compute the OpenScenario fromat from the extracted content.
+
 class Data:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
 class Process:
-    path_to_dir = '/data/training_0000_bags/results/'
-
-    '''
-    path_to_file = '/constraint_model/extracted_data.txt'
-    #path_to_file = '/constraint_model/extracted_data_data1.txt'
-    #path_to_file = '/constraint_model/extracted_data_gate_south-end_north-end_20180201_070554.0.txt'
-    #path_to_file = '/constraint_model/extracted_data_gate_south-end_north-end_20180202_054546.0.txt'
-    evaluation = {
-        'ego_odom':None,
-        'other_objects': None
-    }
-
-    # Edo data per second
-    ego_data = OrderedDict()
-
-    # This contains the all the objects data under each second
-    other_objects_data = OrderedDict()
     
-    # This simply contains object_id per second
-    other_objects = OrderedDict()
-
-    # It group by object_id and then store all data of the object id in each second
-    other_objects_sec = OrderedDict()
-    group_ego_by_sec = OrderedDict()
-
-    # This contains all the data under object_id
-    group_by_car = OrderedDict()
-
-    # It is mainly for plotting
-    car_processed_data = OrderedDict()
-   
-    deleted_objects = []
-    '''
-    current_file = None
     def __init__(self):
-        
-        dirFiles = os.listdir(self.path_to_dir)
-        file_list = []
-        for _file in dirFiles: #filter out all non jpgs
-            if _file.endswith('.txt'):
-                file_list.append(_file)
-        file_list.sort(key=lambda f: int(filter(str.isdigit, f)))
+        self.path_to_dir = None
+        if self.path_to_dir is not None:
+            dirFiles = os.listdir(self.path_to_dir)
+            file_list = []
+            for _file in dirFiles: #filter out all non jpgs
+                if _file.endswith('.txt'):
+                    file_list.append(_file)
+            file_list.sort(key=lambda f: int(filter(str.isdigit, f)))
         file_count = 0
         
-        #self.path_to_dir = '/data/training_0000_bags/results/'
-        #file_list = ['segment-10153695247769592104_787_000_807_000_with_camera_labels_bag.txt']
+        #new_ibeo_data/gate_south-end_north-end_20210531_051742_0_bag.txt 
+        # 1. object_id:43 = lane following and cutout scenario
+        # 2. object_id:2 = cut in scenario at the end 
+        
+        #new_ibeo_data/gate_south-end_north-end_20210601_080738_0_bag.txt 
+        # 1. object_id:183 = cut-in scenario
+        
+        
+        #trainting_0000_bags/segment-10212406498497081993_5300_000_5320_000_with_camera_labels.bag
+        # 1. Cut-in scenario from right
+        
+        #training_0000_bags/segment-10231929575853664160_1160_000_1180_000_with_camera_labels.bag
+        # 1. Cut-in scenario from right
+        
+        #training_0001_bags/segment-10498013744573185290_1240_000_1260_000_with_camera_labels.bag
+        # 1. Ego's lane change to the left with back vehicle
+        
+        #training_0001_bags/segment-10584247114982259878_490_000_510_000_with_camera_labels.bag
+        # 1. Ego's lane change to the left without back vehicle
+        
+        #training_0002_bags/segment-11119453952284076633_1369_940_1389_940_with_camera_labels.bag
+        # 1. Ego's lane change to the left with back vehicle
+        
+        #training_0003_bags/segment-1146261869236413282_1680_000_1700_000_with_camera_labels.bag
+        # 1. Cut-in from right
+        
+        #training_0003_bags/segment-11486225968269855324_92_000_112_000_with_camera_labels.bag
+        # 1. Ego's lane change to the left without back vehicle
+        
+        
         self.path_to_dir = '/constraint_model/data/new_ibeo_data/'
+        #file_list = ['gate_south-end_north-end_20210601_080738_0_bag.txt']
+        #file_list = ['gate_south-end_north-end_20210531_051742_0_bag.txt']
         file_list = ['gate_south-end_north-end_20210528_064001_0_bag.txt']
+        
+        
         
         for _file in file_list:
             print("Current file: {}".format(_file))
@@ -76,38 +92,52 @@ class Process:
                 'ego_odom':None,
                 'other_objects': None
             }
-
-            # Edo data per second
-            self.ego_data = OrderedDict()
-
-            # This contains the all the objects data under each second
-            self.other_objects_data = OrderedDict()
-
-            # This simply contains object_id per second
-            self.other_objects = OrderedDict()
-
-            # It group by object_id and then store all data of the object id in each second
-            self.other_objects_sec = OrderedDict()
-            self.group_ego_by_sec = OrderedDict()
-
-            # This contains all the data under object_id
-            self.group_by_car = OrderedDict()
-
-            # It is mainly for plotting
-            self.car_processed_data = OrderedDict()
-
-            self.deleted_objects = []
-
-            # Each file iteration
+            
             with open(self.path_to_dir+_file) as json_file:
                 data = json.load(json_file)
                 self.evaluation['ego_odom'] = data['ego_odom']
-                self.evaluation['other_objects'] = data['other_objects']
                 self.current_file = os.path.splitext(_file)[0]
-            self.evaluate()
-
-    
-    def evaluate(self):
+            
+            self.reset()    
+            self.get_ego_data()
+            
+            self.cut_in_scenario = False
+            self.overtaking_scenario = True
+            
+            if self.cut_in_scenario:
+            
+                with open(self.path_to_dir+_file) as json_file:
+                    data = json.load(json_file)
+                    self.evaluation['other_objects'] = data['other_objects']['cut-in']
+                
+                self.evaluate()
+                cars = self.group_by_car.keys()
+                cars.append('ego')
+                self.plot_multiple_car(cars = cars, png_name = 'combined_trajectory_front')
+                
+                # Extraction logic of cut-in scenario
+                self.extraction_logic()
+                
+            self.reset()
+            self.get_ego_data()
+                
+            if self.overtaking_scenario:
+                
+                with open(self.path_to_dir+_file) as json_file:
+                    data = json.load(json_file)
+                    self.evaluation['other_objects'] = data['other_objects']['overtaking']
+                
+                self.evaluate()
+                print(self.car_processed_data.keys())
+                
+                cars = self.group_by_car.keys()
+                cars.append('ego')
+                self.plot_multiple_car(cars = cars, png_name = 'combined_trajectory_behind')
+                
+                # Extraction logic of cut-in scenario
+                self.extraction_logic()
+                
+    def get_ego_data(self):
         self.car_processed_data['ego'] = {
             'x': [],
             'y': [],
@@ -134,15 +164,36 @@ class Process:
                 self.car_processed_data['ego']['y'].append(data.position_y)
             else:
                 continue
+
+    
+    def reset(self):
         
-        for sec in self.ego_data.keys():
-            print("_____")
-            print(sec)
-            print(self.ego_data[sec][0].position_x)
-            print(self.ego_data[sec][0].position_y)
-            #for data in self.ego_data[sec]:
-            #    print(data.position_x)
+        # Edo data per second
+        self.ego_data = OrderedDict()
+
+        # This contains the all the objects data under each second
+        self.other_objects_data = OrderedDict()
+
+        # This simply contains object_id per second
+        self.other_objects = OrderedDict()
+
+        # It group by object_id and then store all data of the object id in each second
+        self.other_objects_sec = OrderedDict()
+        self.group_ego_by_sec = OrderedDict()
+
+        # This contains all the data under object_id per sec
+        self.group_by_car = OrderedDict()
         
+        # This contains all the data under object_id per nsec
+        self.group_by_car_nsec = OrderedDict()
+
+        # It is mainly for plotting
+        self.car_processed_data = OrderedDict()
+
+        self.deleted_objects = []
+        
+    
+    def evaluate(self):
         
         # Other objects odometry 
         for item in self.evaluation['other_objects']:
@@ -190,6 +241,13 @@ class Process:
                 if data.object_id not in self.deleted_objects:
                     self.group_by_car[data.object_id] = []
                     self.group_by_car[data.object_id].append(data)
+            
+            # Group by car and collect all data.
+            if data.object_id in self.group_by_car_nsec:
+                self.group_by_car_nsec[data.object_id].append(data)
+            else:
+                self.group_by_car_nsec[data.object_id] = []
+                self.group_by_car_nsec[data.object_id].append(data)
                 
             previous[data.object_id] = data.sec
         
@@ -206,107 +264,186 @@ class Process:
                 self.car_processed_data[car]['x'].append(data.position_x)
                 self.car_processed_data[car]['y'].append(data.position_y)
                 
-        
-        #print(self.group_by_car.keys())
-        #print(self.car_processed_data['ego'])
-        #self.plot_a_car(car='ego')
-        #self.plot_a_car(car=144)
-        #cars = [144, 221, 175, 'ego'] # data 1
-        #cars = [240, 46, 127, 'ego'] # extracted_data_gate_south-end_north-end_20180201_070554.0
-        #cars = [36, 164, 167, 'ego'] # extracted_data_gate_south-end_north-end_20180202_054546.0
-        cars = self.group_by_car.keys()
-        cars.append('ego')
-        self.plot_multiple_car(cars = cars, png_name = 'combined_trajectory')
-        
-        '''cars = self.extraction_logic()
-        cars.append('ego')
-        self.plot_multiple_car(cars = cars, png_name = 'combined_trajectory_cut_in')'''
+
     
     def extraction_logic(self):
         
         # trainting_0000_bags/results/segment-10153695247769592104_787_000_807_000_with_camera_labels.bag is an example of cut out scenario and lane following. 
         # Because the euclidean distance logic extract all cut0in, cut-out and lane -following scenario. Cut-out becuase it was lane following for a whicle beore the cut out.
-        # What we need the lane information. 
+        # I could solve the below issue with lateral acceleration, but still has some false positives. So we need the lane information. 
         
-        # CUT-IN scenario
-        # LOGIC: 
-        # We choose 8 secod as the projected ego dats arequired. For normal lane change, a peper estimated that duration is 8 second. 
-        # 1. Loop through ego_data per second
-        # 2. Project the ego path for 8 second.
-        # 3. We now the the projected path of ego for 8 second.
-        # 4. Loop through each second untill the 8 second
-        # 5. At each second find the euclidean distance of the vehicle nearby with ego path.
-        # 6. If the euclidean distance is closer to zero of any vehicle at any second. then that has the lane change
-        
-        count = 0 
-        lane_changed_car = {}
-        for sec in self.ego_data:
-            print("Projecting {} second".format(sec))
-            if True:
-                # This is for getting the projected data for ego motion from sec to sec+8 seconds
-                projected_secs = [key for key in range(sec, sec+8)]
-                all_ego_data_till_proj = []
-                for temp_sec in projected_secs:
-                    if temp_sec in self.ego_data:
-                        for temp_data in self.ego_data[temp_sec]:
-                            all_ego_data_till_proj.append(temp_data)   
-                              
-                for proj_sec in projected_secs:
-                    
-                    #Checking if we have any data for other objects in that sec.
-                    if proj_sec in self.other_objects:
-                        all_cars_at_sec = list(set(self.other_objects[proj_sec]))
-                        for car in all_cars_at_sec:
-                            if car not in self.deleted_objects:
-                                other_data_list = self.group_by_car[car] 
-                                for o_data in other_data_list:
+        #*************************CUT-IN scenario*************************
+        if self.cut_in_scenario:
+            # LOGIC: 
+            # We choose 8 secod as the projected ego data arequired. For normal lane change, a paper estimated that duration is 8 second. 
+            # 1. Loop through ego_data per second
+            # 2. Project the ego path for 8 second.
+            # 3. We now the the projected path of ego for 8 second.
+            # 4. Loop through each second untill the 8 second
+            # 5. At each second find the euclidean distance of the vehicle nearby with ego path.
+            # 6. If the euclidean distance is closer to zero of any vehicle at any second and checking accleration is greater than the threshold(0.50) and occured more than once. Then that has the lane change
+            count = 0 
+            lane_changed_car = {}
+            for sec in self.ego_data:
+                #print("Projecting {} second".format(sec))
+                if True:
+                    # This is for getting the projected data for ego motion from sec to sec+8 seconds
+                    projected_secs = [key for key in range(sec, sec+8)]
+                    all_ego_data_till_proj = []
+                    for temp_sec in projected_secs:
+                        if temp_sec in self.ego_data:
+                            for temp_data in self.ego_data[temp_sec]:
+                                all_ego_data_till_proj.append(temp_data)   
+                                
+                    first_sec = sec
+                    for proj_sec in projected_secs:
+                        
+                        #Checking if we have any data for other objects in that sec.
+                        if proj_sec in self.other_objects:
+                            all_cars_at_sec = list(set(self.other_objects[proj_sec]))
+                            for car in all_cars_at_sec:
+                                if car not in self.deleted_objects and car not in lane_changed_car.keys():
+                                    other_data_list = self.group_by_car[car] 
                                     
-                                    # Loop through ego_s trajectory till 8 second
-                                    for e_data in all_ego_data_till_proj:
-                                        x1, y1 = e_data.position_x, e_data.position_y
-                                        x2, y2 = o_data.position_x, o_data.position_y
+                                    # Checking the other cars at the front to do the cut-in event
+                                    if other_data_list[0].rel_pos_x >= 0 and other_data_list[0].rel_pos_x <= 50:
                                         
-                                        # Finding the euclidean distance is using this formula square root((x2-x1)^2+ (y2-y1)^2)
-                                        d = math.sqrt(
-                                            (
-                                                math.pow((x2-x1), 2)
-                                                +
-                                                math.pow((y2-y1), 2)
-                                            )
+                                        for o_data in other_data_list:
+                                            acceleration_change = 0
+                                            '''if car == 2:
+                                                print("sec: {} id: {} x: {}, y: {},linear_y: {} ".format(o_data.sec, o_data.object_id,o_data.rel_pos_x, o_data.rel_pos_y, o_data.linear_y))                               
+                                            '''
+                                            # Loop through ego_s trajectory till 8 second
+                                            for e_data in all_ego_data_till_proj:
+                                                x1, y1 = e_data.position_x, e_data.position_y
+                                                x2, y2 = o_data.position_x, o_data.position_y
+                                                
+                                                # Finding the euclidean distance is using this formula square root((x2-x1)^2+ (y2-y1)^2)
+                                                d = math.sqrt(
+                                                    (
+                                                        math.pow((x2-x1), 2)
+                                                        +
+                                                        math.pow((y2-y1), 2)
+                                                    )
+                                                )
+                                                
+                                                # Checking accleration is greater than the threshold and occured more than once
+                                                if abs(o_data.linear_y) >= 0.50:
+                                                    acceleration_change += 1
+                                                
+                                                if d < 0.50 and acceleration_change > 1:
+                                                    print("object_id: {}".format(o_data.object_id))
+                                                    print("position_x: {}".format(o_data.position_x))
+                                                    print("position_y: {}".format(o_data.position_y))
+                                                    print("linear_y: {}".format(o_data.linear_y))
+                                                    print(e_data.sec)
+                                                    print("________________")
+                                                    store = {
+                                                        'object_id': car, 
+                                                        'euclidean_dist': d,
+                                                        'first_sec': first_sec,
+                                                        'lc_detected': e_data.sec,
+                                                        'position_x': o_data.position_x, 
+                                                        'position_y': o_data.position_y,
+                                                        'linear_y': o_data.linear_y
+                                                        
+                                                    }
+                                                    if car not in lane_changed_car:
+                                                        lane_changed_car[car] = store
+                                    else:
+                                        # Car is not at the front
+                                        pass
+                                                
+                
+            print("cut in cars: {}".format(lane_changed_car.keys()))
+            for car in lane_changed_car.keys():
+                print(lane_changed_car[car])
+                
+            cars = lane_changed_car.keys()
+            cars.append('ego')
+            self.plot_multiple_car(cars = cars, png_name = 'combined_trajectory_cut_in')
+        
+        
+        #*************************OVERTAKING scenario*************************
+        if self.overtaking_scenario:
+            # LOGIC: 
+            # We choose 8 secod as the projected  data arequired. For normal lane change, a paper estimated that duration is 8 second. 
+            # 1. Loop through ego_data per second
+            # 2. Project the ego path for 8 second.
+            # 3. We now the the projected path of ego for 8 second.
+            # 4. Loop through each second untill the 8 second
+            # 5. At each second find the euclidean distance of the vehicle nearby with ego path.
+            # 6. If the euclidean distance is closer to zero of any vehicle at any second and checking accleration is greater than the threshold(0.50) and occured more than once. Then that has the lane change
+            
+            ego_lane_change = []
+            # Project car data by looping through each car            
+            for car in self.group_by_car.keys():
+                print("--------------car: {}------------".format(car))     
+                # Get all the data of the car
+                for sec in self.other_objects_sec[car].keys():      
+                    if sec in self.other_objects_sec[car]:
+                        
+                        # This is for getting the projected data for the car from sec to sec+8 seconds
+                        projected_secs = [key for key in range(sec, sec+8)]
+                        car_all_data_till_proj = []
+                        for temp_sec in projected_secs:
+                            if temp_sec in self.other_objects_sec[car]:
+                                o_data_list_at_sec = self.other_objects_sec[car][temp_sec]
+                                for temp_data in o_data_list_at_sec:
+                                    car_all_data_till_proj.append(temp_data) 
+                                
+                    first_sec = sec
+                    
+                    #Looping through projected secs for each car
+                    for proj_sec in projected_secs:
+                        if proj_sec in self.ego_data:
+                            ego_data_at_sec = self.ego_data[proj_sec]
+                            for e_data in ego_data_at_sec:
+                                acceleration_change = 0
+                                
+                                # Loop through ego_s trajectory till 8 second
+                                for o_data in car_all_data_till_proj:
+                                    x1, y1 = o_data.position_x, o_data.position_y
+                                    x2, y2 = e_data.position_x, e_data.position_y
+                                    
+                                    # Finding the euclidean distance is using this formula square root((x2-x1)^2+ (y2-y1)^2)
+                                    d = math.sqrt(
+                                        (
+                                            math.pow((x2-x1), 2)
+                                            +
+                                            math.pow((y2-y1), 2)
                                         )
-                                        if d < 0.25:
-                                            if car in lane_changed_car:
-                                                lane_changed_car[car].append(d)
-                                            else:
-                                                lane_changed_car[car] = []
-                                                lane_changed_car[car].append(d)
-                                        
-        #cars = [144, 221, 175] 
-        '''cars = [843599169]   
-        for car in cars:
-            print(car)
-            print(lane_changed_car[car])
-            print("-------------------------------")'''
-            
-        '''print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        for data in self.group_by_car[843599169]:
-           print(data.position_x)
-           print(data.position_y)
-           print("_____________")'''
-            
-            
+                                    )
+                                    
+                                    # Checking accleration is greater than the threshold and occured more than once
+                                    if abs(e_data.linear_y) >= 0.50:
+                                        acceleration_change += 1
+                                    
+                                    if d < 0.50 and acceleration_change > 1:
+                                        print("object_id: {}".format(e_data.object_id))
+                                        print("position_x: {}".format(e_data.position_x))
+                                        print("position_y: {}".format(e_data.position_y))
+                                        print("linear_y: {}".format(e_data.linear_y))
+                                        print(o_data.sec)
+                                        print("________________")
+                                        store = {
+                                            'car_behind_object_id': o_data.object_id, 
+                                            'euclidean_dist': d,
+                                            'first_sec': first_sec,
+                                            'lc_detected': o_data.sec,
+                                            'position_x': e_data.position_x, 
+                                            'position_y': e_data.position_y,
+                                            'linear_y': e_data.linear_y
+                                            
+                                        }
+                                        ego_lane_change.append(store)
+                                
+                            
+            print(ego_lane_change)
+        
+        # Lane following and CUT-OUT scenario
         
         
-        # CUT-OUT scenario
-        
-        
-        
-        # Overtaking scenario
-        
-        
-        # Lane following
-        
-        return lane_changed_car.keys()
             
             
     def test_plot(self, cars =  None):

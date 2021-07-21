@@ -39,7 +39,8 @@ class Extract:
         self.path_extracted_result = rospy.get_param('result')
         self.name_of_the_file = None
         self.ego_odom  = []
-        self.other_objects = []
+        self.other_cut_in_objects = []
+        self.overtaking = []
         self.previous = None
         self.previous_other = None
         self.count = 0
@@ -60,14 +61,12 @@ class Extract:
             rospy.Subscriber('/ibeo/odometry', Odometry, self.ego_odometry)    
             rospy.Subscriber('/ibeo/objects', IbeoObject, self.objects)
         elif self.dataset is 'waymo':
-            rospy.Subscriber('/lidar_label', MarkerArray, self.objects) 
+            #rospy.Subscriber('/lidar_label', MarkerArray, self.objects) 
+            rospy.Subscriber('/lidar_label/markers', MarkerArray, self.objects) 
             #rospy.Subscriber('/tf', TFMessage, self.ego_odometry)
             
-        
         # Detecting the lane coordinates. This will help us to find out where the vehicle is,
         # If we have cordinate of the lanes then, it could be easy to quaery where is the veicle at given point.     
-            
-        
         rospy.on_shutdown(self.shutdown)   
         rospy.spin()
      
@@ -107,64 +106,59 @@ class Extract:
              
     def objects(self, data):
         if self.dataset is 'ibeo':
-        
+            
             # Considering only vehicle classes 
             if data.object_class in [self.ObjectClass_Car, self.ObjectClass_Motorbike, self.ObjectClass_Truck]:
-                
-                #Considering only vehicle at the front up to 100 meter
-                if data.pose.pose.position.x > 0 and data.pose.pose.position.x <= 100:
+                try:
                     # We need to convert this to tf2_geometry_msgs as ibeo_object is a custom object type.
                     pose_stamped = tf2_geometry_msgs.PoseStamped()
                     pose_stamped.pose = data.pose.pose
                     pose_stamped.header.frame_id = "base_link"
                     pose_stamped.header.stamp = data.header.stamp
-                    try:
-                        # ** It is important to wait for the listener to start listening. Hence the rospy.Duration(1)
-                        data_odom = self.tf_buffer.transform(pose_stamped, "odom")
-                        #print(data_odom)
-                        quaternion = (
-                            data_odom.pose.orientation.x,
-                            data_odom.pose.orientation.y,
-                            data_odom.pose.orientation.z,
-                            data_odom.pose.orientation.w
-                        )
-                        euler = tf.transformations.euler_from_quaternion(quaternion)
-                        roll = euler[0]
-                        pitch = euler[1]
-                        yaw = euler[2]
-                        t = data_odom.header.stamp
-                        msg = {
-                            'object_id': data.object_id,
-                            'linear_x': data.twist.twist.linear.x,
-                            'linear_y': data.twist.twist.linear.y,
-                            'linear_z': data.twist.twist.linear.z,
-                            'position_x': data_odom.pose.position.x,
-                            'position_y': data_odom.pose.position.y,
-                            'position_z': data_odom.pose.position.z,
-                            'rel_pos_x': data.pose.pose.position.x,
-                            'rel_pos_y': data.pose.pose.position.y,
-                            'roll': roll,
-                            'pitch': pitch,
-                            'yaw': yaw,
-                            'sec': data_odom.header.stamp.secs,
-                            'nsec': data_odom.header.stamp.nsecs,
-                            'to_sec': t.to_sec(),
-                            'to_nsec': t.to_nsec()
-                            
-                        }
-                        self.other_objects.append(msg)
+                    
+                    # ** It is important to wait for the listener to start listening. Hence the rospy.Duration(1)
+                    data_odom = self.tf_buffer.transform(pose_stamped, "odom", timeout=rospy.Duration(0.0))
+                    #print(data_odom)
+                    quaternion = (
+                        data_odom.pose.orientation.x,
+                        data_odom.pose.orientation.y,
+                        data_odom.pose.orientation.z,
+                        data_odom.pose.orientation.w
+                    )
+                    euler = tf.transformations.euler_from_quaternion(quaternion)
+                    roll = euler[0]
+                    pitch = euler[1]
+                    yaw = euler[2]
+                    t = data_odom.header.stamp
+                    msg = {
+                        'object_id': data.object_id,
+                        'linear_x': data.twist.twist.linear.x,
+                        'linear_y': data.twist.twist.linear.y,
+                        'linear_z': data.twist.twist.linear.z,
+                        'position_x': data_odom.pose.position.x,
+                        'position_y': data_odom.pose.position.y,
+                        'position_z': data_odom.pose.position.z,
+                        'rel_pos_x': data.pose.pose.position.x,
+                        'rel_pos_y': data.pose.pose.position.y,
+                        'roll': roll,
+                        'pitch': pitch,
+                        'yaw': yaw,
+                        'sec': data_odom.header.stamp.secs,
+                        'nsec': data_odom.header.stamp.nsecs,
+                        'to_sec': t.to_sec(),
+                        'to_nsec': t.to_nsec()
+                    }
+                
+                    #Considering only vehicle at the front up to 100 meter
+                    if data.pose.pose.position.x >= 0 and data.pose.pose.position.x <= 100:
+                        self.other_cut_in_objects.append(msg)
+                    elif data.pose.pose.position.x < 0 and data.pose.pose.position.x >= -50:
+                        self.overtaking.append(msg)
                         
-                        '''self.f_e.write('%.12f %.12f %.12f %.12f %.12f %.12f %.12f %.12f\n' % 
-                        (data_odom.header.stamp.to_sec(),
-                            data_odom.pose.position.x, data_odom.pose.position.y,
-                            data_odom.pose.position.z,
-                            data_odom.pose.orientation.x,
-                            data_odom.pose.orientation.y,
-                            data_odom.pose.orientation.z,
-                            data_odom.pose.orientation.w))'''
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    pass
                         
-                    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                        pass
+                    
         elif self.dataset is 'waymo':
             
             #Getting velocity: http://wiki.ros.org/navigation/Tutorials/RobotSetup/Odom
@@ -172,7 +166,6 @@ class Extract:
             #Get Ego odom
             try:
                 trans_stamp = self.tf_buffer.lookup_transform('global', 'vehicle', rospy.Time())
-                
                 quaternion = (
                     trans_stamp.transform.rotation.x,
                     trans_stamp.transform.rotation.y,
@@ -197,8 +190,9 @@ class Extract:
                     'to_nsec': t.to_nsec()
                     
                 }
-                
                 self.ego_odom.append(msg)
+            
+                
             
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                         pass
@@ -245,7 +239,7 @@ class Extract:
                             'to_nsec': t.to_nsec()
 
                         }
-                        self.other_objects.append(msg)
+                        self.other_cut_in_objects.append(msg)
                     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                         pass
             
@@ -254,7 +248,10 @@ class Extract:
         
         self.extracted_data = {
             'ego_odom': self.ego_odom,
-            'other_objects': self.other_objects
+            'other_objects': {
+                'cut-in': self.other_cut_in_objects,
+                'overtaking': self.overtaking
+            }
         }
         
         #print(self.extracted_data['other_objects'])
