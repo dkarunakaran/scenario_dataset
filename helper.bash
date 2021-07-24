@@ -120,7 +120,7 @@ fi
 if [[ $1 == "run_rviz_c" ]]; then
 	xhost +local:docker
 	if [[ $2 == "laptop" ]]; then
-        	docker run -it --rm --privileged --net=host --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --env=DISPLAY --env=QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix --gpus 0 $rviz_docker_i /bin/bash
+        	docker run -it --rm --privileged --net=host --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --env=DISPLAY --env=QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v /home/dhanoop/Documents/acfr/active/constraint_model:/constraint_model --gpus 0 $rviz_docker_i /bin/bash
 
 	fi
 
