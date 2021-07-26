@@ -215,6 +215,119 @@ plt.savefig('images/fit.png')
 
 '''
 
+
+# Chekcing the item in any of the group
+def check_group(group, item):
+    status = False
+    for index in range(len(group)):
+        if index in group and item in group[index]:
+            status = True
+    return status
+
+def sliding_window(img = None, selected_pair = None):
+    
+     # Create an output image to draw on and visualize the result
+    out_img = np.dstack((img, img, img))
+    
+    # left side is top lane and right side is down lane
+    left_starting_point = selected_pair[0]
+    right_starting_point = selected_pair[1]
+
+
+    # HYPERPARAMETERS
+    # Choose the number of sliding windows
+    nwindows = 9
+
+    # Set minimum number of pixels found to recenter window
+    minpix = 50
+
+    # set the height of windows - based on nwindows above and image shape. You need to see from the perspective of y axis as x axis. then width will be height and height will be width
+    # and we are moving from left to right parallel to x axis. Here top lane considered as left lane and down lane considered as right lane.
+    window_height = np.int(img.shape[1]//nwindows)
+
+    # Set the width of the windows +/- margin
+    margin = 10
+
+
+    # Identify the x and y positions of all nonzero pixels in the image
+    nonzero = img.nonzero()
+    nonzeroy = np.array(nonzero[0])
+    nonzerox = np.array(nonzero[1])
+
+    # Current positions to be updated later for each window in nwindows
+    lefty_current = left_starting_point
+    righty_current = right_starting_point
+
+    # Create empty lists to receive left and right lane pixel indices
+    left_lane_inds = []
+    right_lane_inds = []
+
+
+    # Step through the windows one by one
+    for window in range(nwindows):
+        # Identify window boundaries in x and y (and right and left)
+        win_x_high = (window+1)*window_height #66
+        win_x_low = window*window_height #33
+        
+        ### TO-DO: Find the four below boundaries of the window ###
+        win_yleft_low = lefty_current - margin # 331
+        win_yleft_high = lefty_current + margin # 351
+        win_yright_low = righty_current - margin
+        win_yright_high = righty_current + margin
+        
+        left_first_point = (win_x_low, win_yleft_low)
+        left_fourth_point = (win_x_high,win_yleft_high)
+        
+        right_first_point = (win_x_low, win_yright_low)
+        right_fourth_point = (win_x_high,win_yright_high)
+        
+        ### Identify the nonzero pixels in x and y within the window ###
+        good_left_inds = ((nonzerox >= win_x_low) & (nonzerox < win_x_high) & 
+        (nonzeroy >= win_yleft_low) &  (nonzeroy < win_yleft_high)).nonzero()[0]
+        good_right_inds = ((nonzerox >= win_x_low) & (nonzerox < win_x_high) & 
+        (nonzeroy >= win_yright_low) &  (nonzeroy < win_yright_high)).nonzero()[0]
+        
+        # Append these indices to the lists
+        left_lane_inds.append(good_left_inds)
+        right_lane_inds.append(good_right_inds)
+        
+        ### If you found > minpix pixels, recenter next window ###
+        ### (`right` or `leftx_current`) on their mean position ###
+            
+        if len(good_left_inds) > minpix:
+            lefty_current = np.int(np.mean(nonzeroy[good_left_inds]))
+        if len(good_right_inds) > minpix:        
+            righty_current = np.int(np.mean(nonzeroy[good_right_inds]))
+            
+        print(lefty_current)
+        print(righty_current)
+        print("___________")
+        
+        #clone = img.copy()
+        #cv2.rectangle(clone, left_first_point, left_fourth_point, (0, 255, 0), 2)
+        #cv2.rectangle(clone, right_first_point, right_fourth_point, (0, 255, 0), 2)
+        #cv2.imshow("Window", clone)
+        #cv2.waitKey(1)
+        #time.sleep(1)
+
+    # Concatenate the arrays of indices (previously was a list of lists of pixels)
+    try:
+        left_lane_inds = np.concatenate(left_lane_inds)
+        right_lane_inds = np.concatenate(right_lane_inds)
+    except ValueError:
+        # Avoids an error if the above is not implemented fully
+        pass
+
+    # Extract left and right line pixel positions
+    leftx = nonzerox[left_lane_inds]
+    lefty = nonzeroy[left_lane_inds] 
+    rightx = nonzerox[right_lane_inds]
+    righty = nonzeroy[right_lane_inds]
+    
+
+    return leftx, lefty, rightx, righty, out_img
+
+
 img = cv2.imread("/constraint_model/images/new_image.png")
 sum_array = np.sum(img[:,:img.shape[1]], axis=1)
 
@@ -236,13 +349,6 @@ from scipy.signal import find_peaks
 peaks, _ = find_peaks(flatten_array_y, height=1000)
 print("All peaks over 1000: {}".format(peaks))
 
-# Chekcing the item in any of the group
-def check_group(group, item):
-    status = False
-    for index in range(len(group)):
-        if index in group and item in group[index]:
-            status = True
-    return status
 
 # Grouping items that are closer
 group = {}
@@ -278,77 +384,32 @@ for key in group.keys():
     
 print("Selected pair of peaks: {}".format(selected_pair))
 
-# left side is top lane and right side is down lane
-left_starting_point = selected_pair[0]
-right_starting_point = selected_pair[1]
+leftx, lefty, rightx, righty, out_img = sliding_window(img=img, selected_pair=selected_pair)
 
+# Fit a second order polynomial to each using `np.polyfit` ###
+left_fit = np.polyfit(leftx, lefty, 2)
+right_fit = np.polyfit(rightx, righty, 2)
 
-# HYPERPARAMETERS
-# Choose the number of sliding windows
-nwindows = 9
-
-# Set minimum number of pixels found to recenter window
-minpix = 50
-
-# set the height of windows - based on nwindows above and image shape. You need to see from the perspective of y axis as x axis. then width will be height and height will be width
-# and we are moving from left to right parallel to x axis. Here top lane considered as left lane and down lane considered as right lane.
-window_height = np.int(img.shape[1]//nwindows)
-
-# Set the width of the windows +/- margin
-margin = 10
-
-
-# Identify the x and y positions of all nonzero pixels in the image
-nonzero = img.nonzero()
-nonzeroy = np.array(nonzero[0])
-nonzerox = np.array(nonzero[1])
-
-# Current positions to be updated later for each window in nwindows
-lefty_current = left_starting_point
-righty_current = right_starting_point
-
-# Create empty lists to receive left and right lane pixel indices
-left_lane_inds = []
-right_lane_inds = []
-
-
-# Step through the windows one by one
-for window in range(nwindows):
-    # Identify window boundaries in x and y (and right and left)
-    win_x_high = (window+1)*window_height #33
-    win_x_low = window*window_height #0
+# Generate x and y values for plotting
+plotx = np.linspace(0, img.shape[1]-1, img.shape[1] )
+try:
+    left_fity = left_fit[0]*plotx**2 + left_fit[1]*plotx + left_fit[2]
+    right_fity = right_fit[0]*plotx**2 + right_fit[1]*plotx + right_fit[2]
+except TypeError:
+    # Avoids an error if `left` and `right_fit` are still none or incorrect
+    print('The function failed to fit a line!')
+    left_fitx = 1*plotx**2 + 1*plotx
+    right_fitx = 1*plotx**2 + 1*plotx
     
-    ### TO-DO: Find the four below boundaries of the window ###
-    win_yleft_low = lefty_current - margin # 331
-    win_yleft_high = lefty_current + margin # 351
-    win_yright_low = righty_current - margin
-    win_yright_high = righty_current + margin
+
+print
     
-    ### Identify the nonzero pixels in x and y within the window ###
-    good_left_inds = ((nonzerox >= win_x_low) & (nonzerox < win_x_high) & 
-    (nonzeroy >= win_yleft_low) &  (nonzeroy < win_yleft_high)).nonzero()[0]
-    good_right_inds = ((nonzerox >= win_x_low) & (nonzerox < win_x_high) & 
-    (nonzeroy >= win_yright_low) &  (nonzeroy < win_yright_high)).nonzero()[0]
-    
-    # Append these indices to the lists
-    left_lane_inds.append(good_left_inds)
-    right_lane_inds.append(good_right_inds)
-    
-    ### If you found > minpix pixels, recenter next window ###
-    ### (`right` or `leftx_current`) on their mean position ###
-        
-    if len(good_left_inds) > minpix:
-        lefty_current = np.int(np.mean(nonzeroy[good_left_inds]))
-    if len(good_right_inds) > minpix:        
-        righty_current = np.int(np.mean(nonzeroy[good_right_inds]))
-        
-    print(lefty_current)
-    print(righty_current)
-    print("___________")
+## Visualization ##
+# Colors in the left and right lane regions
+img[lefty, leftx] = [255, 0, 0]
+img[righty, rightx] = [0, 0, 255]
 
-
-
-
-
-
-
+# Plots the left and right polynomials on the lane lines
+plt.plot(plotx,left_fity, color='red')
+plt.plot(plotx,right_fity, color='red')
+plt.savefig("images/polyfit.png")
