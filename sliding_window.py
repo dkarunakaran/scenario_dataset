@@ -220,17 +220,20 @@ if _type == 'poly_fit':
         
 
         return leftx, lefty, rightx, righty, out_img
-
-
-
-    # 1. Find peaks of the array - done
-    # 3. Get all the lines in the sliding window - done
-    # 2. Middle point of two lines - done
-    # 3. Apply logic of advanced lane finding to fit the ploynomial - done
-    # 4. Lane fitting is working beautifuly, but currently ouyput image is not same as actual image - in progress
+    
 
     img = cv2.imread("/constraint_model/images/new_image.png")
-    sum_array = np.sum(img[:,:img.shape[1]//2], axis=1)
+    
+    plt.imshow(img)
+    plt.xlim(0, img.shape[1])
+    plt.ylim(img.shape[0], 0)
+    plt.savefig("images/new_image_m.png")
+    plt.close()
+
+    sum_array = np.sum(img[:,:img.shape[1]//3], axis=1)
+    plt.plot(sum_array)
+    plt.savefig('images/hist.png')
+    plt.close()
     print(sum_array.shape)
     flatten_array_y = [each[0] for each in sum_array]
     
@@ -239,12 +242,13 @@ if _type == 'poly_fit':
     #plt.hist(hist)
     #plt.savefig('images/hist.png')
 
-    #FInding the peaks in the y data
+    #Finding the peaks in the y data
     from scipy.signal import find_peaks
     peaks, _ = find_peaks(flatten_array_y, height=1000)
     print("All peaks over 1000: {}".format(peaks))
 
-
+    
+    
     # Grouping items that are closer
     group = {}
     for index in range(len(peaks)):
@@ -302,10 +306,10 @@ if _type == 'poly_fit':
     # Colors in the left and right lane regions
     img[lefty, leftx] = [0, 255, 0]
     img[righty, rightx] = [0, 255, 0]
-
+    
+    img = cv2.imread("/constraint_model/images/new_image_with_odom.png")    
     plt.imshow(img)
     plt.savefig("images/poly_fit.png")
-
 
     # Plots the left and right polynomials on the lane lines
     plt.plot(plotx,left_fity, color='white')
@@ -313,6 +317,7 @@ if _type == 'poly_fit':
     plt.xlim(0, img.shape[1])
     plt.ylim(img.shape[0], 0)
     plt.savefig("images/lane_poly_fit.png")
+    plt.close()
 
 
 

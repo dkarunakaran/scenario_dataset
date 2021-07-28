@@ -24,8 +24,11 @@ from collections import OrderedDict
 #   A. Find the region of interest, then only consider the points in that region to construct the lane(There is a concern of region of interest during the lane change)
 #       a. Yaw can determine the lane equation of two points of the vehicle odom. Consider the perpendicular line from each point of the constructed line, 
 #           then consider only all other points that are within a threshold meter. 
-#   B.    
-# 3. Identify content for OpenDrive format for IBEO data
+#   B. Lanes can be detected from the exported intensity image from the top_down_package    
+#   C. Publish the lane points
+#   D. Do the lane detection at the process.py
+# 3. Convert this data to OpenStreet format  
+# 4. Identify content for OpenDrive format for IBEO data
 #   A. Road data: Number of lane
 #   B. Road structure
 #   C. Anyother static information possible such as building, trees, rad signs etc

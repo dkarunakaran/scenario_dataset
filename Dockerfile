@@ -57,6 +57,9 @@ RUN apt-get install -y software-properties-common
 RUN apt-get install -y ros-melodic-tf2-sensor-msgs
 RUN apt-get install -y ros-melodic-tf2-sensor-msgs
 
+# Numpy like c++ library
+#RUN apt-get install -y xtensor-dev
+
 # Install carla-ros-bridge
 RUN apt-get update
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 81061A1A042F527D
