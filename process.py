@@ -21,12 +21,14 @@ from collections import OrderedDict
 # 1. Compute the cut-in and overtaking without lane information - Done(This logic will not work if there is no vehicle behind. But in that case, it may not be critical to change the lane)
 #   A. Find example to see the logic is working for overtaking scenario - Done(We have a few examples)
 # 2. Extract the lane information 
-#   A. Find the region of interest, then only consider the points in that region to construct the lane(There is a concern of region of interest during the lane change)
+#   A. Find the region of interest, then only consider the points in that region to construct the lane - Done(There is a concern of region of interest during the lane change)
 #       a. Yaw can determine the lane equation of two points of the vehicle odom. Consider the perpendicular line from each point of the constructed line, 
 #           then consider only all other points that are within a threshold meter. 
-#   B. Lanes can be detected from the exported intensity image from the top_down_package    
-#   C. Publish the lane points
-#   D. Do the lane detection at the process.py
+#   B. Lanes can be detected from the exported intensity image from the top_down_package - Done   
+#   C. Publish the lane points - Done
+#   D. Save pointcloud per second to txt file - Done
+#   E. Get the published lane points for 8 second and construct the intensity image at the process.py
+#   F. Do the lane detection at the process.py
 # 3. Convert this data to OpenStreet format  
 # 4. Identify content for OpenDrive format for IBEO data
 #   A. Road data: Number of lane

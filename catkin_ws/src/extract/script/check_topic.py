@@ -29,19 +29,15 @@ class CheckTopic:
     def __init__(self):
         rospy.init_node("Starting the CheckTopic code")
         self.tf_buffer = tf2_ros.Buffer()
-        tf2_ros.TransformListener(self.tf_buffer)
-        self.sec_watcher = []
-        rospy.Subscriber('/ibeo/lidar/static', numpy_msg(PointCloud2), self.check_topic) 
+        tf2_ros.TransformListener(self.tf_buffer) 
+        #rospy.Subscriber('/ibeo/lidar/static', numpy_msg(PointCloud2), self.check_topic) 
         #rospy.Subscriber('/lidar_pointcloud/top', numpy_msg(PointCloud2), self.check_topic, queue_size=20) 
         #rospy.Subscriber('/pointcloud_transformer/output_pcl2', numpy_msg(PointCloud2), self.check_topic)
         #rospy.Subscriber('/velodyne_points', PointCloud2, self.test)
         #rospy.Subscriber('/lidar_pointcloud/top', PointCloud2, self.test)
         rospy.spin()
         
-        
-    def test(self, data):
-        print(data.fields)
-        
+    
     def check_topic(self, data): 
         if data.header.stamp.secs in self.sec_watcher:
             pass
