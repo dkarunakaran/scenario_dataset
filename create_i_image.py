@@ -1,6 +1,12 @@
 import os
 import json 
 import numpy as np
+from PIL import Image
+
+class Point:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+
 
 path_to_dir = '/constraint_model/data/new_ibeo_data/gate_south-end_north-end_20210608_054523.0/lane_points/'
 if path_to_dir is not None:
@@ -11,43 +17,55 @@ if path_to_dir is not None:
             file_list.append(_file)
     file_list.sort(key=lambda f: int(filter(str.isdigit, f)))
 file_count = 0
-xyzi_cloud = []
+xyi_cloud = {
+    'x': [],
+    'y': [],
+    'i': []
+}
+max_x = -100000000
+max_y = -100000000
+data = []
 for _file in file_list:
     path_to_file = path_to_dir+_file
     print("Current file: {}".format(path_to_file))
     with open(path_to_file) as json_file:
-        data = json.load(json_file)
-        for pc in data:
-            xyzi_data = np.array([pc['x'], pc['y'], pc['z'], pc['i']])
-            xyzi_cloud.append(xyzi_data)
-    
-    file_count += 1
-    if file_count > 2:
-        break
-    
-max_x = -100000000
-max_y = -100000000
-min_x = 100000000
-min_y = 100000000
-for xyzi_data in xyzi_cloud:
-    x,y,y,i  = xyzi_data
-    temp_min_x = min(x)
-    temp_min_y = min(y)
-    temp_max_x = max(x)
-    temp_max_y = max(y)
-    
-    if temp_min_x < min_x:
-        min_x = temp_min_x
-    if temp_min_y < min_y:
-        min_y = temp_min_y
-    
-    if temp_max_x >  max_x:
-        max_x = temp_max_x
-    if temp_max_y > max_y:
-        max_y = temp_max_y
-        
-image_max_x = max_x - min_x + 2;
-image_max_y = max_y - max_y + 2;
+        json_data = json.load(json_file)
+        for item in json_data['data']:
+            point = Point(**item)
+            if len(data)>0:
+                save = True
+                for p in data:
+                    if p.x == point.x and p.y == point.y:
+                        save = False
+                        break
+                if save == True:
+                    data.append(point)
+            else:
+                data.append(point)
+             
+        if json_data['max_x'] >  max_x:
+            max_x = json_data['max_x']
+        if json_data['max_y'] > max_y:
+            max_y = json_data['max_y']
 
-print(min_y)
-print(max_y)
+    file_count += 1
+
+#image matrix[row, column], here row is y and column is x.
+#image[y,x]
+# It should be y as row and x as the column, but for some reason in data x become y and y become x 
+img = np.zeros([max_x, max_y, 3], dtype=np.uint8)
+for point in data:
+    img[point.x, point.y] = [255, 255, 255]
+    print("x: {} and y: {}".format(p.x, p.y))
+
+im = Image.fromarray(img)
+print("Image is saving..")
+im.save('/constraint_model/images/intensity_image.png')
+
+'''
+w, h = 512, 512
+data = np.zeros((h, w, 3), dtype=np.uint8)
+data[256, 256] = [255, 0, 0] # red patch in upper left
+img = Image.fromarray(data, 'RGB')
+img.save('/constraint_model/images/my.png')
+'''

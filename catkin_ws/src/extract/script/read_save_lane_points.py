@@ -9,8 +9,15 @@ import cv2
 import numpy as np
 from collections import OrderedDict
 from std_msgs.msg import Bool
+from lane_points_msg.msg import LanePoints
 import json
 import os
+
+class Point:
+    def __init__(self,x_init,y_init):
+        self.x = x_init
+        self.y = y_init
+
 
 class ReadSaveLanePoints:
     def __init__(self):
@@ -42,28 +49,27 @@ class ReadSaveLanePoints:
             
         self.multi_cloud_points = OrderedDict()
         self.path_lane_data = path_to_lane_data_dir+"lane_data_{}.txt"  
-        rospy.Subscriber('/lane_pc', numpy_msg(PointCloud2), self.read_lane_points, queue_size=1) 
+        rospy.Subscriber('/lane_points', LanePoints, self.read_lane_points, queue_size=1) 
         rospy.Subscriber('/signal_shutdown', Bool, self.save_data) 
         rospy.spin()
         
-    def read_lane_points(self, data):
-        pc = pc2.read_points(data, skip_nans=True, field_names=("x", "y", "z","intensity"))
-        cloud_points = []
-        for p in pc:
-            cloud_points.append(p)
-        xyzi_data = np.array(cloud_points)
-        _dict = {}
-        _dict['x'], _dict['y'],_dict['z'],_dict['i'] = xyzi_data[:,0].tolist(), xyzi_data[:,1].tolist(), xyzi_data[:,2].tolist(), xyzi_data[:,3].tolist()       
-        if data.header.stamp.secs in self.multi_cloud_points:
-            self.multi_cloud_points[data.header.stamp.secs].append(_dict)
-        else:
-            self.multi_cloud_points[data.header.stamp.secs] = []
-            self.multi_cloud_points[data.header.stamp.secs].append(_dict)
+    def read_lane_points(self, msg):
+        
+        sec = msg.header.stamp.secs
+        store = {}
+        store['max_x'] = msg.max_x
+        store['max_y'] = msg.max_y
+        store['data'] = []
+        for index in range(len(msg.x.data)):
+            store['data'].append(Point(msg.x.data[index], msg.y.data[index]).__dict__)
+        self.multi_cloud_points[sec] = store    
+        
 
     def save_data(self, msg):
         if msg.data == True:
             print("Saving to files process started...")
             for key in self.multi_cloud_points.keys():
+                print(key)
                 with open(self.path_lane_data.format(key), 'w') as outfile:
                     json.dump(self.multi_cloud_points[key], outfile)
             print("Finished saving to files process...")      
