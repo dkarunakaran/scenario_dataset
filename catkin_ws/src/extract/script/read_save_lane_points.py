@@ -57,6 +57,7 @@ class ReadSaveLanePoints:
         
         sec = msg.header.stamp.secs
         store = {}
+        store['sec'] = sec
         store['max_x'] = msg.max_x
         store['max_y'] = msg.max_y
         store['data'] = []

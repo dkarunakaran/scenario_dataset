@@ -27,8 +27,11 @@ from collections import OrderedDict
 #   B. Lanes can be detected from the exported intensity image from the top_down_package - Done   
 #   C. Publish the lane points - Done
 #   D. Save pointcloud per second to txt file - Done
-#   E. Get the published lane points for 8 second and construct the intensity image at the process.py
-#   F. Do the lane detection at the process.py
+#   E. Get the published lane points for 8 second and construct the intensity image at the process.py - Done
+#   F. top_down_projcetion package is getting some issue with large data
+#   G. ODOM frame to Baselink for lane detection
+#   H. Baselink to ODOM frame for getting the right position in the world
+#   I. Do the lane detection at the process.py
 # 3. Convert this data to OpenStreet format  
 # 4. Identify content for OpenDrive format for IBEO data
 #   A. Road data: Number of lane

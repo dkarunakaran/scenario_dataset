@@ -16,6 +16,20 @@ if path_to_dir is not None:
         if _file.endswith('.txt'):
             file_list.append(_file)
     file_list.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+#Getting the sec_data
+sec_data = []
+for _file in file_list:
+    path_to_file = path_to_dir+_file
+    with open(path_to_file) as json_file:
+        json_data = json.load(json_file)
+        sec_data.append(json_data['sec'])
+
+sec_data.sort()
+sec_start = sec_data[0]
+allowed_sec = [sec for sec in range(sec_start,sec_start+8)]
+print("allowed sec: {}".format(allowed_sec))
+
 file_count = 0
 xyi_cloud = {
     'x': [],
@@ -30,24 +44,23 @@ for _file in file_list:
     print("Current file: {}".format(path_to_file))
     with open(path_to_file) as json_file:
         json_data = json.load(json_file)
-        for item in json_data['data']:
-            point = Point(**item)
-            if len(data)>0:
-                save = True
-                for p in data:
-                    if p.x == point.x and p.y == point.y:
-                        save = False
-                        break
-                if save == True:
+        if json_data['sec'] in allowed_sec:
+            for item in json_data['data']:
+                point = Point(**item)
+                if len(data)>0:
+                    save = True
+                    for p in data:
+                        if p.x == point.x and p.y == point.y:
+                            save = False
+                            break
+                    if save == True:
+                        data.append(point)
+                else:
                     data.append(point)
-            else:
-                data.append(point)
-             
         if json_data['max_x'] >  max_x:
             max_x = json_data['max_x']
         if json_data['max_y'] > max_y:
             max_y = json_data['max_y']
-
     file_count += 1
 
 #image matrix[row, column], here row is y and column is x.
@@ -62,10 +75,3 @@ im = Image.fromarray(img)
 print("Image is saving..")
 im.save('/constraint_model/images/intensity_image.png')
 
-'''
-w, h = 512, 512
-data = np.zeros((h, w, 3), dtype=np.uint8)
-data[256, 256] = [255, 0, 0] # red patch in upper left
-img = Image.fromarray(data, 'RGB')
-img.save('/constraint_model/images/my.png')
-'''
