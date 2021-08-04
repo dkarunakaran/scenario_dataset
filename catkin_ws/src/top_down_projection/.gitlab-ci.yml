@@ -1,0 +1,34 @@
+image: acfr/ros-build:kinetic
+variables:
+  ROS_DISTRO: "kinetic"
+  CI_SOURCE_PATH: "$CI_PROJECT_DIR"
+  ROS_PARALLEL_JOBS: "-j8 -l6"
+  GIT_DEPTH: "3"
+  GIT_SUBMODULE_STRATEGY: "recursive"
+  GIT_SSL_NO_VERIFY: "true"
+
+stages:
+  - build
+    #- test
+    #- deb
+  - deploy
+
+build:
+  stage: build
+  script:
+    - wget http://acfr-ros-pro-1.srv.sydney.edu.au:4440/build-ros-deb.sh
+    - chmod +x ./build-ros-deb.sh
+    - ./build-ros-deb.sh
+  artifacts:
+    paths:
+      - debs
+
+deploy:
+  only:
+    - master
+  stage: deploy
+  dependencies:
+    - build
+  script:
+    - cd debs
+    - if [ $CI_PROJECT_NAMESPACE == 'zio' ]; then find . -name '*.deb' -print0 | xargs -0 -n1 basename | while read DEB; do curl -g -X POST "https://gitlab.acfr.usyd.edu.au/api/v4/projects/214/trigger/pipeline?token=$DEPLOY_TOKEN&ref=master&variables[DEB_FILENAME]=$DEB&variables[ROS_REPO]=$CI_PROJECT_NAME" ; done ; fi
