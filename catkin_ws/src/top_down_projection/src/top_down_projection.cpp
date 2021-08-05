@@ -164,9 +164,8 @@ FeatureExtractor::onInit() {
   start_time = std::chrono::steady_clock::now();
   lanePcPub = n.advertise<lane_points_msg::LanePoints> ("lane_points", 1); 
   signalShutdown = n.advertise<std_msgs::Bool> ("signal_shutdown", 1); 
-  pointsPerSecPub = n.advertise<lane_points_msg::LanePoints> ("points_per_sec", 1);
   this->ReadFromBag();
-  this->WriteImage();
+  //this->WriteImage();
 
   //Just dealying the publishing the shutdown signal to get all the data
   int sec = 5;
@@ -730,70 +729,151 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
 	//ROS_INFO_STREAM("we are at "<<pointcloud_msg->header.stamp.nsec);
 
     }else{
-	if(secWatch.size() != 0){
-	        ROS_INFO_STREAM("we are at "<<pointcloud_msg->header.stamp.sec);
-
-		std_msgs::Int32MultiArray x_array;
-		std_msgs::Int32MultiArray y_array;
-		std_msgs::Float32MultiArray i_array;	
-		std_msgs::Int32MultiArray odom_x_array;
-  		std_msgs::Int32MultiArray odom_y_array;
-		x_array.data.clear();
-		y_array.data.clear();
-		i_array.data.clear();
-		odom_x_array.data.clear();
-		odom_y_array.data.clear();
-		lane_points_msg::LanePoints pointsPerSecMsg;
-   		pointsPerSecMsg.header.seq = seq_count;
-   		pointsPerSecMsg.header.stamp.sec = secWatch.back();
-   		pointsPerSecMsg.header.stamp.nsec = 0;
-   		pointsPerSecMsg.header.frame_id = "all_xyi";
-		for(auto x_item : x_point){
-			x_array.data.push_back(x_item);
-		}
-		
-		for(auto y_item : y_point){
-                        y_array.data.push_back(y_item);
-                }
-		
-		for(auto i_item : i_point){
-                        i_array.data.push_back(i_item);
-                }
-
-		for(auto x_item : odom_x_point){
-                        odom_x_array.data.push_back(x_item);
-                }
-		
-		for(auto y_item : odom_y_point){
-                        odom_y_array.data.push_back(y_item);
-                }
-
-		
-		//clear the vectors
-		x_point.clear();
-		y_point.clear();
-		i_point.clear();
-		odom_x_point.clear();
-		odom_y_point.clear();
-		pointsPerSecMsg.x = x_array;
-   		pointsPerSecMsg.y = y_array;
-   		pointsPerSecMsg.i = i_array;
-   		pointsPerSecMsg.odom_x = odom_x_array;
-		pointsPerSecMsg.odom_y = odom_y_array;
-		pointsPerSecPub.publish(pointsPerSecMsg);
-
-	}
 	
-	secWatch.push_back(pointcloud_msg->header.stamp.sec);
-	seq_count++;
-    }
+      if(secWatch.size() != 0 && secWatch.size()%5 == 0) {
+        ROS_INFO_STREAM("we are at "<<pointcloud_msg->header.stamp.sec);
+        int max_x = max_x_per_sec;
+    	int max_y = max_y_per_sec;
+    	int min_x = min_x_per_sec;
+    	int min_y = min_y_per_sec;
+    	float min_intensity = min_i_per_sec;
+    	float max_intensity = max_i_per_sec;
+    	int image_max_x = max_x - min_x + 2;
+    	int image_max_y = max_y - min_y + 2;
+
+	
+	std::map<long int, std::list<std::map<std::pair<int, int>, double>>> allPointsPerSec;
+        std::list<std::map<std::pair<int, int>, double>> pointsPerNsec;
+        long int last = 0;
+        //std::map<std::pair<int, int>, double> storeLanePointsNsec;
+        //std::vector<std::map<std::pair<int, int>, double>> storeLanePointsSec;
+        for (auto &point: allPoints) {
+          if(allPointsPerSec.count(point.first.first)){
+            pointsPerNsec.push_back(point.second);
+          }else{
+            if(last == 0){
+              last = point.first.first;
+            }else{
+              allPointsPerSec[last] = pointsPerNsec;
+              pointsPerNsec.clear();
+              pointsPerNsec.push_back(point.second);
+              last = point.first.first;
+            }
+          }
+        }
+
+
+        if(!allPointsPerSec.count(last)){
+          allPointsPerSec[last] = pointsPerNsec;
+          pointsPerNsec.clear();
+        }
+
+        int count = 0;
+        for(auto &secPoints: allPointsPerSec){
+            // secPoints.first: long int - seconds
+            // secPoints.second: list -  list of each nsec points
+            // secPoints.second[].first - it's a x,y pair of points
+            // secPoints.second[].second - intensity of each x, y point
+            //List level
+	    ROS_INFO_STREAM(min_x<<" "<<min_y);
+        
+    	    lane_points_msg::LanePoints lanePointsMsg;
+            lanePointsMsg.header.seq = count;
+            lanePointsMsg.header.stamp.sec = secPoints.first;
+            lanePointsMsg.header.stamp.nsec = 0;
+            lanePointsMsg.header.frame_id = "lane_points";
+            lanePointsMsg.max_x = image_max_x;
+            lanePointsMsg.max_y = image_max_y;
+            count += 1;
+            std_msgs::Int32MultiArray x_array;
+            x_array.data.clear();
+            std_msgs::Int32MultiArray y_array;
+            y_array.data.clear();
+            std_msgs::Float32MultiArray i_array;
+            i_array.data.clear();
+            for(auto &nsecPoints: secPoints.second){
+
+                //Map level - nsecs
+                for(auto &points: nsecPoints){
+
+                  //Intensity filtering code
+                  int value_x = points.first.first - min_x;
+                  int value_y = points.first.second - min_y;
+		  if (value_x < 0 || value_x >= image_max_x) {
+                    continue;
+                  }
+
+                  if (value_y < 0 || value_y >= image_max_y) {
+                    continue;
+                  }
+		  
+                  //ROS_INFO_STREAM("x and y: "<<points.first.first<<" "<<points.first.second);
+
+                  cv::Vec4b colour;
+                  // scale the intensity value to be between 0 and 1
+                  double intensity = (points.second - min_intensity) / (max_intensity - min_intensity);
+
+                  if (intensity > 1.)
+                    intensity = 1.;
+
+                  if (intensity < 0.)
+                    intensity = 0.;
+                  
+                  // set the hue to the intensity value (between 0 and 255) to make a rainbow colour scale
+                  hsv input_hsv;
+                  input_hsv.h = intensity * 255.;
+                  input_hsv.s = 1.;
+                  input_hsv.v = 1.;
+
+                  // convert HSV to RGB
+                  rgb output_rgb = hsv2rgb(input_hsv);
+
+                  colour[0] = (uint8_t)(output_rgb.b * 255.);
+                  colour[1] = (uint8_t)(output_rgb.g * 255.);
+                  colour[2] = (uint8_t)(output_rgb.r * 255.);
+
+                  // Only considering the pixels that are in the below colour range. It enables the detection of lanes in the intensity image clearly.  
+                  if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250){
+                    bool status = this->checkRegionOfInterest(std::make_pair(value_x, value_y), min_x, min_y);
+		    if(status){
+                      // Converting to white pixels to apply some 2d lane detction algorithms
+                      colour[0] = 255.;
+                      colour[1] = 255.;
+                      colour[2] = 255.;
+                      x_array.data.push_back(value_x);
+                      y_array.data.push_back(value_y);
+                      i_array.data.push_back(1.0);
+
+                    }else{
+                      continue;
+                    }
+
+                  }else{
+                    // Do not consider other pixels that are not in the above colour range
+                    continue;
+                  }
+                  //Store the values of nsec points and intensity
+                }
+              //Add each nsec points to one sec container
+              //storeLanePointsSec.push_back(storeLanePointsNsec);
+              //storeLanePointsNsec.clear();
+            }
+            //Publish the sec container
+            //Msg: header|size: max_x, max_y|data: x: [], y: [], i: []
+            lanePointsMsg.x = x_array;
+            lanePointsMsg.y = y_array;
+            lanePointsMsg.i = i_array;
+            lanePcPub.publish(lanePointsMsg);
+        }
+        intensity_topic.clear();
+	allPoints.clear();
+      }// 
+      secWatch.push_back(pointcloud_msg->header.stamp.sec);
+    }//else slosing
 	
     int x_index = (world_origin[0] * 100.) / cm_resolution;
     int y_index = (world_origin[1] * 100.) / cm_resolution;
     vehicle_odom.push_back(std::make_pair(-1. * y_index, x_index));
-    
-    odom_x_point.push_back(x_index);
-    odom_y_point.push_back(-1. * y_index); 
    	
     // put each point into the intensity map
     for (size_t i = 0; i < input_pointcloud->points.size(); ++i) {
@@ -809,15 +889,20 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
       //ROS_INFO_STREAM_THROTTLE(0.5, "point " << x_index << ", " << y_index);
       intensity_topic[std::make_pair(-1. * y_index,
                                      x_index)] = input_pointcloud->points[i].intensity; // std::map<std::pair<int,int>, double>
-      
-      
-      x_point.push_back(x_index);
-      y_point.push_back(-1.*y_index);
-      i_point.push_back(input_pointcloud->points[i].intensity);
+       
+       // In th eprojection x becomes y and y becomes x.
+       min_x_per_sec = std::min<int>(min_x_per_sec, -1.*y_index);
+       min_y_per_sec = std::min<int>(min_y_per_sec, x_index);
+       max_x_per_sec = std::max<int>(max_x_per_sec, -1.*y_index);
+       max_y_per_sec = std::max<int>(max_y_per_sec, x_index);
+       min_i_per_sec = std::min<double>(min_i_per_sec, input_pointcloud->points[i].intensity);
+       max_i_per_sec = std::max<double>(max_i_per_sec, input_pointcloud->points[i].intensity);
     }
 
+    //ROS_INFO_STREAM(min_x_per_sec<<" "<<min_y_per_sec);
 
-    //allPoints[std::make_pair(pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec)] = intensity_topic;
+
+    allPoints[std::make_pair(pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec)] = intensity_topic;
     //intensity_topic.clear();
     //allPoints.clear(); 	  
 
