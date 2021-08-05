@@ -98,13 +98,13 @@ private:
   ros::Publisher signalShutdown;
   std::map<std::pair<int,int>, std::map<std::pair<int, int>, double>> allPoints;
   std::vector<long int> secWatch;
-  /*std_msgs::Int32MultiArray x_array;
+  std_msgs::Int32MultiArray x_array;
   std_msgs::Int32MultiArray y_array;
-  std_msgs::Float32MultiArray i_array;*/
+  std_msgs::Float32MultiArray i_array;
   int seq_count;
   ros::Publisher pointsPerSecPub;
-  /*std_msgs::Int32MultiArray odom_x_array;
-  std_msgs::Int32MultiArray odom_y_array;*/
+  std_msgs::Int32MultiArray odom_x_array;
+  std_msgs::Int32MultiArray odom_y_array;
   std::vector<int> x_point;
   std::vector<int> y_point;
   std::vector<int> i_point;

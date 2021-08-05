@@ -30,7 +30,6 @@ bool ReadBag::checkRegionOfInterest(std::pair<int,int> item, int min_x, int min_
     int y2 = item.second;
     float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
     d = (cm_resolution*d)/100;
-    
     if(d<=3){
       _return = true;
       break;
@@ -65,12 +64,11 @@ void ReadBag::process(const lane_points_msg::LanePoints::ConstPtr &msg){
 	for(std::vector<int>::const_iterator it = msg->odom_y.data.begin(); it != msg->odom_y.data.end(); ++it)
         {
                 odom_y_point.push_back(*it);
-        }
+	}
 	
 	for(std::size_t i = 0; i <odom_x_point.size(); ++i) {
-		vehicle_odom.push_back(std::make_pair(odom_x_point[i], odom_y_point[i]));
-
-
+		vehicle_odom.push_back(std::make_pair(odom_y_point[i], odom_x_point[i]));
+		
 	}
 
 
@@ -82,6 +80,7 @@ void ReadBag::process(const lane_points_msg::LanePoints::ConstPtr &msg){
 	for(std::vector<int>::const_iterator it = msg->y.data.begin(); it != msg->y.data.end(); ++it)
         {
                 y_point.push_back(*it);
+		//ROS_INFO_STREAM(*it);
         }
 	
 	for(std::vector<float>::const_iterator it = msg->i.data.begin(); it != msg->i.data.end(); ++it)
@@ -102,6 +101,7 @@ void ReadBag::process(const lane_points_msg::LanePoints::ConstPtr &msg){
 	}
 
 	ROS_INFO_STREAM(max_x<<" "<<max_y);
+	ROS_INFO_STREAM(x_point.size()<<" "<<y_point.size()<<" "<<i_point.size());
 
 	int image_max_x = max_x - min_x + 2;
  	int image_max_y = max_y - min_y + 2;
@@ -151,6 +151,9 @@ void ReadBag::process(const lane_points_msg::LanePoints::ConstPtr &msg){
 		// Only considering the pixels that are in the below colour range. It enables the detection of lanes in the intensity image clearly.
 		if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250){
 		  bool status = this->checkRegionOfInterest(std::make_pair(value_x, value_y), min_x, min_y, vehicle_odom);
+		  
+		  status = true;
+		  
 		  if(status){
 		    // Converting to white pixels to apply some 2d lane detction algorithms
 		    colour[0] = 255.;

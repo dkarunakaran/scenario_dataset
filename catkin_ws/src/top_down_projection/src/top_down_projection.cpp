@@ -166,7 +166,7 @@ FeatureExtractor::onInit() {
   signalShutdown = n.advertise<std_msgs::Bool> ("signal_shutdown", 1); 
   pointsPerSecPub = n.advertise<lane_points_msg::LanePoints> ("points_per_sec", 1);
   this->ReadFromBag();
-  //this->WriteImage();
+  this->WriteImage();
 
   //Just dealying the publishing the shutdown signal to get all the data
   int sec = 5;
@@ -724,7 +724,7 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
 
     pcl::transformPointCloud(*input_pointcloud_box_filter, *input_pointcloud, platform_origin, platform_rotation);
     pcl::transformPointCloud(*input_pointcloud, *input_pointcloud, world_origin, world_rotation);
-
+    
 
     if(std::find(secWatch.begin(), secWatch.end(), pointcloud_msg->header.stamp.sec) != secWatch.end()){
 	//ROS_INFO_STREAM("we are at "<<pointcloud_msg->header.stamp.nsec);
@@ -794,7 +794,7 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
     
     odom_x_point.push_back(x_index);
     odom_y_point.push_back(-1. * y_index); 
-	
+   	
     // put each point into the intensity map
     for (size_t i = 0; i < input_pointcloud->points.size(); ++i) {
       int x_index = (input_pointcloud->points[i].x * 100.) / cm_resolution;
@@ -803,19 +803,22 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
       if (fabs(x_index) > 1e7 || fabs(y_index) > 1e7) {
         continue;
       }
+      
       //ROS_INFO_STREAM("point " << x_index << ", " << y_index);
 
       //ROS_INFO_STREAM_THROTTLE(0.5, "point " << x_index << ", " << y_index);
       intensity_topic[std::make_pair(-1. * y_index,
                                      x_index)] = input_pointcloud->points[i].intensity; // std::map<std::pair<int,int>, double>
       
+      
       x_point.push_back(x_index);
-      y_point.push_back(-1. * y_index);
+      y_point.push_back(-1.*y_index);
       i_point.push_back(input_pointcloud->points[i].intensity);
     }
 
+
     //allPoints[std::make_pair(pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec)] = intensity_topic;
-    intensity_topic.clear();
+    //intensity_topic.clear();
     //allPoints.clear(); 	  
 
   } catch (const std::exception &e) { // reference to the base of a polymorphic object
