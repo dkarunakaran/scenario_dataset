@@ -22,7 +22,8 @@ from matplotlib import colors as clr
 from mpl_toolkits.mplot3d import Axes3D
 import tf2_ros
 from PIL import Image
-
+from std_msgs.msg import Float32MultiArray;
+import json
 
 class CheckTopic:
     counter = 0
@@ -35,8 +36,38 @@ class CheckTopic:
         #rospy.Subscriber('/pointcloud_transformer/output_pcl2', numpy_msg(PointCloud2), self.check_topic)
         #rospy.Subscriber('/velodyne_points', PointCloud2, self.test)
         #rospy.Subscriber('/lidar_pointcloud/top', PointCloud2, self.test)
+        self.radius = []
+        self.theta = []
+        self.phi = []
+        rospy.Subscriber('/radius_points', Float32MultiArray, self.save_radius)
+        rospy.Subscriber('/theta_points', Float32MultiArray, self.save_theta)
+        rospy.Subscriber('/phi_points', Float32MultiArray, self.save_phi)
+        rospy.on_shutdown(self.shutdown)
         rospy.spin()
         
+    def save_radius(self, msg):
+        self.radius = list(msg.data)
+
+    def save_theta(self, msg):
+        self.theta = list(msg.data)
+
+    def save_phi(self, msg):
+        self.phi = list(msg.data)
+
+    def shutdown(self):
+        print("Shtdown function called...")
+        extracted_data = {
+            'radius': self.radius,
+            'theta': self.theta,
+            'phi': self.phi
+        }
+
+        path_extracted_result = "/constraint_model/data/radius_theta_phi.txt"
+
+        # Save the json file
+        with open(path_extracted_result, 'w') as outfile:
+            json.dump(extracted_data, outfile)
+ 
     
     def check_topic(self, data): 
         if data.header.stamp.secs in self.sec_watcher:

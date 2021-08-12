@@ -217,105 +217,50 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_
     	int middleR3 = middlePoint(ring3, 0);
     	int middleR4 = middlePoint(ring4, 0);
     	//int middleR5 = middlePoint(ring5, 0);
-
-	std::vector<std::vector<float> > obs_points;
-	std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 10, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
-	std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 10, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
-	std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 10, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
-	std::vector<std::vector<float> > edge4 = findEdges(ring4, 15, 10, 9, ring4[middleR4][3], middleR4, 8, obs_points);// 12 10
-	ROS_INFO_STREAM(ring1.size()<<" "<<edge1.size()<<" "<<edge2.size()<<" "<<edge3.size()<<" "<<edge4.size()<<" "<<obs_points.size());	
-
-	pcl::PointCloud<pcl::PointXYZI> edge_pc1 = mat2PCL(edge1);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc2 = mat2PCL(edge2);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc3 = mat2PCL(edge3);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc4 = mat2PCL(edge4);
-	pcl::PointCloud<pcl::PointXYZI> obs = mat2PCL(obs_points);
-	pcl::PCLPointCloud2 cloudR1;pcl::PCLPointCloud2 cloudR2;
-	pcl::PCLPointCloud2 cloudR3;pcl::PCLPointCloud2 cloudR4;
-	pcl::PCLPointCloud2 cloudFinal;pcl::PCLPointCloud2 obs_pc;
-	pcl::toPCLPointCloud2(edge_pc1,cloudR1);pcl::toPCLPointCloud2(edge_pc2,cloudR2);
-	pcl::toPCLPointCloud2(edge_pc3,cloudR3);pcl::toPCLPointCloud2(edge_pc4,cloudR4);
-	pcl::toPCLPointCloud2(obs,obs_pc);
-
+	
+	ROS_INFO_STREAM(middleR1);	
 }
 
-pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::mat2PCL(std::vector<std::vector<float> > matrixPC){
-     pcl::PointCloud<pcl::PointXYZI> pointCloud;
-     for (int i=0;i < matrixPC.size(); i=i+1){
-       pcl::PointXYZI point;
-       point.x = matrixPC[i][0];
-       point.y = matrixPC[i][1];
-       point.z = matrixPC[i][2];
-       point.intensity = matrixPC[i][3];
-       pointCloud.push_back(point);
-     }
-     return pointCloud;
-}
-
-
-std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vector<float> > matrixPC, float AngleThreshold, float Angle_d_Threshold, float IntensityThreshold, float Intensity, int middle_intensity_index, int points, std::vector<std::vector<float>>& obs_points) {
+std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vector<float> > matrixPC, float AngleThreshold, float Angle_d_Threshold, float IntensityThreshold, float Intensity, int middle_intensity_index, int points) {
      std::vector<std::vector<float> > edges_points;
      int n=20;
      int inclination_change=0;
      float angle;
      float anglexy;
-     
+     //Busqueda al lado Derecho
      bool obs_N_det= true;
-     
-     //Angle on the xy palne
-     auto angle_past_xy = atan2((matrixPC[middle_intensity_index+points][0]-matrixPC[middle_intensity_index][0]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
-     
-     //Angle on the yz plane
-     auto angle_past = atan2((matrixPC[middle_intensity_index+points][2]-matrixPC[middle_intensity_index][2]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
-     
-     //One side of the points
+     angle_past_xy = atan2((matrixPC[middle_intensity_index+points][0]-matrixPC[middle_intensity_index][0]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
+     angle_past = atan2((matrixPC[middle_intensity_index+points][2]-matrixPC[middle_intensity_index][2]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
      for (int i=middle_intensity_index; i< (matrixPC.size()-points); i=i+1)
      {
         std::vector<float> edge_h;
-
-	//Angle on the xy palne
         anglexy=atan2((matrixPC[i+points][0]-matrixPC[i][0]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
-        
-	//Angle on the yz palne
-	angle=atan2((matrixPC[i+points][2]-matrixPC[i][2]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
-       
-	//ROS_INFO_STREAM("Angle D " << angle << ".\n");
-       
+        angle=atan2((matrixPC[i+points][2]-matrixPC[i][2]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
+       // cout << "Angle D " << angle << ".\n";
        //comparing angle
-       if ((std::abs(angle))<AngleThreshold && (std::abs(angle-angle_past))<Angle_d_Threshold && obs_N_det ){
-              edge_h.push_back(matrixPC[i][0]);
-	      edge_h.push_back(matrixPC[i][1]);
-	      edge_h.push_back(matrixPC[i][2]);
-	      edge_h.push_back(matrixPC[i][3]);
+        if ((std::abs(angle))<AngleThreshold && (std::abs(angle-angle_past))<Angle_d_Threshold && obs_N_det ){
+              edge_h.push_back(matrixPC[i][0]);edge_h.push_back(matrixPC[i][1]);edge_h.push_back(matrixPC[i][2]);edge_h.push_back(matrixPC[i][3]);
               edges_points.push_back(edge_h);
               angle_past = angle;
               angle_past_xy =anglexy;
-        } else {
+         } else {
           obs_N_det= false;
-	  //std::cout << "Angle I " << angle << ".\n";
-          //std::cout << "Angle Diff " << (angle-angle_past) << ".\n";
-          edge_h.push_back(matrixPC[i][0]);
-	  edge_h.push_back(matrixPC[i][1]);
-	  edge_h.push_back(matrixPC[i][2]);
-	  edge_h.push_back(matrixPC[i][3]);
+         // cout << "Derecha .\n";
+         // cout << "Angle I " << angle << ".\n";
+        // cout << "Angle Diff " << (angle-angle_past) << ".\n";
+         //break;
+          edge_h.push_back(matrixPC[i][0]);edge_h.push_back(matrixPC[i][1]);edge_h.push_back(matrixPC[i][2]);edge_h.push_back(matrixPC[i][3]);
           obs_points.push_back(edge_h);
        }
      }
-
-     // OTHER SIDE OF THE POINTS
      obs_N_det= true;
-     
-      //Angle on the yz palne
      angle_past = atan2((matrixPC[middle_intensity_index][2]-matrixPC[middle_intensity_index-points][2]),((matrixPC[middle_intensity_index][1]-matrixPC[middle_intensity_index-points][1])))*180/3.14159265;
      for (int i=middle_intensity_index; i> points; i=i-1)
      {
         std::vector<float> edge_h;
-
-	 //Angle on the yz palne
         angle=atan2((matrixPC[i][2]-matrixPC[i-points][2]),((matrixPC[i][1]-matrixPC[i-points][1])))*180/3.14159265;
-        
-	//comparing angle
-        //cout << "Angle I " << angle << ".\n";
+       //comparing angle
+      //  cout << "Angle I " << angle << ".\n";
         if ((std::abs(angle))<AngleThreshold && (std::abs(angle-angle_past))<Angle_d_Threshold && obs_N_det ){
               edge_h.push_back(matrixPC[i][0]);edge_h.push_back(matrixPC[i][1]);edge_h.push_back(matrixPC[i][2]);edge_h.push_back(matrixPC[i][3]);
               edges_points.push_back(edge_h);
@@ -330,7 +275,7 @@ std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vec
         // break;
        }
      }
-     
+    // cout << "Fin .\n";
      return edges_points;
 }
 

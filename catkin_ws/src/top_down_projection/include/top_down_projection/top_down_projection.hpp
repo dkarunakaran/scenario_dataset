@@ -29,7 +29,6 @@
 #include "draw_shapes.hpp"
 #include <lane_points_msg/LanePoints.h>
 
-
 class FeatureExtractor : public dataset_toolkit::h264_bag_playback
 {
 
@@ -38,7 +37,9 @@ public:
       : h264_bag_playback(),
         current_message_number(0),
         previous_percentage(-1)
-  {}
+  {
+	  this->initialize();
+  }
 
   void bypass_init() {
     this->onInit();
@@ -53,6 +54,21 @@ public:
 
 
 private:
+
+
+  void initialize();
+
+  void processForSphericalCoordinateFrame();
+
+  std::vector<std::vector<float> > median (std::vector<std::vector<float> > matrixPC, int coord, int window);
+
+  void extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud);
+
+  int middlePoint(std::vector<std::vector<float>> matrixPC, float value);
+
+  std::vector<std::vector<float> > findEdges(std::vector<std::vector<float> > matrixPC, float AngleThreshold, float Angle_d_Threshold, float IntensityThreshold, float Intensity, int middle_intensity_index, int points, std::vector<std::vector<float>>& obs_points);
+ 
+  pcl::PointCloud<pcl::PointXYZI> mat2PCL(std::vector<std::vector<float> > matrixPC);
 
   // initialise ros stuff
   virtual void onInit();
@@ -105,6 +121,11 @@ private:
   int max_y_per_sec = -1000000;
   float min_i_per_sec = 100000000.;
   float max_i_per_sec = -100000000.;
+  pcl::PCLPointCloud2::Ptr cloud_all;
+  pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_all_xyzir;
+  ros::Publisher sphericalR;
+  ros::Publisher sphericalT;
+  ros::Publisher sphericalP;
 };
 
 

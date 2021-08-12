@@ -32,9 +32,13 @@
 #include <std_msgs/String.h>
 
 #include "Conversions.h"
-#include <pcl/common/io.h>
+	
+#include <pcl/conversions.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/Float32MultiArray.h>
-
 
 int main(int argc, char **argv) {
 
@@ -44,14 +48,10 @@ int main(int argc, char **argv) {
   FeatureExtractor pole_detect;
   pole_detect.bypass_init();
 
+  ros::spin();
+
   return 0;
 }
-
-void FeatureExtractor::initialize(){
-	cloud_all = pcl::PCLPointCloud2::Ptr (new pcl::PCLPointCloud2); 
-	cloud_all_xyzir = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
-}
-
 
 
 std::vector <std::string>
@@ -81,6 +81,7 @@ FeatureExtractor::onInit() {
   private_nh.param<std::string>("projection_frame", projection_frame, "odom");
 
   std::vector<float> filter_ring_numbers;
+
   private_nh.getParam("use_rings", filter_ring_numbers);
 
   for (auto &ring: filter_ring_numbers) {
@@ -161,268 +162,34 @@ FeatureExtractor::onInit() {
 
   this->init_playback();
   start_time = std::chrono::steady_clock::now();
-  
+  lanePcPub = n.advertise<lane_points_msg::LanePoints> ("lane_points", 1); 
+  signalShutdown = n.advertise<std_msgs::Bool> ("signal_shutdown", 1); 
   this->ReadFromBag();
-  //this->processForSphericalCoordinateFrame();
-  this->extractEdges(cloud_all_xyzir);
-  this->WriteImage();
-  
-}
+  //this->WriteImage();
 
-void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud){
-	
-	std::vector<std::vector<float>>  ring1;
-	std::vector<std::vector<float>>  ring2;
-	std::vector<std::vector<float>>  ring3;
-	std::vector<std::vector<float>>  ring4;
-	//std::vector<std::vector<float>>  ring5;
-		
-	// Sort the pointclouds
-	for (size_t i = 0; i < input_cloud->points.size(); ++i) {
-     		//int x_index = (input_pointcloud->points[i].x * 100.) / cm_resolution;
-      		//int y_index = (input_pointcloud->points[i].y * 100.) / cm_resolution;
-		std::vector<float> row;
-      		row.push_back(input_cloud->points[i].x); 
-		row.push_back(input_cloud->points[i].y); 
-		row.push_back(input_cloud->points[i].z); 
-		row.push_back(input_cloud->points[i].intensity);
-		if(input_cloud->points[i].ring == 90){
-			ring1.push_back(row);
-		}else if(input_cloud->points[i].ring == 91){
-			ring2.push_back(row);
-		}else if(input_cloud->points[i].ring == 92){
-			ring3.push_back(row);
-		}else if(input_cloud->points[i].ring == 93){
-			ring4.push_back(row);
-		}/*else if(input_cloud->points[i].ring == 94){
-                        ring4.push_back(row);
-                }*/
-	}
-    	
-	//Sorting	
-	std::sort(ring1.begin(), ring1.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	std::sort(ring2.begin(), ring2.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	std::sort(ring3.begin(), ring3.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	std::sort(ring4.begin(), ring4.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	//std::sort(ring5.begin(), ring5.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-
-	ring1 = median(ring1,0,7);
-	ring2 = median(ring2,0,7);
-	ring3 = median(ring3,0,7);
-	ring4 = median(ring4,0,5);
-	//ring5 = median(ring5,0,5);
-
-	int middleR1 = middlePoint(ring1, 0);
-    	int middleR2 = middlePoint(ring2, 0);
-    	int middleR3 = middlePoint(ring3, 0);
-    	int middleR4 = middlePoint(ring4, 0);
-    	//int middleR5 = middlePoint(ring5, 0);
-
-	std::vector<std::vector<float> > obs_points;
-	std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 10, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
-	std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 10, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
-	std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 10, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
-	std::vector<std::vector<float> > edge4 = findEdges(ring4, 15, 10, 9, ring4[middleR4][3], middleR4, 8, obs_points);// 12 10
-	ROS_INFO_STREAM(ring1.size()<<" "<<edge1.size()<<" "<<edge2.size()<<" "<<edge3.size()<<" "<<edge4.size()<<" "<<obs_points.size());	
-
-	pcl::PointCloud<pcl::PointXYZI> edge_pc1 = mat2PCL(edge1);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc2 = mat2PCL(edge2);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc3 = mat2PCL(edge3);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc4 = mat2PCL(edge4);
-	pcl::PointCloud<pcl::PointXYZI> obs = mat2PCL(obs_points);
-	pcl::PCLPointCloud2 cloudR1;pcl::PCLPointCloud2 cloudR2;
-	pcl::PCLPointCloud2 cloudR3;pcl::PCLPointCloud2 cloudR4;
-	pcl::PCLPointCloud2 cloudFinal;pcl::PCLPointCloud2 obs_pc;
-	pcl::toPCLPointCloud2(edge_pc1,cloudR1);pcl::toPCLPointCloud2(edge_pc2,cloudR2);
-	pcl::toPCLPointCloud2(edge_pc3,cloudR3);pcl::toPCLPointCloud2(edge_pc4,cloudR4);
-	pcl::toPCLPointCloud2(obs,obs_pc);
-
-}
-
-pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::mat2PCL(std::vector<std::vector<float> > matrixPC){
-     pcl::PointCloud<pcl::PointXYZI> pointCloud;
-     for (int i=0;i < matrixPC.size(); i=i+1){
-       pcl::PointXYZI point;
-       point.x = matrixPC[i][0];
-       point.y = matrixPC[i][1];
-       point.z = matrixPC[i][2];
-       point.intensity = matrixPC[i][3];
-       pointCloud.push_back(point);
-     }
-     return pointCloud;
-}
-
-
-std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vector<float> > matrixPC, float AngleThreshold, float Angle_d_Threshold, float IntensityThreshold, float Intensity, int middle_intensity_index, int points, std::vector<std::vector<float>>& obs_points) {
-     std::vector<std::vector<float> > edges_points;
-     int n=20;
-     int inclination_change=0;
-     float angle;
-     float anglexy;
-     
-     bool obs_N_det= true;
-     
-     //Angle on the xy palne
-     auto angle_past_xy = atan2((matrixPC[middle_intensity_index+points][0]-matrixPC[middle_intensity_index][0]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
-     
-     //Angle on the yz plane
-     auto angle_past = atan2((matrixPC[middle_intensity_index+points][2]-matrixPC[middle_intensity_index][2]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
-     
-     //One side of the points
-     for (int i=middle_intensity_index; i< (matrixPC.size()-points); i=i+1)
-     {
-        std::vector<float> edge_h;
-
-	//Angle on the xy palne
-        anglexy=atan2((matrixPC[i+points][0]-matrixPC[i][0]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
-        
-	//Angle on the yz palne
-	angle=atan2((matrixPC[i+points][2]-matrixPC[i][2]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
-       
-	//ROS_INFO_STREAM("Angle D " << angle << ".\n");
-       
-       //comparing angle
-       if ((std::abs(angle))<AngleThreshold && (std::abs(angle-angle_past))<Angle_d_Threshold && obs_N_det ){
-              edge_h.push_back(matrixPC[i][0]);
-	      edge_h.push_back(matrixPC[i][1]);
-	      edge_h.push_back(matrixPC[i][2]);
-	      edge_h.push_back(matrixPC[i][3]);
-              edges_points.push_back(edge_h);
-              angle_past = angle;
-              angle_past_xy =anglexy;
-        } else {
-          obs_N_det= false;
-	  //std::cout << "Angle I " << angle << ".\n";
-          //std::cout << "Angle Diff " << (angle-angle_past) << ".\n";
-          edge_h.push_back(matrixPC[i][0]);
-	  edge_h.push_back(matrixPC[i][1]);
-	  edge_h.push_back(matrixPC[i][2]);
-	  edge_h.push_back(matrixPC[i][3]);
-          obs_points.push_back(edge_h);
-       }
-     }
-
-     // OTHER SIDE OF THE POINTS
-     obs_N_det= true;
-     
-      //Angle on the yz palne
-     angle_past = atan2((matrixPC[middle_intensity_index][2]-matrixPC[middle_intensity_index-points][2]),((matrixPC[middle_intensity_index][1]-matrixPC[middle_intensity_index-points][1])))*180/3.14159265;
-     for (int i=middle_intensity_index; i> points; i=i-1)
-     {
-        std::vector<float> edge_h;
-
-	 //Angle on the yz palne
-        angle=atan2((matrixPC[i][2]-matrixPC[i-points][2]),((matrixPC[i][1]-matrixPC[i-points][1])))*180/3.14159265;
-        
-	//comparing angle
-        //cout << "Angle I " << angle << ".\n";
-        if ((std::abs(angle))<AngleThreshold && (std::abs(angle-angle_past))<Angle_d_Threshold && obs_N_det ){
-              edge_h.push_back(matrixPC[i][0]);edge_h.push_back(matrixPC[i][1]);edge_h.push_back(matrixPC[i][2]);edge_h.push_back(matrixPC[i][3]);
-              edges_points.push_back(edge_h);
-              angle_past=angle;
-         } else {
-             obs_N_det= false;
-           //  cout << "Izquierda .\n";
-           //  cout << "Angle I " << angle << ".\n";
-           //  cout << "Angle Diff " << (angle-angle_past) << ".\n";
-             edge_h.push_back(matrixPC[i][0]);edge_h.push_back(matrixPC[i][1]);edge_h.push_back(matrixPC[i][2]);edge_h.push_back(matrixPC[i][3]);
-             obs_points.push_back(edge_h);
-        // break;
-       }
-     }
-     
-     return edges_points;
-}
-
-
-std::vector<std::vector<float> > FeatureExtractor::median (std::vector<std::vector<float> > matrixPC, int coord, int window){
-
-     std::vector<float> vector (window,matrixPC[0][coord]);
-     int med = (window-1)/2;
-     int l=0;
-     for (int i=0;i < matrixPC.size(); i=i+1){
-       l=0;
-       int minimo1=std::min(vector.size(),matrixPC.size()-i);
-       for (int j=med; j<minimo1;j++){
-         vector[j]=matrixPC[i+l][coord];
-         l++;
-       }
-       std::sort(vector.begin(),vector.end(),[](float& i, float& j) {return i < j;});
-       matrixPC[i][coord]=vector[med];
-       int minimo= std::min((i+1),med);
-       l=0;
-       for (int j=med-1; j>minimo;j--){
-         vector[j]=matrixPC[i-l][coord];
-         l++;
-       }
-     }
-
-     return matrixPC;
-}
-
-int FeatureExtractor::middlePoint(std::vector<std::vector<float>> matrixPC, float value){
-     int middle;
-     float middle_f = 100000;
-     for (int i=0; i< (matrixPC.size()-1); i=i+1){
-       if ((std::abs(matrixPC[i][1]-value))<middle_f){
-         middle = i;
-         middle_f = std::abs(matrixPC[i][1]-value);
-       }
-     }
-     
-     return (middle);
-}
-
-void FeatureExtractor::processForSphericalCoordinateFrame(){
-	ROS_INFO_STREAM("HERERERRERERERE");
-	/*Converting cartisian to spherical coordinate frame.
-	 *Spherical is 3d for of  2d polar cartician frame. Polar is used in c		ircle. Plar has radis and angle and working on xy plane as it is 2d.
-	 *More detailed explnation can be found here: https://blog.demofox.org/2013/10/12/converting-to-and-from-polar-spherical-coordinates-made-easy/
-	 *Equation of spherical coordinate frames
-	 *radius = sqrt(X * X + Y * Y + Z * Z) //distance
-	 *theta = atan2(Y, X) // bearing
-	 *phi = acos(Z / radius) //pitch
-	*/
-	sphericalR = n.advertise<std_msgs::Float32MultiArray>("radius_points", 1);
-  	sphericalT = n.advertise<std_msgs::Float32MultiArray>("theta_points", 1);
-  	sphericalP = n.advertise<std_msgs::Float32MultiArray>("phi_points", 1); 
-
-	float radiusThreshold_max = 6.0;
-	float angleThreshold_min = 2.0;
-	float angleThreshold_max = 4.25;
-	std_msgs::Float32MultiArray r_array, t_array, p_array;
-	for (size_t i = 0; i < cloud_all_xyzir->points.size(); ++i) {
-      		int x = cloud_all_xyzir->points[i].x;
-      		int y = cloud_all_xyzir->points[i].y;
-      		int z = cloud_all_xyzir->points[i].z;
-		auto radius = sqrt(pow(x, 2)+pow(y, 2)+pow(z, 2));
-		auto theta = atan2(y, x);
-		auto phi = acos((z/radius));
-		r_array.data.push_back(radius);
-		t_array.data.push_back(theta);
-		p_array.data.push_back(phi);
-	}
-
-	sphericalR.publish(r_array);
-	sphericalT.publish(t_array);
-	sphericalP.publish(p_array);
+  //Just dealying the publishing the shutdown signal to get all the data
+  int sec = 5;
+  ROS_INFO_STREAM("Waiting for "<<sec<<" seconds before sending the shutdown signal");
+  ros::Duration(sec).sleep();
+  std_msgs::Bool msg;
+  msg.data = true;
+  signalShutdown.publish(msg);
 }
 
 bool FeatureExtractor::checkRegionOfInterest(std::pair<int,int> item, int min_x, int min_y){
-
+  
   bool _return = false;
 
   // Draw a circle for each of the odom positions
   for (auto &odom: vehicle_odom) {
     int x1 = odom.first - min_x;
     int y1 = odom.second - min_y;
-    
-    
+
     int x2 = item.first;
     int y2 = item.second;
     float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
     d = (cm_resolution*d)/100;
-     
+    
     if(d<=3){
       _return = true;
       break;
@@ -432,6 +199,134 @@ bool FeatureExtractor::checkRegionOfInterest(std::pair<int,int> item, int min_x,
   return _return;
 }
 
+void FeatureExtractor::publishLanePoints(int min_x, int min_y, int max_x, int max_y, int image_max_x, int image_max_y, float min_intensity, float max_intensity){
+  
+  ROS_INFO_STREAM("all point size:"<<allPoints.size());
+  std::map<long int, std::list<std::map<std::pair<int, int>, double>>> allPointsPerSec;
+  std::list<std::map<std::pair<int, int>, double>> pointsPerNsec;
+  long int last = 0;
+  
+  //std::map<std::pair<int, int>, double> storeLanePointsNsec;
+  //std::vector<std::map<std::pair<int, int>, double>> storeLanePointsSec;
+  for (auto &point: allPoints) {	
+	if(allPointsPerSec.count(point.first.first)){
+		pointsPerNsec.push_back(point.second);
+	}else{
+		if(last == 0){
+			last = point.first.first;
+		}else{
+			allPointsPerSec[last] = pointsPerNsec;
+			pointsPerNsec.clear();
+			pointsPerNsec.push_back(point.second);
+			last = point.first.first;
+		}
+	}
+  }
+
+
+  if(!allPointsPerSec.count(last)){
+	allPointsPerSec[last] = pointsPerNsec;
+        pointsPerNsec.clear();
+  }
+
+
+  int count = 0;
+  for(auto &secPoints: allPointsPerSec){
+   // secPoints.first: long int - seconds
+   // secPoints.second: list -  list of each nsec points
+   // secPoints.second[].first - it's a x,y pair of points
+   // secPoints.second[].second - intensity of each x, y point
+   //List level
+   
+   lane_points_msg::LanePoints lanePointsMsg;
+   lanePointsMsg.header.seq = count;
+   lanePointsMsg.header.stamp.sec = secPoints.first;
+   lanePointsMsg.header.stamp.nsec = 0;
+   lanePointsMsg.header.frame_id = "lane_points";
+   lanePointsMsg.max_x = image_max_x;
+   lanePointsMsg.max_y = image_max_y;
+   count += 1;
+   std_msgs::Int32MultiArray x_array;
+   x_array.data.clear();
+   std_msgs::Int32MultiArray y_array;
+   y_array.data.clear();
+   std_msgs::Float32MultiArray i_array;
+   i_array.data.clear();
+   for(auto &nsecPoints: secPoints.second){
+    
+    //Map level - nsecs
+    for(auto &points: nsecPoints){
+    	
+	//Intensity filtering code
+	int value_x = points.first.first - min_x;
+	int value_y = points.first.second - min_y;
+      	if (value_x < 0 || value_x >= image_max_x) {
+        	ROS_ERROR_STREAM("Pixel found out of bounds: " << intensity_map.size());
+        	continue;
+      	}
+
+      	if (value_y < 0 || value_y >= image_max_y) {
+        	ROS_ERROR_STREAM("Pixel found out of bounds: " << intensity_map.size());
+        	continue;
+      	}
+
+      	cv::Vec4b colour;
+	// scale the intensity value to be between 0 and 1
+        double intensity = (points.second - min_intensity) / (max_intensity - min_intensity);
+
+        if (intensity > 1.)
+          intensity = 1.;
+
+        if (intensity < 0.)
+          intensity = 0.;
+
+        // set the hue to the intensity value (between 0 and 255) to make a rainbow colour scale
+        hsv input_hsv;
+        input_hsv.h = intensity * 255.;
+        input_hsv.s = 1.;
+        input_hsv.v = 1.;
+
+        // convert HSV to RGB
+        rgb output_rgb = hsv2rgb(input_hsv);
+
+        colour[0] = (uint8_t)(output_rgb.b * 255.);
+        colour[1] = (uint8_t)(output_rgb.g * 255.);
+        colour[2] = (uint8_t)(output_rgb.r * 255.);
+	
+	// Only considering the pixels that are in the below colour range. It enables the detection of lanes in the intensity image clearly.  
+        if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250){
+          bool status = this->checkRegionOfInterest(std::make_pair(value_x, value_y), min_x, min_y);
+          if(status){
+            // Converting to white pixels to apply some 2d lane detction algorithms
+            colour[0] = 255.;
+            colour[1] = 255.;
+            colour[2] = 255.;
+	    x_array.data.push_back(value_x);
+	    y_array.data.push_back(value_y);
+	    i_array.data.push_back(1.0);
+
+          }else{
+            continue;
+          }
+
+        }else{
+          // Do not consider other pixels that are not in the above colour range
+          continue;
+        }
+	//Store the values of nsec points and intensity
+    }
+    //Add each nsec points to one sec container
+    //storeLanePointsSec.push_back(storeLanePointsNsec);
+    //storeLanePointsNsec.clear();
+   } 
+   //Publish the sec container
+   //Msg: header|size: max_x, max_y|data: x: [], y: [], i: []
+   lanePointsMsg.x = x_array;
+   lanePointsMsg.y = y_array;
+   lanePointsMsg.i = i_array;
+   lanePcPub.publish(lanePointsMsg);
+  }	
+}
 
 
 void FeatureExtractor::WriteImage() {
@@ -459,19 +354,23 @@ void FeatureExtractor::WriteImage() {
 
   std::cout << min_x << ", " << min_y << ", " << max_x << ", " << max_y << std::endl;
 
+  int image_max_x = max_x - min_x + 2;
+  int image_max_y = max_y - min_y + 2;
+
+  //My coding started
+  publishLanePoints(min_x, min_y, max_x, max_y, image_max_x, image_max_y, min_intensity, max_intensity);
+  //My coding finished
+
+  
+  /*
   // restrict the intensity range as determined by the param settings
   float intensity_scale_min = private_nh.param<float>("min_intensity", 0.);
   float intensity_scale_max = private_nh.param<float>("max_intensity", 80.);
 
   min_intensity = std::max<float>(min_intensity, intensity_scale_min);
-  max_intensity = std::min<float>(max_intensity, intensity_scale_max);
-
-  // Add a small buffer for the image to account for rounding errors
-  int image_max_x = max_x - min_x + 2;
-  int image_max_y = max_y - min_y + 2;
-
   // the lidar datapoints projected into 2d
   cv::Mat output_image(image_max_x, image_max_y, CV_8UC4, cv::Scalar(0, 0, 0, 0));
+
 
   for (auto &topic_to_draw: item_draw_properties) {
     auto topic_intensity = intensity_map.find(topic_to_draw->topic_name);
@@ -565,20 +464,25 @@ void FeatureExtractor::WriteImage() {
         colour[1] = (uint8_t)(output_rgb.g * 255.);
         colour[2] = (uint8_t)(output_rgb.r * 255.);
         
-	/*if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250) 
-        { 
+        // Only considering the pixels that are in the below colour range. It enables the detection of lanes in the intensity image clearly.  
+        if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250){
+             
+          
           bool status = this->checkRegionOfInterest(std::make_pair(value_x, value_y), min_x, min_y);
-          status = true;
-	  if(status){
-		colour[0] = 255.;
-		colour[1] = 255.;
-		colour[2] = 255.;
-	  }else{
-		continue;
-	  }	  
-	}else{
-		continue;
-        }*/
+          if(status){
+            // Converting to white pixels to apply some 2d lane detction algorithms
+            colour[0] = 255.;
+            colour[1] = 255.;
+            colour[2] = 255.;
+	    ROS_INFO_STREAM("value_x "<<value_x<<" value_y "<<value_y);
+          }else{
+            continue;
+          }
+        
+        }else{
+          // Do not consider other pixels that are not in the above colour range
+          continue;
+        }
       }
 
       cv::Point destination_point(value_y, value_x);
@@ -586,6 +490,7 @@ void FeatureExtractor::WriteImage() {
     }
   }
 
+ 
   // Set the colour for the odom plot
   cv::Scalar odom_colour(255., 50., 0., 180);
   float odom_radius = 5.;
@@ -607,15 +512,14 @@ void FeatureExtractor::WriteImage() {
                                      max_x / 100. * cm_resolution << ", " << max_y / 100. * cm_resolution
                                      << "] with intensity range [" <<
                                      min_intensity << ", " << max_intensity << "]");
-
+ */
   // output the white background image
   std::string output_image_name = private_nh.param<std::string>("output_image", "");
 
-
+  /*
   if (output_image_name != "")
     cv::imwrite(output_image_name, output_image);
-
-
+  */
 
   double x_datum = 0, y_datum = 0;
 
@@ -700,7 +604,6 @@ FeatureExtractor::Selector(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud,
     float range_squared =
         pow(input_cloud->points[i].x, 2) + pow(input_cloud->points[i].y, 2) + pow(input_cloud->points[i].z, 2);
 
-   
     if (range_squared > max_range_squared)
       continue;
 
@@ -769,7 +672,7 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
     auto world_transform = transformer_->lookupTransform(projection_frame,
                                                          std::string("base_link"), pointcloud_msg->header.stamp);
 
-   
+
     // transform from the base_link_horizon to the lidar reference frame -
     //  this will correct for the pitch and roll of the platform
     //auto platform_transform = transformer_->lookupTransform(std::string("base_link_horizon"),
@@ -820,39 +723,159 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
 
     pcl::transformPointCloud(*input_pointcloud_box_filter, *input_pointcloud, platform_origin, platform_rotation);
     pcl::transformPointCloud(*input_pointcloud, *input_pointcloud, world_origin, world_rotation);
+    
 
+    if(std::find(secWatch.begin(), secWatch.end(), pointcloud_msg->header.stamp.sec) != secWatch.end()){
+	//ROS_INFO_STREAM("we are at "<<pointcloud_msg->header.stamp.nsec);
+
+    }else{
+	
+      if(secWatch.size() != 0 && secWatch.size()%5 == 0) {
+        ROS_INFO_STREAM("we are at "<<pointcloud_msg->header.stamp.sec);
+        int max_x = max_x_per_sec;
+    	int max_y = max_y_per_sec;
+    	int min_x = min_x_per_sec;
+    	int min_y = min_y_per_sec;
+    	float min_intensity = min_i_per_sec;
+    	float max_intensity = max_i_per_sec;
+    	int image_max_x = max_x - min_x + 2;
+    	int image_max_y = max_y - min_y + 2;
+
+	
+	std::map<long int, std::list<std::map<std::pair<int, int>, double>>> allPointsPerSec;
+        std::list<std::map<std::pair<int, int>, double>> pointsPerNsec;
+        long int last = 0;
+        //std::map<std::pair<int, int>, double> storeLanePointsNsec;
+        //std::vector<std::map<std::pair<int, int>, double>> storeLanePointsSec;
+        for (auto &point: allPoints) {
+          if(allPointsPerSec.count(point.first.first)){
+            pointsPerNsec.push_back(point.second);
+          }else{
+            if(last == 0){
+              last = point.first.first;
+            }else{
+              allPointsPerSec[last] = pointsPerNsec;
+              pointsPerNsec.clear();
+              pointsPerNsec.push_back(point.second);
+              last = point.first.first;
+            }
+          }
+        }
+
+
+        if(!allPointsPerSec.count(last)){
+          allPointsPerSec[last] = pointsPerNsec;
+          pointsPerNsec.clear();
+        }
+
+        int count = 0;
+        for(auto &secPoints: allPointsPerSec){
+            // secPoints.first: long int - seconds
+            // secPoints.second: list -  list of each nsec points
+            // secPoints.second[].first - it's a x,y pair of points
+            // secPoints.second[].second - intensity of each x, y point
+            //List level
+	    ROS_INFO_STREAM(min_x<<" "<<min_y);
+        
+    	    lane_points_msg::LanePoints lanePointsMsg;
+            lanePointsMsg.header.seq = count;
+            lanePointsMsg.header.stamp.sec = secPoints.first;
+            lanePointsMsg.header.stamp.nsec = 0;
+            lanePointsMsg.header.frame_id = "lane_points";
+            lanePointsMsg.max_x = image_max_x;
+            lanePointsMsg.max_y = image_max_y;
+            count += 1;
+            std_msgs::Int32MultiArray x_array;
+            x_array.data.clear();
+            std_msgs::Int32MultiArray y_array;
+            y_array.data.clear();
+            std_msgs::Float32MultiArray i_array;
+            i_array.data.clear();
+            for(auto &nsecPoints: secPoints.second){
+
+                //Map level - nsecs
+                for(auto &points: nsecPoints){
+
+                  //Intensity filtering code
+                  int value_x = points.first.first - min_x;
+                  int value_y = points.first.second - min_y;
+		  if (value_x < 0 || value_x >= image_max_x) {
+                    continue;
+                  }
+
+                  if (value_y < 0 || value_y >= image_max_y) {
+                    continue;
+                  }
+		  
+                  //ROS_INFO_STREAM("x and y: "<<points.first.first<<" "<<points.first.second);
+
+                  cv::Vec4b colour;
+                  // scale the intensity value to be between 0 and 1
+                  double intensity = (points.second - min_intensity) / (max_intensity - min_intensity);
+
+                  if (intensity > 1.)
+                    intensity = 1.;
+
+                  if (intensity < 0.)
+                    intensity = 0.;
+                  
+                  // set the hue to the intensity value (between 0 and 255) to make a rainbow colour scale
+                  hsv input_hsv;
+                  input_hsv.h = intensity * 255.;
+                  input_hsv.s = 1.;
+                  input_hsv.v = 1.;
+
+                  // convert HSV to RGB
+                  rgb output_rgb = hsv2rgb(input_hsv);
+
+                  colour[0] = (uint8_t)(output_rgb.b * 255.);
+                  colour[1] = (uint8_t)(output_rgb.g * 255.);
+                  colour[2] = (uint8_t)(output_rgb.r * 255.);
+
+                  // Only considering the pixels that are in the below colour range. It enables the detection of lanes in the intensity image clearly.  
+                  if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250){
+                    bool status = this->checkRegionOfInterest(std::make_pair(value_x, value_y), min_x, min_y);
+		    if(status){
+                      // Converting to white pixels to apply some 2d lane detction algorithms
+                      colour[0] = 255.;
+                      colour[1] = 255.;
+                      colour[2] = 255.;
+                      x_array.data.push_back(value_x);
+                      y_array.data.push_back(value_y);
+                      i_array.data.push_back(1.0);
+
+                    }else{
+                      continue;
+                    }
+
+                  }else{
+                    // Do not consider other pixels that are not in the above colour range
+                    continue;
+                  }
+                  //Store the values of nsec points and intensity
+                }
+              //Add each nsec points to one sec container
+              //storeLanePointsSec.push_back(storeLanePointsNsec);
+              //storeLanePointsNsec.clear();
+            }
+            //Publish the sec container
+            //Msg: header|size: max_x, max_y|data: x: [], y: [], i: []
+            lanePointsMsg.x = x_array;
+            lanePointsMsg.y = y_array;
+            lanePointsMsg.i = i_array;
+            lanePcPub.publish(lanePointsMsg);
+        }
+        intensity_topic.clear();
+	allPoints.clear();
+      }// 
+      secWatch.push_back(pointcloud_msg->header.stamp.sec);
+    }//else slosing
+	
     int x_index = (world_origin[0] * 100.) / cm_resolution;
     int y_index = (world_origin[1] * 100.) / cm_resolution;
     vehicle_odom.push_back(std::make_pair(-1. * y_index, x_index));
-    
-    //Temporary modification by DK
-    /*auto dk_transform = transformer_->lookupTransform("odom",
-                                                         std::string("base_link"), pointcloud_msg->header.stamp);
-    Eigen::Vector3f dk_origin(dk_transform.transform.translation.x,
-                                 dk_transform.transform.translation.y,
-                                 dk_transform.transform.translation.z);
-    ROS_INFO_STREAM("vehicle at odom x and y: "<<dk_origin[0]<<" "<<dk_origin[1]);
-
-    ROS_INFO_STREAM("vehicle at base_link x and y: "<<world_origin[0]<<" "<<world_origin[1]);
-    ROS_INFO_STREAM("___________________________");*/
-    //Temporary modification by DK - finished
-
-    if(std::find(secWatch.begin(), secWatch.end(), pointcloud_msg->header.stamp.sec) != secWatch.end()){
-        ROS_INFO_STREAM("we are at "<<pointcloud_msg->header.stamp.sec<<" "<<input_pointcloud->points.size());
-	if(secWatch.size() == 1){
-		*cloud_all_xyzir += *input_pointcloud;
-	}
-    }else{
-	
-	if(secWatch.size() == 0){    
-		*cloud_all_xyzir += *input_pointcloud;
-	}
-
-	secWatch.push_back(pointcloud_msg->header.stamp.sec);
-    }
-
-
-    /*// put each point into the intensity map
+   	
+    // put each point into the intensity map
     for (size_t i = 0; i < input_pointcloud->points.size(); ++i) {
       int x_index = (input_pointcloud->points[i].x * 100.) / cm_resolution;
       int y_index = (input_pointcloud->points[i].y * 100.) / cm_resolution;
@@ -860,18 +883,28 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
       if (fabs(x_index) > 1e7 || fabs(y_index) > 1e7) {
         continue;
       }
+      
       //ROS_INFO_STREAM("point " << x_index << ", " << y_index);
 
       //ROS_INFO_STREAM_THROTTLE(0.5, "point " << x_index << ", " << y_index);
-      
-     //if(secWatch.size() > 1){
-     //	continue;
-     //}
-     
       intensity_topic[std::make_pair(-1. * y_index,
                                      x_index)] = input_pointcloud->points[i].intensity; // std::map<std::pair<int,int>, double>
-    }*/
+       
+       // In th eprojection x becomes y and y becomes x.
+       min_x_per_sec = std::min<int>(min_x_per_sec, -1.*y_index);
+       min_y_per_sec = std::min<int>(min_y_per_sec, x_index);
+       max_x_per_sec = std::max<int>(max_x_per_sec, -1.*y_index);
+       max_y_per_sec = std::max<int>(max_y_per_sec, x_index);
+       min_i_per_sec = std::min<double>(min_i_per_sec, input_pointcloud->points[i].intensity);
+       max_i_per_sec = std::max<double>(max_i_per_sec, input_pointcloud->points[i].intensity);
+    }
 
+    //ROS_INFO_STREAM(min_x_per_sec<<" "<<min_y_per_sec);
+
+
+    allPoints[std::make_pair(pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec)] = intensity_topic;
+    //intensity_topic.clear();
+    //allPoints.clear(); 	  
 
   } catch (const std::exception &e) { // reference to the base of a polymorphic object
     ROS_ERROR_STREAM(e.what()); // information from length_error printed

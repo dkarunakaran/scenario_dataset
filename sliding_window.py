@@ -222,7 +222,7 @@ if _type == 'poly_fit':
         return leftx, lefty, rightx, righty, out_img
     
 
-    img = cv2.imread("/constraint_model/images/new_image.png")
+    img = cv2.imread("/constraint_model/images/intensity_image.png")
     
     plt.imshow(img)
     plt.xlim(0, img.shape[1])
@@ -307,7 +307,8 @@ if _type == 'poly_fit':
     img[lefty, leftx] = [0, 255, 0]
     img[righty, rightx] = [0, 255, 0]
     
-    img = cv2.imread("/constraint_model/images/new_image_with_odom.png")    
+    #img = cv2.imread("/constraint_model/images/new_image_with_odom.png")    
+    img = cv2.imread("/constraint_model/images/intensity_image.png")  
     plt.imshow(img)
     plt.savefig("images/poly_fit.png")
 

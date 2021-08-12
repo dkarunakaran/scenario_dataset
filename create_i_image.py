@@ -8,7 +8,8 @@ class Point:
         self.__dict__.update(entries)
 
 
-path_to_dir = '/constraint_model/data/new_ibeo_data/gate_south-end_north-end_20210608_054523.0/lane_points/'
+#path_to_dir = '/constraint_model/data/new_ibeo_data/gate_south-end_north-end_20210608_054523.0/lane_points/'
+path_to_dir = '/data/ibeo/20210719_203414.0/lane_points/'
 if path_to_dir is not None:
     dirFiles = os.listdir(path_to_dir)
     file_list = []
@@ -27,7 +28,7 @@ for _file in file_list:
 
 sec_data.sort()
 sec_start = sec_data[0]
-allowed_sec = [sec for sec in range(sec_start,sec_start+8)]
+allowed_sec = [sec for sec in range(sec_start,sec_start+50)]
 print("allowed sec: {}".format(allowed_sec))
 
 file_count = 0
@@ -41,10 +42,11 @@ max_y = -100000000
 data = []
 for _file in file_list:
     path_to_file = path_to_dir+_file
-    print("Current file: {}".format(path_to_file))
+    #print("Current file: {}".format(path_to_file))
     with open(path_to_file) as json_file:
         json_data = json.load(json_file)
         if json_data['sec'] in allowed_sec:
+            print(json_data['sec'])
             for item in json_data['data']:
                 point = Point(**item)
                 if len(data)>0:
