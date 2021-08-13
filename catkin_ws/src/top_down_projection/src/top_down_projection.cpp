@@ -34,6 +34,9 @@
 #include "Conversions.h"
 #include <pcl/common/io.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/point_types_conversion.h>
 
 
 int main(int argc, char **argv) {
@@ -50,6 +53,8 @@ int main(int argc, char **argv) {
 void FeatureExtractor::initialize(){
 	cloud_all = pcl::PCLPointCloud2::Ptr (new pcl::PCLPointCloud2); 
 	cloud_all_xyzir = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
+	roadPointsPub = n.advertise<sensor_msgs::PointCloud2>("/road_points",10);
+	otherPointsPub = n.advertise<sensor_msgs::PointCloud2>("/other_points",10);
 }
 
 
@@ -165,12 +170,143 @@ FeatureExtractor::onInit() {
   this->ReadFromBag();
   //this->processForSphericalCoordinateFrame();
   this->extractEdges(cloud_all_xyzir);
-  this->WriteImage();
+  //this->WriteImage();
   
 }
 
-void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud){
+void FeatureExtractor::outputImage(std::map<std::pair<int,int>, double> &intensity_topic, std::string output_image_name){
+	  
+	  ROS_INFO_STREAM("Creating "<<output_image_name<<" image");
+	  int max_x = -100000000, max_y = -100000000, min_x = 100000000, min_y = 100000000;
+	  float min_intensity = 100000000.;
+	  float max_intensity = -100000000.;
+	  for (auto &entry: intensity_topic) {
+		      min_x = std::min<int>(min_x, entry.first.first);
+		      max_x = std::max<int>(max_x, entry.first.first);
+
+		      min_y = std::min<int>(min_y, entry.first.second);
+		      max_y = std::max<int>(max_y, entry.first.second);
+
+		      min_intensity = std::min<double>(min_intensity, entry.second);
+		      max_intensity = std::max<double>(max_intensity, entry.second);
+  	  }
+
+
+	  // restrict the intensity range as determined by the param settings
+	  float intensity_scale_min = private_nh.param<float>("min_intensity", 0.);
+	  float intensity_scale_max = private_nh.param<float>("max_intensity", 80.);
+
+	  min_intensity = std::max<float>(min_intensity, intensity_scale_min);
+	  max_intensity = std::min<float>(max_intensity, intensity_scale_max);
+
+          // Add a small buffer for the image to account for rounding errors
+          int image_max_x = max_x - min_x + 2;
+	  int image_max_y = max_y - min_y + 2;
+		
+	  std::cout << min_x << ", " << min_y << ", " << max_x << ", " << max_y <<", "<<image_max_x<<", "<<image_max_y<<std::endl;
+
+	  // the lidar datapoints projected into 2d
+	  cv::Mat output_image(image_max_x, image_max_y, CV_8UC4, cv::Scalar(0, 0, 0, 0));
+
+	  for (auto &entry: intensity_topic) {
+
+	      int value_x = entry.first.first - min_x;
+	      int value_y = entry.first.second - min_y;
+
+	      if (value_x < 0 || value_x >= image_max_x) {
+	        continue;
+	      }
+
+	      if (value_y < 0 || value_y >= image_max_y) {
+	        continue;
+	      }
+
+	      cv::Vec4b colour;
+
+	      // scale the intensity value to be between 0 and 1
+	      double intensity = (entry.second - min_intensity) / (max_intensity - min_intensity);
+
+	      if (intensity > 1.)
+		intensity = 1.;
+
+	      if (intensity < 0.)
+		intensity = 0.;
+
+	      // set the hue to the intensity value (between 0 and 255) to make a rainbow colour scale
+	      hsv input_hsv;
+	      input_hsv.h = intensity * 255.;
+	      input_hsv.s = 1.;
+	      input_hsv.v = 1.;
+
+	      // convert HSV to RGB
+	      rgb output_rgb = hsv2rgb(input_hsv);
+
+	      colour[0] = (uint8_t)(output_rgb.b * 255.);
+	      colour[1] = (uint8_t)(output_rgb.g * 255.);
+	      colour[2] = (uint8_t)(output_rgb.r * 255.);
+	    
+
+	      cv::Point destination_point(value_y, value_x);
+	    
+	      // Set the corresponding pixel to the RBG colour
+   	      colour[3] = 255;
+		
+    	      // Set the alpha value for the blurred layer
+              output_image.at<cv::Vec4b>(destination_point) = colour;
+	  }
+	  cv::imwrite(output_image_name, output_image);
+}
+
+std::map<std::pair<int,int>, double> FeatureExtractor::createIntensityMap(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1){
+	std::map<std::pair<int,int>, double> intensity_topic;
 	
+	// put each point into the intensity map
+        for (size_t i = 0; i < cloud_filtered1->points.size(); ++i) {
+                int x_index = (cloud_filtered1->points[i].x * 100.) / cm_resolution;
+                int y_index = (cloud_filtered1->points[i].y * 100.) / cm_resolution;
+                if (fabs(x_index) > 1e7 || fabs(y_index) > 1e7) {
+                	continue;
+                }
+
+                intensity_topic[std::make_pair(-1. * y_index,
+                                             x_index)] = cloud_filtered1->points[i].intensity;
+        }
+
+	return intensity_topic;
+}
+
+std::map<std::pair<int,int>, double> FeatureExtractor::createIntensityMap(pcl::PointCloud<pcl::PointXYZI> cloud_filtered1){
+        std::map<std::pair<int,int>, double> intensity_topic;
+
+        // put each point into the intensity map
+        for (size_t i = 0; i < cloud_filtered1.points.size(); ++i) {
+                int x_index = (cloud_filtered1.points[i].x * 100.) / cm_resolution;
+                int y_index = (cloud_filtered1.points[i].y * 100.) / cm_resolution;
+                if (fabs(x_index) > 1e7 || fabs(y_index) > 1e7) {
+                	continue;
+                }
+
+                intensity_topic[std::make_pair(-1. * y_index,
+                                             x_index)] = cloud_filtered1.points[i].intensity;
+        }
+
+        return intensity_topic;
+}
+
+
+void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1){
+
+	/*pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
+	pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1 = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
+    	pcl::PassThrough<pcl::PointXYZIR> pass (false);
+    	pass.setInputCloud(input_cloud);
+    	pass.setFilterFieldName ("x");
+    	pass.setFilterLimits(2, 100);
+   	pass.setFilterLimitsNegative(false);
+    	pass.filter (*cloud_filtered1);*/
+
+  	auto intensity_topic = createIntensityMap(cloud_filtered1);
+  	outputImage(intensity_topic, "/constraint_model/images/new_image.png");
 	std::vector<std::vector<float>>  ring1;
 	std::vector<std::vector<float>>  ring2;
 	std::vector<std::vector<float>>  ring3;
@@ -178,58 +314,76 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_
 	//std::vector<std::vector<float>>  ring5;
 		
 	// Sort the pointclouds
-	for (size_t i = 0; i < input_cloud->points.size(); ++i) {
+	for (size_t i = 0; i < cloud_filtered1->points.size(); ++i) {
      		//int x_index = (input_pointcloud->points[i].x * 100.) / cm_resolution;
       		//int y_index = (input_pointcloud->points[i].y * 100.) / cm_resolution;
 		std::vector<float> row;
-      		row.push_back(input_cloud->points[i].x); 
-		row.push_back(input_cloud->points[i].y); 
-		row.push_back(input_cloud->points[i].z); 
-		row.push_back(input_cloud->points[i].intensity);
-		if(input_cloud->points[i].ring == 90){
+      		row.push_back(cloud_filtered1->points[i].x); 
+		row.push_back(cloud_filtered1->points[i].y); 
+		row.push_back(cloud_filtered1->points[i].z); 
+		row.push_back(cloud_filtered1->points[i].intensity);
+		if(cloud_filtered1->points[i].ring == 90){
 			ring1.push_back(row);
-		}else if(input_cloud->points[i].ring == 91){
+		}else if(cloud_filtered1->points[i].ring == 91){
 			ring2.push_back(row);
-		}else if(input_cloud->points[i].ring == 92){
+		}else if(cloud_filtered1->points[i].ring == 92){
 			ring3.push_back(row);
-		}else if(input_cloud->points[i].ring == 93){
+		}else if(cloud_filtered1->points[i].ring == 93){
 			ring4.push_back(row);
-		}/*else if(input_cloud->points[i].ring == 94){
-                        ring4.push_back(row);
-                }*/
+		}
 	}
-    	
-	//Sorting	
-	std::sort(ring1.begin(), ring1.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	std::sort(ring2.begin(), ring2.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	std::sort(ring3.begin(), ring3.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	std::sort(ring4.begin(), ring4.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
-	//std::sort(ring5.begin(), ring5.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[2] < b[2];});
 
-	ring1 = median(ring1,0,7);
-	ring2 = median(ring2,0,7);
-	ring3 = median(ring3,0,7);
-	ring4 = median(ring4,0,5);
-	//ring5 = median(ring5,0,5);
+	//Sorting	
+	std::sort(ring1.begin(), ring1.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+	std::sort(ring2.begin(), ring2.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+	std::sort(ring3.begin(), ring3.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+	std::sort(ring4.begin(), ring4.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+	
+
+	//Just for visulising
+	/*pcl::PointCloud<pcl::PointXYZI> pc1 = mat2PCL(ring1);
+	
+	intensity_topic.clear();
+	intensity_topic = createIntensityMap(pc1);
+        outputImage(intensity_topic, "/constraint_model/images/ring1_sort.png");
+	*/
 
 	int middleR1 = middlePoint(ring1, 0);
     	int middleR2 = middlePoint(ring2, 0);
     	int middleR3 = middlePoint(ring3, 0);
     	int middleR4 = middlePoint(ring4, 0);
-    	//int middleR5 = middlePoint(ring5, 0);
+	
+	ROS_INFO_STREAM("Middle Points: "<< middleR1<<" "<<middleR2<<" "<<middleR3<<" "<<middleR4);
 
 	std::vector<std::vector<float> > obs_points;
-	std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 10, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
-	std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 10, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
-	std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 10, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
-	std::vector<std::vector<float> > edge4 = findEdges(ring4, 15, 10, 9, ring4[middleR4][3], middleR4, 8, obs_points);// 12 10
-	ROS_INFO_STREAM(ring1.size()<<" "<<edge1.size()<<" "<<edge2.size()<<" "<<edge3.size()<<" "<<edge4.size()<<" "<<obs_points.size());	
+	// 15 10
+	std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 15, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
+	std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 15, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
+	std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 15, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
+	std::vector<std::vector<float> > edge4 = findEdges(ring4, 15, 15, 9, ring4[middleR4][3], middleR4, 8, obs_points);// 12 10
+	ROS_INFO_STREAM("r1: "<<ring1.size()<<" e1: "<<edge1.size()<<", r2: "<<ring2.size()<<" e2: "<<edge2.size()<<", r3: "<<ring3.size()<<" e3: "<<edge3.size()<<", r4:"<<ring4.size()<<" e4: "<<edge4.size()<<", other_points: "<<obs_points.size());	
 
 	pcl::PointCloud<pcl::PointXYZI> edge_pc1 = mat2PCL(edge1);
 	pcl::PointCloud<pcl::PointXYZI> edge_pc2 = mat2PCL(edge2);
 	pcl::PointCloud<pcl::PointXYZI> edge_pc3 = mat2PCL(edge3);
 	pcl::PointCloud<pcl::PointXYZI> edge_pc4 = mat2PCL(edge4);
 	pcl::PointCloud<pcl::PointXYZI> obs = mat2PCL(obs_points);
+	pcl::PointCloud<pcl::PointXYZI> total;
+	
+	total += edge_pc1;
+	total += edge_pc2;
+        total += edge_pc3;
+	total += edge_pc4;
+	ROS_INFO_STREAM("Total points: "<<total.points.size());
+	
+	intensity_topic.clear();
+        intensity_topic = createIntensityMap(edge_pc1);
+        outputImage(intensity_topic, "/constraint_model/images/edge1.png");
+	
+	intensity_topic.clear();
+        intensity_topic = createIntensityMap(total);
+        outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
+
 	pcl::PCLPointCloud2 cloudR1;pcl::PCLPointCloud2 cloudR2;
 	pcl::PCLPointCloud2 cloudR3;pcl::PCLPointCloud2 cloudR4;
 	pcl::PCLPointCloud2 cloudFinal;pcl::PCLPointCloud2 obs_pc;
@@ -237,6 +391,21 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_
 	pcl::toPCLPointCloud2(edge_pc3,cloudR3);pcl::toPCLPointCloud2(edge_pc4,cloudR4);
 	pcl::toPCLPointCloud2(obs,obs_pc);
 
+	float height2 = 0.37;float height3 = 0.42;float height4 = 0.47;
+    	if (ring2[middleR2][2]<height2){
+      		pcl::concatenatePointCloud (cloudR2, cloudR1, cloudFinal);
+      		if (ring3[middleR3][2]<height3){
+        		pcl::concatenatePointCloud (cloudFinal, cloudR3, cloudFinal);
+        		if (ring4[middleR4][2]<height4){
+          			pcl::concatenatePointCloud (cloudFinal, cloudR4, cloudFinal);
+        		}
+      		}
+    	}
+	sensor_msgs::PointCloud2 roadPC;
+	pcl_conversions::fromPCL(cloudFinal, roadPC);
+      	roadPC.header.stamp = ros::Time::now();
+	roadPC.header.frame_id = "/base_link";
+	roadPointsPub.publish(roadPC);
 }
 
 pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::mat2PCL(std::vector<std::vector<float> > matrixPC){
@@ -368,6 +537,7 @@ int FeatureExtractor::middlePoint(std::vector<std::vector<float>> matrixPC, floa
          middle = i;
          middle_f = std::abs(matrixPC[i][1]-value);
        }
+
      }
      
      return (middle);

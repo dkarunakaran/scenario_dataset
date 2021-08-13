@@ -70,6 +70,12 @@ private:
  
   pcl::PointCloud<pcl::PointXYZI> mat2PCL(std::vector<std::vector<float> > matrixPC);
 
+  void outputImage(std::map<std::pair<int,int>, double> &intensity_topic, std::string output_image_name);
+
+  std::map<std::pair<int,int>, double> createIntensityMap(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1);
+
+  std::map<std::pair<int,int>, double> createIntensityMap(pcl::PointCloud<pcl::PointXYZI> cloud_filtered1);
+  
   // initialise ros stuff
   virtual void onInit();
 
@@ -126,6 +132,8 @@ private:
   ros::Publisher sphericalR;
   ros::Publisher sphericalT;
   ros::Publisher sphericalP;
+  ros::Publisher roadPointsPub;
+  ros::Publisher otherPointsPub;
 };
 
 
