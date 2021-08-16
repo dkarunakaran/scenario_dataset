@@ -51,7 +51,8 @@ int main(int argc, char **argv) {
 }
 
 void FeatureExtractor::initialize(){
-	cloud_all = pcl::PCLPointCloud2::Ptr (new pcl::PCLPointCloud2); 
+	cloud_all_filtered = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
+
 	cloud_all_xyzir = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
 	roadPointsPub = n.advertise<sensor_msgs::PointCloud2>("/road_points",10);
 	otherPointsPub = n.advertise<sensor_msgs::PointCloud2>("/other_points",10);
@@ -166,9 +167,13 @@ FeatureExtractor::onInit() {
 
   this->init_playback();
   start_time = std::chrono::steady_clock::now();
-  
+  sphericalR = n.advertise<std_msgs::Float32MultiArray>("radius_points", 1);
+  sphericalT = n.advertise<std_msgs::Float32MultiArray>("theta_points", 1);
+  sphericalP = n.advertise<std_msgs::Float32MultiArray>("phi_points", 1); 
+
+ 
   this->ReadFromBag();
-  //this->processForSphericalCoordinateFrame();
+  //auto cloudFiltered = this->processForSphericalCoordinateFrame(cloud_all_xyzir);
   this->extractEdges(cloud_all_xyzir);
   //this->WriteImage();
   
@@ -294,7 +299,7 @@ std::map<std::pair<int,int>, double> FeatureExtractor::createIntensityMap(pcl::P
 }
 
 
-void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1){
+void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud){
 
 	/*pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
 	pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1 = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
@@ -305,7 +310,7 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_
    	pass.setFilterLimitsNegative(false);
     	pass.filter (*cloud_filtered1);*/
 
-  	auto intensity_topic = createIntensityMap(cloud_filtered1);
+  	auto intensity_topic = createIntensityMap(input_cloud);
   	outputImage(intensity_topic, "/constraint_model/images/new_image.png");
 	std::vector<std::vector<float>>  ring1;
 	std::vector<std::vector<float>>  ring2;
@@ -314,21 +319,19 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_
 	//std::vector<std::vector<float>>  ring5;
 		
 	// Sort the pointclouds
-	for (size_t i = 0; i < cloud_filtered1->points.size(); ++i) {
-     		//int x_index = (input_pointcloud->points[i].x * 100.) / cm_resolution;
-      		//int y_index = (input_pointcloud->points[i].y * 100.) / cm_resolution;
+	for (size_t i = 0; i < input_cloud->points.size(); ++i) {
 		std::vector<float> row;
-      		row.push_back(cloud_filtered1->points[i].x); 
-		row.push_back(cloud_filtered1->points[i].y); 
-		row.push_back(cloud_filtered1->points[i].z); 
-		row.push_back(cloud_filtered1->points[i].intensity);
-		if(cloud_filtered1->points[i].ring == 90){
+      		row.push_back(input_cloud->points[i].x); 
+		row.push_back(input_cloud->points[i].y); 
+		row.push_back(input_cloud->points[i].z); 
+		row.push_back(input_cloud->points[i].intensity);
+		if(input_cloud->points[i].ring == 90){
 			ring1.push_back(row);
-		}else if(cloud_filtered1->points[i].ring == 91){
+		}else if(input_cloud->points[i].ring == 91){
 			ring2.push_back(row);
-		}else if(cloud_filtered1->points[i].ring == 92){
+		}else if(input_cloud->points[i].ring == 92){
 			ring3.push_back(row);
-		}else if(cloud_filtered1->points[i].ring == 93){
+		}else if(input_cloud->points[i].ring == 93){
 			ring4.push_back(row);
 		}
 	}
@@ -357,10 +360,10 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_
 
 	std::vector<std::vector<float> > obs_points;
 	// 15 10
-	std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 15, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
-	std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 15, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
-	std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 15, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
-	std::vector<std::vector<float> > edge4 = findEdges(ring4, 15, 15, 9, ring4[middleR4][3], middleR4, 8, obs_points);// 12 10
+	std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 10, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
+	std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 10, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
+	std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 10, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
+	std::vector<std::vector<float> > edge4 = findEdges(ring4, 15, 10, 9, ring4[middleR4][3], middleR4, 8, obs_points);// 12 10
 	ROS_INFO_STREAM("r1: "<<ring1.size()<<" e1: "<<edge1.size()<<", r2: "<<ring2.size()<<" e2: "<<edge2.size()<<", r3: "<<ring3.size()<<" e3: "<<edge3.size()<<", r4:"<<ring4.size()<<" e4: "<<edge4.size()<<", other_points: "<<obs_points.size());	
 
 	pcl::PointCloud<pcl::PointXYZI> edge_pc1 = mat2PCL(edge1);
@@ -374,7 +377,7 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_
 	total += edge_pc2;
         total += edge_pc3;
 	total += edge_pc4;
-	ROS_INFO_STREAM("Total points: "<<total.points.size());
+	ROS_INFO_STREAM("Total points on roads: "<<total.points.size());
 	
 	intensity_topic.clear();
         intensity_topic = createIntensityMap(edge_pc1);
@@ -383,6 +386,7 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_
 	intensity_topic.clear();
         intensity_topic = createIntensityMap(total);
         outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
+		
 
 	pcl::PCLPointCloud2 cloudR1;pcl::PCLPointCloud2 cloudR2;
 	pcl::PCLPointCloud2 cloudR3;pcl::PCLPointCloud2 cloudR4;
@@ -401,11 +405,27 @@ void FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_
         		}
       		}
     	}
+	
 	sensor_msgs::PointCloud2 roadPC;
-	pcl_conversions::fromPCL(cloudFinal, roadPC);
-      	roadPC.header.stamp = ros::Time::now();
-	roadPC.header.frame_id = "/base_link";
-	roadPointsPub.publish(roadPC);
+	if(total.points.size() > 500){
+        	pcl_conversions::fromPCL(cloudFinal, roadPC);
+	}else{
+		auto cloudFiltered = processForSphericalCoordinateFrame(input_cloud);
+		//pcl::PCLPointCloud2 cloudPC2;
+		//pcl::toPCLPointCloud2(cloudFiltered, cloudPC2);
+		//pcl_conversions::fromPCL(cloudPC2, roadPC);
+
+		intensity_topic.clear();
+        	intensity_topic = createIntensityMap(cloudFiltered);
+        	outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
+		ROS_INFO_STREAM("Total points: "<<input_cloud->points.size()<<", "<<cloudFiltered.points.size());
+
+
+	}
+        roadPC.header.stamp = ros::Time::now();
+        roadPC.header.frame_id = "/base_link";
+
+
 }
 
 pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::mat2PCL(std::vector<std::vector<float> > matrixPC){
@@ -504,31 +524,6 @@ std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vec
 }
 
 
-std::vector<std::vector<float> > FeatureExtractor::median (std::vector<std::vector<float> > matrixPC, int coord, int window){
-
-     std::vector<float> vector (window,matrixPC[0][coord]);
-     int med = (window-1)/2;
-     int l=0;
-     for (int i=0;i < matrixPC.size(); i=i+1){
-       l=0;
-       int minimo1=std::min(vector.size(),matrixPC.size()-i);
-       for (int j=med; j<minimo1;j++){
-         vector[j]=matrixPC[i+l][coord];
-         l++;
-       }
-       std::sort(vector.begin(),vector.end(),[](float& i, float& j) {return i < j;});
-       matrixPC[i][coord]=vector[med];
-       int minimo= std::min((i+1),med);
-       l=0;
-       for (int j=med-1; j>minimo;j--){
-         vector[j]=matrixPC[i-l][coord];
-         l++;
-       }
-     }
-
-     return matrixPC;
-}
-
 int FeatureExtractor::middlePoint(std::vector<std::vector<float>> matrixPC, float value){
      int middle;
      float middle_f = 100000;
@@ -543,8 +538,8 @@ int FeatureExtractor::middlePoint(std::vector<std::vector<float>> matrixPC, floa
      return (middle);
 }
 
-void FeatureExtractor::processForSphericalCoordinateFrame(){
-	ROS_INFO_STREAM("HERERERRERERERE");
+pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::processForSphericalCoordinateFrame(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud){
+	ROS_INFO_STREAM("processForSphericalCoordinateFrame");
 	/*Converting cartisian to spherical coordinate frame.
 	 *Spherical is 3d for of  2d polar cartician frame. Polar is used in c		ircle. Plar has radis and angle and working on xy plane as it is 2d.
 	 *More detailed explnation can be found here: https://blog.demofox.org/2013/10/12/converting-to-and-from-polar-spherical-coordinates-made-easy/
@@ -553,29 +548,54 @@ void FeatureExtractor::processForSphericalCoordinateFrame(){
 	 *theta = atan2(Y, X) // bearing
 	 *phi = acos(Z / radius) //pitch
 	*/
-	sphericalR = n.advertise<std_msgs::Float32MultiArray>("radius_points", 1);
-  	sphericalT = n.advertise<std_msgs::Float32MultiArray>("theta_points", 1);
-  	sphericalP = n.advertise<std_msgs::Float32MultiArray>("phi_points", 1); 
 
+        pcl::PointCloud<pcl::PointXYZI> pointCloud;
+	pcl::copyPointCloud(*input_cloud, pointCloud);
+	
 	float radiusThreshold_max = 6.0;
-	float angleThreshold_min = 2.0;
-	float angleThreshold_max = 4.25;
+	float angleThreshold_min = 2.5;
+	float angleThreshold_max = 4.0;
+	std::vector<std::vector<float>>  matrix;
 	std_msgs::Float32MultiArray r_array, t_array, p_array;
-	for (size_t i = 0; i < cloud_all_xyzir->points.size(); ++i) {
-      		int x = cloud_all_xyzir->points[i].x;
-      		int y = cloud_all_xyzir->points[i].y;
-      		int z = cloud_all_xyzir->points[i].z;
+	pcl::PointCloud<pcl::PointXYZI> temp_cloud; 
+	for (size_t i = 0; i < pointCloud.points.size(); ++i) {
+      		auto x = pointCloud.points[i].x;
+      		auto y = pointCloud.points[i].y;
+      		auto z = pointCloud.points[i].z;
 		auto radius = sqrt(pow(x, 2)+pow(y, 2)+pow(z, 2));
 		auto theta = atan2(y, x);
 		auto phi = acos((z/radius));
+		theta = wrapAngle(theta);
+		
+		if(theta < angleThreshold_min || theta > angleThreshold_max)
+			continue;
+		
+		if(radius > radiusThreshold_max)
+			continue;
+          
+		pcl::PointXYZI point;
+		point.x = x;
+		point.y = y;
+		point.z = z;
+		point.intensity = pointCloud.points[i].intensity;
+		temp_cloud.push_back(point);
+		
 		r_array.data.push_back(radius);
 		t_array.data.push_back(theta);
 		p_array.data.push_back(phi);
 	}
-
 	sphericalR.publish(r_array);
 	sphericalT.publish(t_array);
 	sphericalP.publish(p_array);
+
+	return temp_cloud;
+
+}
+
+double FeatureExtractor::wrapAngle( double angle )
+{
+    double twoPi = 2.0 * 3.141592865358979;
+    return angle - twoPi * floor( angle / twoPi );
 }
 
 bool FeatureExtractor::checkRegionOfInterest(std::pair<int,int> item, int min_x, int min_y){

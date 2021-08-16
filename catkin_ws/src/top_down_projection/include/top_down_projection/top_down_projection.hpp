@@ -58,7 +58,7 @@ private:
 
   void initialize();
 
-  void processForSphericalCoordinateFrame();
+  pcl::PointCloud<pcl::PointXYZI> processForSphericalCoordinateFrame(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud);
 
   std::vector<std::vector<float> > median (std::vector<std::vector<float> > matrixPC, int coord, int window);
 
@@ -75,6 +75,8 @@ private:
   std::map<std::pair<int,int>, double> createIntensityMap(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1);
 
   std::map<std::pair<int,int>, double> createIntensityMap(pcl::PointCloud<pcl::PointXYZI> cloud_filtered1);
+
+  double wrapAngle(double angle);
   
   // initialise ros stuff
   virtual void onInit();
@@ -127,7 +129,7 @@ private:
   int max_y_per_sec = -1000000;
   float min_i_per_sec = 100000000.;
   float max_i_per_sec = -100000000.;
-  pcl::PCLPointCloud2::Ptr cloud_all;
+  pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_all_filtered;
   pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_all_xyzir;
   ros::Publisher sphericalR;
   ros::Publisher sphericalT;
