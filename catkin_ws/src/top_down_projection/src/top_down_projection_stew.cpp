@@ -32,12 +32,7 @@
 #include <std_msgs/String.h>
 
 #include "Conversions.h"
-#include <pcl/conversions.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/Int32MultiArray.h>
-#include <std_msgs/Float32MultiArray.h>
+
 
 int main(int argc, char **argv) {
 
@@ -158,171 +153,9 @@ FeatureExtractor::onInit() {
 
   this->init_playback();
   start_time = std::chrono::steady_clock::now();
-  lanePcPub = n.advertise<lane_points_msg::LanePoints> ("lane_points", 1);
-  signalShutdown = n.advertise<std_msgs::Bool> ("signal_shutdown", 1);
   this->ReadFromBag();
-  this->WriteImage();
-
-  //Just dealying the publishing the shutdown signal to get all the data
-  int sec = 5;
-  ROS_INFO_STREAM("Waiting for "<<sec<<" seconds before sending the shutdown signal");
-  ros::Duration(sec).sleep();
-  std_msgs::Bool msg;
-  msg.data = true;
-  signalShutdown.publish(msg);
-
+  //this->WriteImage();
 }
-
-bool FeatureExtractor::checkRegionOfInterest(std::pair<int,int> item, int min_x, int min_y){
-
-  bool _return = false;
-
-  // Draw a circle for each of the odom positions
-  for (auto &odom: vehicle_odom) {
-    int x1 = odom.first - min_x;
-    int y1 = odom.second - min_y;
-
-    int x2 = item.first;
-    int y2 = item.second;
-    float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
-    d = (cm_resolution*d)/100;
-
-    if(d<=3){
-      _return = true;
-      break;
-    }
-  }
-
-  return _return;
-}
-
-void FeatureExtractor::publishLanePoints(int min_x, int min_y, int max_x, int max_y, int image_max_x, int image_max_y, float min_intensity, float max_intensity){
-
-  ROS_INFO_STREAM("all point size:"<<allPoints.size());
-  std::map<long int, std::list<std::map<std::pair<int, int>, double>>> allPointsPerSec;
-  std::list<std::map<std::pair<int, int>, double>> pointsPerNsec;
-  long int last = 0;
-
-  //std::map<std::pair<int, int>, double> storeLanePointsNsec;
-  //std::vector<std::map<std::pair<int, int>, double>> storeLanePointsSec;
-  for (auto &point: allPoints) {
-        if(allPointsPerSec.count(point.first.first)){
-                pointsPerNsec.push_back(point.second);
-        }else{
-                if(last == 0){
-                        last = point.first.first;
-                }else{
-                        allPointsPerSec[last] = pointsPerNsec;
-                        pointsPerNsec.clear();
-                        pointsPerNsec.push_back(point.second);
-                        last = point.first.first;
-                }
-        }
-  }
-
-
-  if(!allPointsPerSec.count(last)){
-        allPointsPerSec[last] = pointsPerNsec;
-        pointsPerNsec.clear();
-  }
-
-  int count = 0;
-  for(auto &secPoints: allPointsPerSec){
-   // secPoints.first: long int - seconds
-   // secPoints.second: list -  list of each nsec points
-   // secPoints.second[].first - it's a x,y pair of points
-   // secPoints.second[].second - intensity of each x, y point
-   //List level
-
-   lane_points_msg::LanePoints lanePointsMsg;
-   lanePointsMsg.header.seq = count;
-   lanePointsMsg.header.stamp.sec = secPoints.first;
-   lanePointsMsg.header.stamp.nsec = 0;
-   lanePointsMsg.header.frame_id = "lane_points";
-   lanePointsMsg.max_x = image_max_x;
-   lanePointsMsg.max_y = image_max_y;
-   count += 1;
-   std_msgs::Int32MultiArray x_array;
-   x_array.data.clear();
-   std_msgs::Int32MultiArray y_array;
-   y_array.data.clear();
-   std_msgs::Float32MultiArray i_array;
-   i_array.data.clear();
-   for(auto &nsecPoints: secPoints.second){
-
-    //Map level - nsecs
-    for(auto &points: nsecPoints){
-
-        //Intensity filtering code
-        int value_x = points.first.first - min_x;
-        int value_y = points.first.second - min_y;
-        if (value_x < 0 || value_x >= image_max_x) {
-                ROS_ERROR_STREAM("Pixel found out of bounds: " << intensity_map.size());
-                continue;
-        }
-
-        if (value_y < 0 || value_y >= image_max_y) {
-                ROS_ERROR_STREAM("Pixel found out of bounds: " << intensity_map.size());
-                continue;
-        }
-
-        cv::Vec4b colour;
-        // scale the intensity value to be between 0 and 1
-        double intensity = (points.second - min_intensity) / (max_intensity - min_intensity);
-
-        if (intensity > 1.)
-          intensity = 1.;
-
-        if (intensity < 0.)
-          intensity = 0.;
-	// set the hue to the intensity value (between 0 and 255) to make a rainbow colour scale
-        hsv input_hsv;
-        input_hsv.h = intensity * 255.;
-        input_hsv.s = 1.;
-        input_hsv.v = 1.;
-
-        // convert HSV to RGB
-        rgb output_rgb = hsv2rgb(input_hsv);
-
-        colour[0] = (uint8_t)(output_rgb.b * 255.);
-        colour[1] = (uint8_t)(output_rgb.g * 255.);
-        colour[2] = (uint8_t)(output_rgb.r * 255.);
-	
-	// Only considering the pixels that are in the below colour range. It enables the detection of lanes in the intensity image clearly.
-        if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250){
-          bool status = this->checkRegionOfInterest(std::make_pair(value_x, value_y), min_x, min_y);
-          if(status){
-            // Converting to white pixels to apply some 2d lane detction algorithms
-            colour[0] = 255.;
-            colour[1] = 255.;
-            colour[2] = 255.;
-            x_array.data.push_back(value_x);
-            y_array.data.push_back(value_y);
-            i_array.data.push_back(1.0);
-
-          }else{
-            continue;
-          }
-
-        }else{
-          // Do not consider other pixels that are not in the above colour range
-          continue;
-        }
-        //Store the values of nsec points and intensity
-    }
-    //Add each nsec points to one sec container
-    //storeLanePointsSec.push_back(storeLanePointsNsec);
-    //storeLanePointsNsec.clear();
-   }
-   //Publish the sec container
-   //Msg: header|size: max_x, max_y|data: x: [], y: [], i: []
-   lanePointsMsg.x = x_array;
-   lanePointsMsg.y = y_array;
-   lanePointsMsg.i = i_array;
-   lanePcPub.publish(lanePointsMsg);
-  }
-}
-
 
 
 void FeatureExtractor::WriteImage() {
@@ -360,11 +193,6 @@ void FeatureExtractor::WriteImage() {
   // Add a small buffer for the image to account for rounding errors
   int image_max_x = max_x - min_x + 2;
   int image_max_y = max_y - min_y + 2;
-  
-  //My coding started
-  publishLanePoints(min_x, min_y, max_x, max_y, image_max_x, image_max_y, min_intensity, max_intensity);
-  //My coding finished
-
 
   // the lidar datapoints projected into 2d
   cv::Mat output_image(image_max_x, image_max_y, CV_8UC4, cv::Scalar(0, 0, 0, 0));
@@ -460,20 +288,8 @@ void FeatureExtractor::WriteImage() {
         colour[0] = (uint8_t)(output_rgb.b * 255.);
         colour[1] = (uint8_t)(output_rgb.g * 255.);
         colour[2] = (uint8_t)(output_rgb.r * 255.);
-        
-	if(colour[1] < 200 & colour[2] < 200 & colour[0] > 250) 
-        { 
-          bool status = this->checkRegionOfInterest(std::make_pair(value_x, value_y), min_x, min_y);
-          if(status){
-		colour[0] = 255.;
-		colour[1] = 255.;
-		colour[2] = 255.;
-	  }else{
-		continue;
-	  }	  
-	}else{
-		continue;
-        }
+
+        //std::cout << "point " << value_x << ", " << value_y << " intensity " << intensity << std::endl;
       }
 
       cv::Point destination_point(value_y, value_x);
@@ -712,6 +528,11 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
     boxFilter.filter(*input_pointcloud_box_filter);
 
     pcl::transformPointCloud(*input_pointcloud_box_filter, *input_pointcloud, platform_origin, platform_rotation);
+    pcl::PointCloud<pcl::PointXYZIR>::Ptr input_pointcloud_bl(new pcl::PointCloud<pcl::PointXYZIR>)
+    pcl::copyPointCloud(*input_pointcloud_box_filter, *input_pointcloud_bl);
+    
+    
+    
     pcl::transformPointCloud(*input_pointcloud, *input_pointcloud, world_origin, world_rotation);
 
     int x_index = (world_origin[0] * 100.) / cm_resolution;
@@ -733,8 +554,11 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
       intensity_topic[std::make_pair(-1. * y_index,
                                      x_index)] = input_pointcloud->points[i].intensity; // std::map<std::pair<int,int>, double>
     }
-	
-    allPoints[std::make_pair(pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec)] = intensity_topic;
+
+    // transform the pointcloud to the base link
+    auto world_transform = transformer_->lookupTransform(projection,
+                                                         std::string("base_link"), pointcloud_msg->header.stamp);
+
 
 
   } catch (const std::exception &e) { // reference to the base of a polymorphic object

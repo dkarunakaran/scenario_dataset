@@ -13,7 +13,7 @@
         <!-- size of a pixel (in centimeters) -->
         <param name="cm_resolution" value="8"/>
         <!-- frame to apply the top down projection - default is "odom" -->
-        <param name="projection_frame" value="base_link"/>
+        <param name="projection_frame" value="odom"/>
 	<!--<param name="projection_frame" value="odom"/>-->
         <!-- input and output files -->
         <param name="bag_file" value="$(arg bag_file)"/>
@@ -22,8 +22,8 @@
         <param name="min_intensity" value="0.04" /><!--0.04-->
         <param name="max_intensity" value="2." /><!--2-->
         <!-- parameters for the h264 bag playback -->
-        <param name="percentage_start" value="90" />
-        <param name="percentage_end" value="91" />
+        <param name="percentage_start" value="3" />
+        <param name="percentage_end" value="30" />
         <param name="horizon_in_buffer" value="true" />
         <param name="new_roll" value="0.0" />
         <param name="new_pitch" value="0.0" />

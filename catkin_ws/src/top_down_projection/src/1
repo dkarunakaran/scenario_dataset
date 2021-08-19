@@ -58,7 +58,6 @@ void FeatureExtractor::initialize(){
 	otherPointsPub = n.advertise<sensor_msgs::PointCloud2>("/other_points",10);
 	seq_count = 0;
 	previousPos = -10000.0;
-	nsecCount = 1;
 }
 
 
@@ -377,8 +376,8 @@ pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::extractEdges(pcl::PointCloud<p
    	pass.setFilterLimitsNegative(false);
     	pass.filter (*cloud_filtered1);*/
 
-  	/*auto intensity_topic = createIntensityMap(input_cloud);
-  	outputImage(intensity_topic, "/constraint_model/images/new_image.png");*/
+  	auto intensity_topic = createIntensityMap(input_cloud);
+  	outputImage(intensity_topic, "/constraint_model/images/new_image.png");
 	std::vector<std::vector<float>>  ring1;
 	std::vector<std::vector<float>>  ring2;
 	std::vector<std::vector<float>>  ring3;
@@ -403,6 +402,8 @@ pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::extractEdges(pcl::PointCloud<p
 		}
 	}
 
+	ROS_INFO_STREAM("ring1 size: "<<ring1.size());
+
 
 	//Sorting	
 	std::sort(ring1.begin(), ring1.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
@@ -414,10 +415,10 @@ pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::extractEdges(pcl::PointCloud<p
 	//Just for visulising
 	pcl::PointCloud<pcl::PointXYZI> pc1 = mat2PCL(ring1);
 	
-	/*intensity_topic.clear();
+	intensity_topic.clear();
 	intensity_topic = createIntensityMap(pc1);
         outputImage(intensity_topic, "/constraint_model/images/ring1_sort.png");
-	*/	
+	
 
 	int middleR1 = middlePoint(ring1, 0);
     	int middleR2 = middlePoint(ring2, 0);
@@ -448,14 +449,14 @@ pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::extractEdges(pcl::PointCloud<p
 	//total += edge_pc4;
 	ROS_INFO_STREAM("Total points on roads: "<<total.points.size());
 	
-	/*intensity_topic.clear();
+	intensity_topic.clear();
         intensity_topic = createIntensityMap(edge_pc1);
         outputImage(intensity_topic, "/constraint_model/images/edge1.png");
 	
 	intensity_topic.clear();
         intensity_topic = createIntensityMap(total);
         outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
-	*/	
+		
 
 	pcl::PCLPointCloud2 cloudR1;pcl::PCLPointCloud2 cloudR2;
 	pcl::PCLPointCloud2 cloudR3;//pcl::PCLPointCloud2 cloudR4;
@@ -486,10 +487,9 @@ pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::extractEdges(pcl::PointCloud<p
 	}else{
 		auto cloudFiltered = processForSphericalCoordinateFrame(input_cloud);
 		pcl::copyPointCloud(cloudFiltered, pointCloud);
-		/*intensity_topic.clear();
+		intensity_topic.clear();
         	intensity_topic = createIntensityMap(cloudFiltered);
         	outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
-		*/
 		ROS_INFO_STREAM("Total points: "<<input_cloud->points.size()<<", "<<cloudFiltered.points.size());
 	}
 	
@@ -518,26 +518,33 @@ std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vec
      float anglexy;
      
      bool obs_N_det= true;
+
+     ROS_INFO_STREAM("here1 "<<matrixPC.size());
      
      //Angle on the xy palne
-     auto angle_past_xy = atan2((matrixPC[middle_intensity_index+points][0]-matrixPC[middle_intensity_index][0]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
+     //auto angle_past_xy = atan2((matrixPC[middle_intensity_index+points][0]-matrixPC[middle_intensity_index][0]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
      
+     ROS_INFO_STREAM("here2");
+
      //Angle on the yz plane
      auto angle_past = atan2((matrixPC[middle_intensity_index+points][2]-matrixPC[middle_intensity_index][2]),((matrixPC[middle_intensity_index+points][1]-matrixPC[middle_intensity_index][1])))*180/3.14159265;
      
+     ROS_INFO_STREAM("here3");
+
      //One side of the points
      for (int i=middle_intensity_index; i< (matrixPC.size()-points); i=i+1)
      {
         std::vector<float> edge_h;
 
 	//Angle on the xy palne
-        anglexy=atan2((matrixPC[i+points][0]-matrixPC[i][0]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
+        //anglexy=atan2((matrixPC[i+points][0]-matrixPC[i][0]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
         
 	//Angle on the yz palne
 	angle=atan2((matrixPC[i+points][2]-matrixPC[i][2]),((matrixPC[i+points][1]-matrixPC[i][1])))*180/3.14159265;
        
 	//ROS_INFO_STREAM("Angle D " << angle << ".\n");
-       
+        ROS_INFO_STREAM("here4");
+ 
        //comparing angle
        if ((std::abs(angle))<AngleThreshold && (std::abs(angle-angle_past))<Angle_d_Threshold && obs_N_det ){
               edge_h.push_back(matrixPC[i][0]);
@@ -546,7 +553,7 @@ std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vec
 	      edge_h.push_back(matrixPC[i][3]);
               edges_points.push_back(edge_h);
               angle_past = angle;
-              angle_past_xy =anglexy;
+              //angle_past_xy =anglexy;
         } else {
           obs_N_det= false;
 	  //std::cout << "Angle I " << angle << ".\n";
@@ -558,6 +565,8 @@ std::vector<std::vector<float>> FeatureExtractor::findEdges(std::vector<std::vec
           obs_points.push_back(edge_h);
        }
      }
+
+     ROS_INFO_STREAM("here5");
 
      // OTHER SIDE OF THE POINTS
      obs_N_det= true;
@@ -856,18 +865,18 @@ void FeatureExtractor::findLanePoints(std::vector<std::pair<long int, pcl::Point
 		 
 	 	// scale the intensity value to be between 0 and 1
          	double intensity = (entry.second - min_intensity) / (max_intensity - min_intensity);
+
          	if (intensity > 1.)
          		intensity = 1.;
+
          	if (intensity < 0.)
                 	intensity = 0.;
-		if(intensity > 0.80)
-			temp_map[std::make_pair(entry.first.first, entry.first.second)] = intensity;
-		double intensity = entry.second;
-		if(intensity > 0.800)
+
+		if(intensity > 0.50)
 			temp_map[std::make_pair(entry.first.first, entry.first.second)] = intensity;
 	}
-	
 	intensity_map_filtered[0] = temp_map;
+	
 	std::map<std::pair<int,int>, double> intensity_map_draw;
 
         // put each point into the intensity map
@@ -881,31 +890,11 @@ void FeatureExtractor::findLanePoints(std::vector<std::pair<long int, pcl::Point
                 intensity_map_draw[std::make_pair(-1. * y_index,
                                              x_index)] = entry.second;
         }
+
 	outputImage(intensity_map_draw, "/constraint_model/images/combined_image.png");
 
-	
-	//Convert the detected lane points to odom frame
-	pcl::PointCloud<pcl::PointXYZI>::Ptr lanePC;
-	for(auto& entry: intensity_map_filtered){
-
-		for(auto& sub: entry.second) {
-			auto x = sub.first.first;
-			auto y = sub.first.second;
-			double z = 0.;
-			pcl::PointXYZI point;
-			point.x = x;
-			point.y = y;
-			point.z = z;
-			point.intensity = sub.second;
-			lanePC->push_back(point);
-		}
-		//we need to get world origin and world rotation;
-		pcl::transformPointCloud(*lanePC, *lanePC, world_origin, world_rotation);
 
 
-
-	}
-	
 }
 
 // call whenever receive a pointcloud - spit out new filtered version
@@ -1002,12 +991,8 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
 	
     }
 	
-    if(input_pointcloud->points.size() > 0){
-	
-	ROS_INFO_STREAM("nsec count: "<<nsecCount);
-    	pointCloudPerNsec[std::make_pair(pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec)] = std::make_pair(seq_count, input_pointcloud_bl);
-    }
-    
+    if(input_pointcloud->points.size() > 0)
+    	pointCloudPerNsec[std::make_pair(pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec)] = std::make_pair(seq_count, input_pointcloud);
     previousPos = world_origin[0];    
     
     /* 

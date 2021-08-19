@@ -27,7 +27,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "draw_shapes.hpp"
-#include <lane_points_msg/LanePoints.h>
+
 
 class FeatureExtractor : public dataset_toolkit::h264_bag_playback
 {
@@ -37,9 +37,7 @@ public:
       : h264_bag_playback(),
         current_message_number(0),
         previous_percentage(-1)
-  {
-	  this->initialize();
-  }
+  {}
 
   void bypass_init() {
     this->onInit();
@@ -48,43 +46,11 @@ public:
   void MessagePublisher(ros::Publisher &publisher, const rosbag::MessageInstance &message);
   void ImagePublisher(image_transport::Publisher &publisher, const sensor_msgs::ImageConstPtr &message) {}
   void CameraInfoPublisher(ros::Publisher &publisher, const sensor_msgs::CameraInfoConstPtr &message) {}
+
+
   void WriteImage();
-  bool checkRegionOfInterest(std::pair<int,int>, int, int);
-  
+
 private:
-
-
-  void initialize();
-
-  void findLanePoints(std::vector<std::pair<long int, pcl::PointCloud<pcl::PointXYZI>>> vecPC);
-  
-  pcl::PointCloud<pcl::PointXYZI> processForSphericalCoordinateFrame(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud);
-
-  pcl::PointCloud<pcl::PointXYZI> processForSphericalCoordinateFrame(pcl::PointCloud<pcl::PointXYZI> input_cloud);
-  
-  std::vector<std::vector<float> > median (std::vector<std::vector<float> > matrixPC, int coord, int window);
-
-  pcl::PointCloud<pcl::PointXYZI> extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud, long int sec, long int nsec);
-
-  int middlePoint(std::vector<std::vector<float>> matrixPC, float value);
-
-  std::vector<std::vector<float> > findEdges(std::vector<std::vector<float> > matrixPC, float AngleThreshold, float Angle_d_Threshold, float IntensityThreshold, float Intensity, int middle_intensity_index, int points, std::vector<std::vector<float>>& obs_points);
- 
-  pcl::PointCloud<pcl::PointXYZI> mat2PCL(std::vector<std::vector<float> > matrixPC);
-
-  void outputImage(std::map<std::pair<int,int>, double> &intensity_topic, std::string output_image_name);
-
-  std::map<std::pair<int,int>, double> createIntensityMap(pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1);
-
-  std::map<std::pair<int,int>, double> createIntensityMap(pcl::PointCloud<pcl::PointXYZI> cloud_filtered1);
-
-  std::map<std::pair<int,int>, double> createIntensityMap(std::vector<std::pair<long int, pcl::PointCloud<pcl::PointXYZI>>> vecPCAll, int seq_count);
-
-  std::map<std::pair<int,int>, double> createIntensityMap(std::vector<std::pair<long int, pcl::PointCloud<pcl::PointXYZIR>::Ptr>> vecPCAll, int seq_count);
-
-  double wrapAngle(double angle);
- 
-  void writeCVImage(cv::Mat& output_image, std::string output_image_name);
 
   // initialise ros stuff
   virtual void onInit();
@@ -124,24 +90,9 @@ private:
   uint32_t current_message_number;
   int previous_percentage;
   std::chrono::steady_clock::time_point start_time, end_time;
-  //std::vector<std::pair<int, int>> allPoints;
-  ros::NodeHandle n;
-  ros::Publisher lanePcPub;
-  ros::Publisher signalShutdown;
-  std::map<std::pair<int,int>, std::map<std::pair<int, int>, double>> allPoints;
-  std::vector<long int> secWatch;
-  int seq_count;
-  pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_all_filtered;
-  pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_all_xyzir;
-  ros::Publisher sphericalR;
-  ros::Publisher sphericalT;
-  ros::Publisher sphericalP;
-  ros::Publisher roadPointsPub;
-  ros::Publisher otherPointsPub;
-  std::map<std::pair<int, int>, std::pair<long int, pcl::PointCloud<pcl::PointXYZIR>::Ptr>> pointCloudPerNsec;
-  double previousPos;
-  std::map<long int, pcl::PointCloud<pcl::PointXYZIR>::Ptr> pointCloudBL;
-  long int nsecCount;
+
+  std::vector<std::pair<double, double>> lane_points;
+
 };
 
 
