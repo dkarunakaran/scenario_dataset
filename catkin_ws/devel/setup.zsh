@@ -1,1 +1,1 @@
-/constraint_model/catkin_ws/devel/.private/catkin_tools_prebuild/setup.zsh
+/model/catkin_ws/devel/.private/catkin_tools_prebuild/setup.zsh

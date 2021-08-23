@@ -67,14 +67,14 @@ set(ibeo_object_msg_CONFIG_INCLUDED TRUE)
 
 # set variables for source/devel/install prefixes
 if("TRUE" STREQUAL "TRUE")
-  set(ibeo_object_msg_SOURCE_PREFIX /constraint_model/catkin_ws/src/ibeo_object_msg)
-  set(ibeo_object_msg_DEVEL_PREFIX /constraint_model/catkin_ws/devel/.private/ibeo_object_msg)
+  set(ibeo_object_msg_SOURCE_PREFIX /model/catkin_ws/src/ibeo_object_msg)
+  set(ibeo_object_msg_DEVEL_PREFIX /model/catkin_ws/devel/.private/ibeo_object_msg)
   set(ibeo_object_msg_INSTALL_PREFIX "")
   set(ibeo_object_msg_PREFIX ${ibeo_object_msg_DEVEL_PREFIX})
 else()
   set(ibeo_object_msg_SOURCE_PREFIX "")
   set(ibeo_object_msg_DEVEL_PREFIX "")
-  set(ibeo_object_msg_INSTALL_PREFIX /constraint_model/catkin_ws/install)
+  set(ibeo_object_msg_INSTALL_PREFIX /model/catkin_ws/install)
   set(ibeo_object_msg_PREFIX ${ibeo_object_msg_INSTALL_PREFIX})
 endif()
 
@@ -91,9 +91,9 @@ endif()
 # flag project as catkin-based to distinguish if a find_package()-ed project is a catkin project
 set(ibeo_object_msg_FOUND_CATKIN_PROJECT TRUE)
 
-if(NOT "/constraint_model/catkin_ws/devel/.private/ibeo_object_msg/include " STREQUAL " ")
+if(NOT "/model/catkin_ws/devel/.private/ibeo_object_msg/include " STREQUAL " ")
   set(ibeo_object_msg_INCLUDE_DIRS "")
-  set(_include_dirs "/constraint_model/catkin_ws/devel/.private/ibeo_object_msg/include")
+  set(_include_dirs "/model/catkin_ws/devel/.private/ibeo_object_msg/include")
   if(NOT " " STREQUAL " ")
     set(_report "Check the issue tracker '' and consider creating a ticket if the problem has not been reported yet.")
   elseif(NOT " " STREQUAL " ")
@@ -110,7 +110,7 @@ if(NOT "/constraint_model/catkin_ws/devel/.private/ibeo_object_msg/include " STR
         message(FATAL_ERROR "Project 'ibeo_object_msg' specifies '${idir}' as an include dir, which is not found.  It does not exist in '${include}'.  ${_report}")
       endif()
     else()
-      message(FATAL_ERROR "Project 'ibeo_object_msg' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/constraint_model/catkin_ws/src/ibeo_object_msg/${idir}'.  ${_report}")
+      message(FATAL_ERROR "Project 'ibeo_object_msg' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/model/catkin_ws/src/ibeo_object_msg/${idir}'.  ${_report}")
     endif()
     _list_append_unique(ibeo_object_msg_INCLUDE_DIRS ${include})
   endforeach()
@@ -154,7 +154,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /constraint_model/catkin_ws/devel/.private/ibeo_object_msg/lib;/constraint_model/catkin_ws/devel/lib;/opt/carla-ros-bridge/melodic/lib;/opt/ros/melodic/lib)
+    foreach(path /model/catkin_ws/devel/.private/ibeo_object_msg/lib;/model/catkin_ws/devel/lib;/opt/carla-ros-bridge/melodic/lib;/opt/ros/melodic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

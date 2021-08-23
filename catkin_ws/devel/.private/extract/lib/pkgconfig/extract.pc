@@ -1,4 +1,4 @@
-prefix=/constraint_model/catkin_ws/devel/.private/extract
+prefix=/model/catkin_ws/devel/.private/extract
 
 Name: extract
 Description: Description of extract

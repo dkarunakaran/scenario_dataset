@@ -1,2 +1,2 @@
 - setup-file:
-    local-name: /constraint_model/catkin_ws/devel/.private/extract/setup.sh
+    local-name: /model/catkin_ws/devel/.private/extract/setup.sh

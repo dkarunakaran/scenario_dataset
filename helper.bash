@@ -40,12 +40,12 @@ if [ -z "$2" ]
 fi
 
 server_docker_c=carla-sim
-client_docker_i=constraint_i
-client_docker_c=constraint_c
-rviz_docker_i=constraint_rviz_i
-rviz_docker_c=constraint_rviz_c
-
-
+client_docker_i=model_i
+client_docker_c=model_c
+rviz_docker_i=model_rviz_i
+rviz_docker_c=model_rviz_c
+home_volume=/home/beastan/Documents/phd/scenario_extraction:/model
+data_volume=/media/beastan/ubuntuHD/waymo/processed/data:/data
 echo "Running '$1' and '$2' options"
 
 # Start the carla server
@@ -99,11 +99,11 @@ fi
 # Build docker client container
 if [[ $1 == "build_client_c" ]]; then
 	if [[ $2 == "laptop" ]]; then
-  		docker run --net=host -d -v=/home/dhanoop/Documents/acfr/active/constraint_model:/constraint_model --name $client_docker_c $client_docker_i
+  		docker run --net=host -d -v $home_volume -v $data_volume --name $client_docker_c $client_docker_i
 	fi
 
 	if [[ $2 == "monolith" ]]; then
-  		docker run --net=host -d -v=/home/dhanoop/constraint_model:/constraint_model --name $client_docker_c $client_docker_i
+  		docker run --net=host -d -v $home_volume --name $client_docker_c $client_docker_i
 	fi
 fi
 
@@ -120,7 +120,7 @@ fi
 if [[ $1 == "run_rviz_c" ]]; then
 	xhost +local:docker
 	if [[ $2 == "laptop" ]]; then
-        	docker run -it --rm --privileged --net=host --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --env=DISPLAY --env=QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v /home/dhanoop/Documents/acfr/active/constraint_model:/constraint_model --gpus 0 $rviz_docker_i /bin/bash
+        	docker run -it --rm --privileged --net=host --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --env=DISPLAY --env=QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $home_volume --gpus 0 $rviz_docker_i /bin/bash
 
 	fi
 

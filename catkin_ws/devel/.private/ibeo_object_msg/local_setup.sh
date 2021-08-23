@@ -3,7 +3,7 @@
 
 # since this file is sourced either use the provided _CATKIN_SETUP_DIR
 # or fall back to the destination set at configure time
-: ${_CATKIN_SETUP_DIR:=/constraint_model/catkin_ws/devel/.private/ibeo_object_msg}
+: ${_CATKIN_SETUP_DIR:=/model/catkin_ws/devel/.private/ibeo_object_msg}
 CATKIN_SETUP_UTIL_ARGS="--extend --local"
 . "$_CATKIN_SETUP_DIR/setup.sh"
 unset CATKIN_SETUP_UTIL_ARGS

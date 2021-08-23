@@ -55,7 +55,7 @@ RUN apt-get install -y software-properties-common
 
 # Other important packages
 RUN apt-get install -y ros-melodic-tf2-sensor-msgs
-RUN apt-get install -y ros-melodic-tf2-sensor-msgs
+RUN apt-get install -y ros-melodic-tf2-geometry-msgs
 
 # Numpy like c++ library
 #RUN apt-get install -y xtensor-dev

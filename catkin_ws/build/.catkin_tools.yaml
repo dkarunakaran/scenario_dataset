@@ -1,6 +1,0 @@
-devel_space: /constraint_model/catkin_ws/devel
-install: false
-install_space: /constraint_model/catkin_ws/install
-profile: default
-source_space: /constraint_model/catkin_ws/src
-workspace: /constraint_model/catkin_ws
