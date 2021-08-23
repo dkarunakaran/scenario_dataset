@@ -987,8 +987,9 @@ FeatureExtractor::Selector_label(pcl::PointCloud<pcl::PointXYZIRL>::Ptr input_cl
 }
 
 pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::PointCloud<pcl::PointXYZI> inputCloud){
-
-	std::vector<std::vector<float>> matrixPC;
+	float min_intensity = 100000000.;
+	float max_intensity = -100000000.;
+      	std::vector<std::vector<float>> matrixPC;
         for (size_t i = 0; i < inputCloud.points.size(); ++i) {
                 std::vector<float> row;
                 row.push_back(inputCloud.points[i].x);
@@ -996,30 +997,88 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::Poi
                 row.push_back(inputCloud.points[i].z);
                 row.push_back(inputCloud.points[i].intensity);
                 matrixPC.push_back(row);
-        }
-	
-	//Sorting
-        std::sort(matrixPC.begin(), matrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+        	min_intensity = std::min<double>(min_intensity, inputCloud.points[i].intensity);
+      		max_intensity = std::max<double>(max_intensity, inputCloud.points[i].intensity);
 
+	}
+
+	// Filter based on height
+	std::vector<std::vector<float>> heightMatrixPC;
+	int middle = middlePoint(matrixPC, 0);
+	double heightDeltaThreshold = 0.10;
+	double heightThreshold = 0.25;
+	double previousHeight = 0.;
+	
+	//One side of the points
+     	for (int i=middle; i<matrixPC.size(); i++)
+     	{
+		double z = matrixPC[i][2];
+		double heightDelta = z-previousHeight;
+		ROS_INFO_STREAM(z<<" "<<previousHeight<<" "<<heightDelta);
+		if(z < heightThreshold && heightDelta < heightThreshold){
+			//ROS_INFO_STREAM(heightDelta);
+			std::vector<float> row;
+			row.push_back(inputCloud.points[i].x);
+			row.push_back(inputCloud.points[i].y);
+			row.push_back(inputCloud.points[i].z);
+			row.push_back(inputCloud.points[i].intensity);
+			heightMatrixPC.push_back(row);
+			previousHeight = z;
+		}
+		
+	}
+
+	//Other side of the points
+        for (int i=middle; i>0; i--)
+        {
+                double z = matrixPC[i][2];
+                double heightDelta = z-previousHeight;
+		if(z < heightThreshold && heightDelta < heightThreshold){
+                        //ROS_INFO_STREAM(heightDelta);
+
+                        std::vector<float> row;
+                        row.push_back(inputCloud.points[i].x);
+                        row.push_back(inputCloud.points[i].y);
+                        row.push_back(inputCloud.points[i].z);
+                        row.push_back(inputCloud.points[i].intensity);
+                        heightMatrixPC.push_back(row);
+                	previousHeight = z;
+                }
+
+        }
+
+	ROS_INFO_STREAM("Size of heightPC: "<<heightMatrixPC.size());
+
+
+	// High intensity  = 70% higher
+	auto intensity_min = (max_intensity*70)/100;
+	
+	// Sorting
+        std::sort(heightMatrixPC.begin(), heightMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+
+	
 	pcl::PointCloud<pcl::PointXYZI> lanePC;
-	double intThreshold = 0.50;	
+	double intThreshold = 0.40;	
 	bool deltaFlag = false;
 	double previousInt = 0.;
 	
-	//filter based on intensity	
-	for(int i=0; i<matrixPC.size();i++){
-		double x = matrixPC[i][0];
-                double y = matrixPC[i][1];
-                double z = matrixPC[i][2];
-                double intensity = matrixPC[i][3];
+	// Filter based on intensity	
+	for(int i=0; i<heightMatrixPC.size();i++){
+		double x = heightMatrixPC[i][0];
+                double y = heightMatrixPC[i][1];
+                double z = heightMatrixPC[i][2];
+                double intensity = heightMatrixPC[i][3];
                         
-                // Finding change in intensity  
-                double intDelta = std::abs(intensity-previousInt);                            if(intDelta > intThreshold){
-                      	if(deltaFlag == true)
-				deltaFlag = false;
-			else
-				deltaFlag = true;
-                }	
+                // Finding changes in intensity  
+                double intDelta = intensity-previousInt;        
+		if(intDelta > intThreshold && intensity >= intensity_min){
+			//ROS_INFO_STREAM("I, prevI, and Delta: "<<x<<" "<<y<<" "<<intensity<<", "<<previousInt<<", "<<intDelta);
+			deltaFlag = true;
+
+		}else{
+			deltaFlag = false;
+		}	
+		
 		if(deltaFlag){
 			pcl::PointXYZI point;
                         point.x = x;
@@ -1029,7 +1088,6 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::Poi
                         lanePC.push_back(point);
 		}
 		previousInt = intensity;
-
 	}
 	
 	return lanePC;
@@ -1118,8 +1176,8 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
     if(input_pointcloud_bl->points.size() > 0){
 	auto extractedPC = extractEdges(input_pointcloud_bl, pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec);
 	auto lanePC = intensityBasedFilter(extractedPC);
-	ROS_INFO_STREAM("Extracted PC size: "<<extractedPC.size());
-	ROS_INFO_STREAM("Lane PC size: "<<lanePC.size());
+	//ROS_INFO_STREAM("Extracted PC size: "<<extractedPC.size());
+	//ROS_INFO_STREAM("Lane PC size: "<<lanePC.size());
 
 
 	/*std::map<std::pair<int,int>, double> intensity_map;
