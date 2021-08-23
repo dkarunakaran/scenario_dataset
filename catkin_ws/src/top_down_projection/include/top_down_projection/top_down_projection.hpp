@@ -84,7 +84,8 @@ private:
 
   double wrapAngle(double angle);
  
-  void writeCVImage(cv::Mat& output_image, std::string output_image_name);
+  pcl::PointCloud<pcl::PointXYZI> intensityBasedFilter(pcl::PointCloud<pcl::PointXYZI>);
+
 
   // initialise ros stuff
   virtual void onInit();
@@ -142,6 +143,10 @@ private:
   double previousPos;
   std::map<long int, pcl::PointCloud<pcl::PointXYZIR>::Ptr> pointCloudBL;
   long int nsecCount;
+  std::list<std::pair<double,double>> lane_odom;
+  std::list<std::pair<int,int>> lane_points;
+  std::list<std::pair<double,double>> vehicle_odom_double;
+
 };
 
 
