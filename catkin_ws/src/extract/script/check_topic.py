@@ -15,7 +15,7 @@ from scipy import stats
 from sklearn.cluster import KMeans, DBSCAN
 import matplotlib
 # For the error: Exception ignored in: <bound method Image.del of <tkinter.PhotoImage object at 0x7f1b5f86a710>> Traceback (most recent call last):
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 #$DISPLAY error, solution:- echo "backend: Agg" > ~/.config/matplotlib/matplotlibrc
 from matplotlib import pyplot as plt
 from matplotlib import colors as clr

@@ -6,6 +6,7 @@
 
 #include <ros/ros.h>
 
+#include <pcl/kdtree/kdtree_flann.h>
 
 #include <visualization_msgs/Marker.h>
 
@@ -84,8 +85,17 @@ private:
 
   double wrapAngle(double angle);
  
-  pcl::PointCloud<pcl::PointXYZI> intensityBasedFilter(pcl::PointCloud<pcl::PointXYZI>);
+  pcl::PointCloud<pcl::PointXYZI> pointCloudFilter(pcl::PointCloud<pcl::PointXYZI>);
 
+  void constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lanePC);
+
+  bool checkVector(std::vector<std::pair<double, double>>, std::pair<double, double>);
+  
+  bool checkVector(std::vector<std::pair<std::vector<std::pair<double, double>>, int>>, std::pair<double, double>);
+
+  void constructLane();
+
+  void joinLanes();
 
   // initialise ros stuff
   virtual void onInit();
@@ -146,7 +156,9 @@ private:
   std::list<std::pair<double,double>> lane_odom;
   std::list<std::pair<int,int>> lane_points;
   std::list<std::pair<double,double>> vehicle_odom_double;
-
+  std::vector<std::pair<std::vector<std::pair<double, double>>, int>> active_lane_segments;//[lane points in lane segments, inactive count]
+  std::list<std::vector<std::pair<double, double>>> lane_segments;//[lane points lane segements]
+  std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes;
 };
 
 

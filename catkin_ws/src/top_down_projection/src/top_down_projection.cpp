@@ -37,6 +37,7 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/point_types_conversion.h>
+#include <random>
 
 
 int main(int argc, char **argv) {
@@ -176,10 +177,196 @@ FeatureExtractor::onInit() {
 
  
   this->ReadFromBag();
-  //auto cloudFiltered = this->processForSphericalCoordinateFrame(cloud_all_xyzir);
-  //this->extractEdges(cloud_all_xyzir, 1000, 1000);
+  this->constructLane();
   this->WriteImage();
   
+}
+
+void FeatureExtractor::constructLane(){
+  ROS_INFO_STREAM("constructLane function called");
+
+  // Remaining active lane segament which are not added to the lane segments list
+  for(size_t i=0;i<active_lane_segments.size();i++){
+      auto laneSegment = active_lane_segments[i].first;
+      lane_segments.push_back(laneSegment);
+  } 
+  std::vector<std::vector<std::pair<double, double>>> tempLanes;
+  for(auto& segment:lane_segments){
+    
+    //Sorting 
+    std::sort(segment.begin(), segment.end(), [](const std::pair<double, double>& a, const std::pair<double, double>& b) {return a.first < b.first;});
+    
+    std::vector<std::pair<double, double>> tempSeg;
+    if(segment.size() > 1){
+      for(size_t i=0;i<segment.size()-1;i++){
+        auto x1 = segment[i].first;
+        auto y1 = segment[i].second;
+        auto x2 = segment[i+1].first;
+        auto y2 = segment[i+1].second;
+        auto x = (x1+x2)/2;
+        auto y = (y1+y2)/2;
+        tempSeg.push_back(std::make_pair(x,y));
+      }
+      auto front_pair = tempSeg.front();
+      auto back_pair = tempSeg.back();
+      std::vector<double> row1;
+      row1.push_back(front_pair.first);
+      row1.push_back(front_pair.second);
+      std::vector<double> row2;
+      row2.push_back(back_pair.first);
+      row2.push_back(back_pair.second);
+      lanes.push_back(std::make_pair(row1,row2));
+    }else{
+      auto x1 = segment[0].first;
+      auto y1 = segment[0].second;
+      tempSeg.push_back(std::make_pair(x1,y1));
+      std::vector<double> row1;
+      row1.push_back(x1);
+      row1.push_back(y1);
+      std::vector<double> row2;
+      row2.push_back(x1);
+      row2.push_back(y1);
+      lanes.push_back(std::make_pair(row1,row2));
+    }
+    
+    tempLanes.push_back(tempSeg);
+  }// main for loop close
+
+  lane_segments.clear();
+  //lane_segments = tempLanes;
+  
+  //joinLanes();
+
+  /*ROS_INFO_STREAM("lane size: "<<lanes.size()); 
+  std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes_temp1;
+  std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes_stack;
+
+  std::vector<size_t> skip;
+  
+  for(size_t i=0;i<lanes.size(); i++){
+    if(std::find(skip.begin(), skip.end(), i) != skip.end())
+      continue;
+    
+    bool found = false; 
+    auto current = lanes[i];
+    lanes_stack.push_back(current);
+    skip.push_back(i);
+    for(size_t j=i+1;j<lanes.size(); j++){
+      auto lane1_first = current.first;
+      auto lane1_second = current.second;
+      auto lane2_first = lanes[j].first;
+      auto lane2_second = lanes[j].second;
+      auto x1 = lane1_second[0];
+      auto y1 = lane1_second[1];
+      auto x2 = lane2_first[0];
+      auto y2 = lane2_first[1];
+      auto x_dist = std::abs(std::abs(x1)-std::abs(x2));
+      auto y_dist = std::abs(std::abs(y1)-std::abs(y2));
+      float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+      if(d<0.5){
+        current = lanes[j];
+        lanes_stack.push_back(current);
+        skip.push_back(j); 
+      }else
+        break;
+    }
+    
+    if(lanes_stack.size()<2){
+      std::vector<double> row1;
+      row1.push_back(lanes[i].first[0]);
+      row1.push_back(lanes[i].first[1]);
+      std::vector<double> row2;
+      row2.push_back(lanes[i].second[0]);
+      row2.push_back(lanes[i].second[1]);
+      lanes_temp1.push_back(std::make_pair(row1,row2));
+    }else{
+      double x = -100000000;
+      double y = -100000000;  
+      
+      for(size_t j=0;j<lanes_stack.size()-1; j++){
+        if(x == -100000000){
+          auto lane_pair = lanes_stack[j];
+          x = lane_pair.first[0];
+          y = lane_pair.first[1];
+        }
+        auto x1 = x;
+        auto y1 = y;
+        auto x2 = lanes_stack[j+1].first[0]; 
+        auto y2 = lanes_stack[j+1].first[1];
+        x = (x1+x2)/2;
+        y = (y1+y2)/2;
+      }
+      
+      std::vector<double> row1;
+      row1.push_back(lanes_stack[0].first[0]);
+      row1.push_back(lanes_stack[0].first[1]);
+      std::vector<double> row2;
+      row2.push_back(x);
+      row2.push_back(y);
+      lanes_temp1.push_back(std::make_pair(row1,row2));
+
+
+    }
+
+  }
+  lanes.clear();
+  lanes = lanes_temp1;
+  */
+
+}
+
+void FeatureExtractor::joinLanes(){
+  ROS_INFO_STREAM("lane size: "<<lanes.size()); 
+  std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes_temp1;
+
+  for(size_t i=0;i<lanes.size(); i++){
+    auto lane1_first = lanes[i].first;
+    auto lane1_second = lanes[i].second;
+    bool found = false; 
+    for(size_t j=i+1;j<lanes.size(); j++){
+      auto lane2_first = lanes[j].first;
+      auto lane2_second = lanes[j].second;
+      /*first_x_dist = std::abs(std::abs(lane1_first[0])-std::abs(lane2_first[0]));
+      second_x_dist = std::abs(std::abs(lane1_second[0])-std::abs(lane2_second[0]));
+      if(first_x_dist > 100 || second_x_dist > 100)
+        break;*/
+      auto x1 = lane1_second[0];
+      auto y1 = lane1_second[1];
+      auto x2 = lane2_first[0];
+      auto y2 = lane2_first[1];
+      auto x_dist = std::abs(std::abs(x1)-std::abs(x2));
+      auto y_dist = std::abs(std::abs(y1)-std::abs(y2));
+     
+      float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+
+      //if(x_dist < 2 and y_dist < 0.25){
+      if(d<1){
+        std::vector<double> row1;
+        row1.push_back(lane1_first[0]);
+        row1.push_back(lane1_first[1]);
+        std::vector<double> row2;
+        row2.push_back(lane2_second[0]);
+        row2.push_back(lane2_second[1]);
+        lanes_temp1.push_back(std::make_pair(row1,row2));
+        found = true;
+        break;
+      }
+    }
+    if(!found){
+      std::vector<double> row1;
+      row1.push_back(lane1_first[0]);
+      row1.push_back(lane1_first[1]);
+      std::vector<double> row2;
+      row2.push_back(lane1_second[0]);
+      row2.push_back(lane1_second[1]);
+      lanes_temp1.push_back(std::make_pair(row1,row2));
+    }
+  }
+  
+
+
+  lanes.clear();
+  lanes = lanes_temp1;
 }
 
 void FeatureExtractor::WriteImage() {
@@ -312,9 +499,9 @@ void FeatureExtractor::WriteImage() {
         //colour[0] = (uint8_t)(output_rgb.b * 255.);
         //colour[1] = (uint8_t)(output_rgb.g * 255.);
         //colour[2] = (uint8_t)(output_rgb.r * 255.);
-	colour[0] = 0.;
-	colour[1] = 255.;
-	colour[2] = 0.;
+	      colour[0] = 0.;
+	      colour[1] = 255.;
+	      colour[2] = 0.;
 
         //std::cout << "point " << value_x << ", " << value_y << " intensity " << intensity << std::endl;
       }
@@ -336,12 +523,61 @@ void FeatureExtractor::WriteImage() {
   }
 
   cv::Scalar odom_colour1(0., 0., 255., 180);
-  float odom_radius1 = 2.;
+  /*float odom_radius1 = 1.;
   // Draw a circle for each of the odom positions
   for (auto &lane_odom: lane_points) {
     int value_x = lane_odom.first - min_x;
     int value_y = lane_odom.second - min_y;
     cv::circle(output_image, cv::Point(value_y, value_x), odom_radius1, odom_colour1, CV_FILLED);
+  }*/
+  
+  float odom_radius1 = 1.;
+  for(auto& lane_segment: lane_segments){
+    cv::Scalar color(
+      (double)std::rand() / RAND_MAX * 255,
+      (double)std::rand() / RAND_MAX * 255,
+      (double)std::rand() / RAND_MAX * 255,
+      255
+    );
+    
+    for(auto& point: lane_segment){
+        int x_index = ((point.second*100)/cm_resolution)*-1;
+        int y_index = (point.first*100)/cm_resolution;
+        int value_x = x_index - min_x;
+        int value_y = y_index - min_y;
+        cv::circle(output_image, cv::Point(value_y, value_x), odom_radius1, color, CV_FILLED);
+     }         
+  }
+  
+  int thickness = 1;
+  for(auto& lane: lanes){
+    cv::Scalar color(
+      (double)std::rand() / RAND_MAX * 255,
+      (double)std::rand() / RAND_MAX * 255,
+      (double)std::rand() / RAND_MAX * 255,
+      255
+    );
+
+    cv::Scalar odom_colour1(255., 255., 255., 180);
+
+    auto first_pair = lane.first;
+    auto second_pair = lane.second;
+    int x_index1 = ((first_pair[1]*100)/cm_resolution)*-1;
+    int y_index1 = (first_pair[0]*100)/cm_resolution;
+    int value_x1 = x_index1 - min_x;
+    int value_y1 = y_index1 - min_y;
+     
+    int x_index2 = ((second_pair[1]*100)/cm_resolution)*-1;
+    int y_index2 = (second_pair[0]*100)/cm_resolution;
+    int value_x2 = x_index2 - min_x;
+    int value_y2 = y_index2 - min_y;
+
+    cv::Point p1(value_y1, value_x1);
+    cv::Point p2(value_y2, value_x2);
+    if(first_pair[0] == second_pair[0] && first_pair[1] == second_pair[1])
+      cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
+    else 
+      cv::line(output_image, p1, p2, color, thickness, cv::LINE_8);
   }
 
 
@@ -986,27 +1222,33 @@ FeatureExtractor::Selector_label(pcl::PointCloud<pcl::PointXYZIRL>::Ptr input_cl
   return downsampled;
 }
 
-pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::PointCloud<pcl::PointXYZI> inputCloud){
+pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCloud<pcl::PointXYZI> inputCloud){
+	
+
+	//-------------------------Filter based on height-----------------------------
 	float min_intensity = 100000000.;
 	float max_intensity = -100000000.;
-      	std::vector<std::vector<float>> matrixPC;
-        for (size_t i = 0; i < inputCloud.points.size(); ++i) {
-                std::vector<float> row;
-                row.push_back(inputCloud.points[i].x);
-                row.push_back(inputCloud.points[i].y);
-                row.push_back(inputCloud.points[i].z);
-                row.push_back(inputCloud.points[i].intensity);
-                matrixPC.push_back(row);
-        	min_intensity = std::min<double>(min_intensity, inputCloud.points[i].intensity);
-      		max_intensity = std::max<double>(max_intensity, inputCloud.points[i].intensity);
+  std::vector<std::vector<float>> matrixPC;
+  for (size_t i = 0; i < inputCloud.points.size(); ++i) {
+          std::vector<float> row;
+          row.push_back(inputCloud.points[i].x);
+          row.push_back(inputCloud.points[i].y);
+          row.push_back(inputCloud.points[i].z);
+          row.push_back(inputCloud.points[i].intensity);
+          matrixPC.push_back(row);
+    min_intensity = std::min<double>(min_intensity, inputCloud.points[i].intensity);
+    max_intensity = std::max<double>(max_intensity, inputCloud.points[i].intensity);
 
 	}
 
-	// Filter based on height
+	// Sorting
+  std::sort(matrixPC.begin(), matrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+
+
 	std::vector<std::vector<float>> heightMatrixPC;
 	int middle = middlePoint(matrixPC, 0);
 	double heightDeltaThreshold = 0.10;
-	double heightThreshold = 0.25;
+	double heightThreshold = 0.20;
 	double previousHeight = 0.;
 	
 	//One side of the points
@@ -1014,14 +1256,12 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::Poi
      	{
 		double z = matrixPC[i][2];
 		double heightDelta = z-previousHeight;
-		ROS_INFO_STREAM(z<<" "<<previousHeight<<" "<<heightDelta);
-		if(z < heightThreshold && heightDelta < heightThreshold){
-			//ROS_INFO_STREAM(heightDelta);
+		if(z < heightThreshold && heightDelta < heightDeltaThreshold){
 			std::vector<float> row;
-			row.push_back(inputCloud.points[i].x);
-			row.push_back(inputCloud.points[i].y);
-			row.push_back(inputCloud.points[i].z);
-			row.push_back(inputCloud.points[i].intensity);
+			row.push_back(matrixPC[i][0]);
+			row.push_back(matrixPC[i][1]);
+			row.push_back(matrixPC[i][2]);
+			row.push_back(matrixPC[i][3]);
 			heightMatrixPC.push_back(row);
 			previousHeight = z;
 		}
@@ -1033,22 +1273,21 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::Poi
         {
                 double z = matrixPC[i][2];
                 double heightDelta = z-previousHeight;
-		if(z < heightThreshold && heightDelta < heightThreshold){
-                        //ROS_INFO_STREAM(heightDelta);
-
+		if(z < heightThreshold && heightDelta < heightDeltaThreshold){
                         std::vector<float> row;
-                        row.push_back(inputCloud.points[i].x);
-                        row.push_back(inputCloud.points[i].y);
-                        row.push_back(inputCloud.points[i].z);
-                        row.push_back(inputCloud.points[i].intensity);
+                        row.push_back(matrixPC[i][0]);
+                        row.push_back(matrixPC[i][1]);
+                        row.push_back(matrixPC[i][2]);
+                        row.push_back(matrixPC[i][3]);
                         heightMatrixPC.push_back(row);
                 	previousHeight = z;
                 }
 
         }
 
-	ROS_INFO_STREAM("Size of heightPC: "<<heightMatrixPC.size());
+	//ROS_INFO_STREAM("Size of heightPC: "<<heightMatrixPC.size());
 
+	//--------------------Filter based on intensity-------------------	
 
 	// High intensity  = 70% higher
 	auto intensity_min = (max_intensity*70)/100;
@@ -1057,22 +1296,20 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::Poi
         std::sort(heightMatrixPC.begin(), heightMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
 
 	
-	pcl::PointCloud<pcl::PointXYZI> lanePC;
+	pcl::PointCloud<pcl::PointXYZI> intensityPC;
 	double intThreshold = 0.40;	
 	bool deltaFlag = false;
 	double previousInt = 0.;
 	
-	// Filter based on intensity	
 	for(int i=0; i<heightMatrixPC.size();i++){
 		double x = heightMatrixPC[i][0];
-                double y = heightMatrixPC[i][1];
-                double z = heightMatrixPC[i][2];
-                double intensity = heightMatrixPC[i][3];
+    double y = heightMatrixPC[i][1];
+    double z = heightMatrixPC[i][2];
+    double intensity = heightMatrixPC[i][3];
                         
-                // Finding changes in intensity  
-                double intDelta = intensity-previousInt;        
+    // Finding changes in intensity  
+    double intDelta = intensity-previousInt;        
 		if(intDelta > intThreshold && intensity >= intensity_min){
-			//ROS_INFO_STREAM("I, prevI, and Delta: "<<x<<" "<<y<<" "<<intensity<<", "<<previousInt<<", "<<intDelta);
 			deltaFlag = true;
 
 		}else{
@@ -1081,19 +1318,217 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::intensityBasedFilter(pcl::Poi
 		
 		if(deltaFlag){
 			pcl::PointXYZI point;
-                        point.x = x;
-                        point.y = y;
-                        point.z = z;
-                        point.intensity = intensity;
-                        lanePC.push_back(point);
+      point.x = x;
+      point.y = y;
+      point.z = z;
+      point.intensity = intensity;
+      intensityPC.push_back(point);
 		}
 		previousInt = intensity;
 	}
 	
+  // -----------Averaging the pointcloud-------------------
+	pcl::PointCloud<pcl::PointXYZI> lanePC;
+	if(intensityPC.points.size() > 1) {	
+
+		//pcl::copyPointCloud(intensityPC, lanePC);
+    
+    std::vector<std::vector<float>> avgMatrixPC;
+		for (size_t i = 0; i < intensityPC.points.size(); ++i) {
+			std::vector<float> row;
+			row.push_back(intensityPC.points[i].x);
+			row.push_back(intensityPC.points[i].y);
+			row.push_back(intensityPC.points[i].z);
+			row.push_back(intensityPC.points[i].intensity);
+			avgMatrixPC.push_back(row);
+		}
+		
+		// Sorting
+		std::sort(avgMatrixPC.begin(), avgMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+    pcl::PointCloud<pcl::PointXYZI>::Ptr intensityPCPtr(new pcl::PointCloud<pcl::PointXYZI>);
+		pcl::copyPointCloud(intensityPC, *intensityPCPtr);
+		pcl::KdTreeFLANN<pcl::PointXYZI> kdtree;
+		kdtree.setInputCloud (intensityPCPtr); 
+		int radius = 4.0;
+    std::vector<std::pair<double, double>> searchVec;
+		for (int i=0; i<avgMatrixPC.size(); i++)
+		{
+      auto x1 = avgMatrixPC[i][0];
+      auto y1 = avgMatrixPC[i][1];
+      std::vector<std::vector<float>> knnMatrixPC;
+      std::vector<float> row;
+      row.push_back(avgMatrixPC[i][0]);
+      row.push_back(avgMatrixPC[i][1]);
+      row.push_back(avgMatrixPC[i][2]);
+      row.push_back(avgMatrixPC[i][3]); 
+			knnMatrixPC.push_back(row);
+      for(int j=0; j<avgMatrixPC.size(); j++){
+        auto x2 = avgMatrixPC[j][0]; 
+        auto y2 = avgMatrixPC[j][1];
+        if(!checkVector(searchVec, std::make_pair(x2,y2)) && i != j){
+          float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+          if(d <= radius){
+						row.clear();
+						row.push_back(avgMatrixPC[i][0]);
+            row.push_back(avgMatrixPC[i][1]);
+            row.push_back(avgMatrixPC[i][2]);
+            row.push_back(avgMatrixPC[i][3]); 
+            knnMatrixPC.push_back(row);
+          }
+        }
+      }
+      searchVec.push_back(std::make_pair(x1, y1));
+      std::sort(knnMatrixPC.begin(), knnMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+      
+      int middlePoint = knnMatrixPC.size()/2;
+      pcl::PointXYZI point;
+      point.x = knnMatrixPC[middlePoint][0];
+      point.y = knnMatrixPC[middlePoint][1];
+      point.z = knnMatrixPC[middlePoint][2];
+      point.intensity = knnMatrixPC[middlePoint][0];
+      lanePC.push_back(point);
+		}
+	}else{
+    pcl::copyPointCloud(intensityPC, lanePC);
+	}
+
 	return lanePC;
 
 }
 
+bool FeatureExtractor::checkVector(std::vector<std::pair<double, double>> searchVec, std::pair<double, double> xy){
+  bool status = false;  
+  for(size_t i=0; i<searchVec.size(); i++){
+    auto point = searchVec[i];
+    auto x2 = point.first;
+    auto y2 = point.second;
+    if(xy.first == x2 && xy.second == y2){
+      status = true;
+      break;
+    }
+  }
+  
+  return status;
+}
+
+
+bool FeatureExtractor::checkVector(std::vector<std::pair<std::vector<std::pair<double, double>>, int>> searchVec, std::pair<double, double> xy){
+  bool status = false;  
+  for(size_t i=0; i<searchVec.size(); i++){
+    auto segementActiveOrInactive = active_lane_segments[i];
+    auto laneSegment = segementActiveOrInactive.first;
+    for(size_t j=0; j<searchVec.size(); j++){
+      auto point = laneSegment[j];
+      auto x2 = point.first;
+      auto y2 = point.second;
+      if(xy.first == x2 && xy.second == y2){
+        status = true;
+        break;
+      }
+    }
+  }
+  
+  return status;
+}
+
+
+
+void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lanePC){
+  //std::vector<std::pair<std::vector<std::pair<double, double>>, int>> active_lane_segments;//[lane po    ints in lane segments, inactive count]
+  //std::map<long int, std::vector<std::pair<double, double>>> lane_segment;//[lane points lane segements]
+  ROS_INFO_STREAM("_____________________________________: "<<seq_count);
+  ROS_INFO_STREAM("Active lane segments size: "<<active_lane_segments.size());
+  ROS_INFO_STREAM("Lane segments size: "<<lane_segments.size());
+  ROS_INFO_STREAM("lanPC size: "<<lanePC.points.size());
+
+  float RADIUS = 0.5;
+  float INACTIVECOUNT = 4;
+  if(active_lane_segments.size() == 0){
+    std::vector<std::pair<double, double>> searchVec; 
+    for(size_t i=0;i<lanePC.points.size();i++){
+      auto x1 = lanePC.points[i].x;
+      auto y1 = lanePC.points[i].y;
+      ROS_INFO_STREAM("active is zero: "<<x1<<" "<<y1);
+      if(checkVector(searchVec, std::make_pair(x1,y1))) 
+        continue;
+      for(size_t j=0;j<lanePC.points.size();j++){
+        auto x2 = lanePC.points[j].x;
+        auto y2 = lanePC.points[j].y;
+        if(i==j || checkVector(searchVec, std::make_pair(x2,y2)))
+          continue;
+        float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+        if(d<RADIUS){
+          searchVec.push_back(std::make_pair(x2, y2));
+        }
+      }
+
+      if(!checkVector(searchVec, std::make_pair(x1,y1))) {
+          std::vector<std::pair<double, double>> laneSegment;
+          laneSegment.push_back(std::make_pair(x1, y1));
+          std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, 0);
+          active_lane_segments.push_back(segementActiveOrInactive);
+      }
+
+    }
+   
+  }else{
+    std::vector<std::pair<double, double>> searchVec;
+    std::vector<std::pair<double, double>> newPointsVec;
+    for(size_t i=0;i<active_lane_segments.size(); i++){
+      auto laneSegment = active_lane_segments[i].first;
+      auto inactiveCount = active_lane_segments[i].second;
+      auto point = laneSegment.back();
+      auto x1 = point.first; auto y1 = point.second;
+      bool found = false;
+      int multiplePoints = 0;
+      for(size_t j=0;j<lanePC.points.size();j++){
+        auto x2 = lanePC.points[j].x;
+        auto y2 = lanePC.points[j].y;
+        if(checkVector(searchVec, std::make_pair(x2,y2)))
+          continue;
+      
+        float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+        if(d<RADIUS){
+          searchVec.push_back(std::make_pair(x2, y2));
+          laneSegment.push_back(std::make_pair(x2, y2));
+          ROS_INFO_STREAM("d<1: "<<j<<": "<<x2<<" "<<y2<<", d="<<d<<", and ls size: "<<laneSegment.size());
+          std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, 0);
+          active_lane_segments[i] = segementActiveOrInactive; 
+          found = true;
+          multiplePoints += 1;
+        }else{
+          //Adding new active lane points
+          if(!checkVector(newPointsVec, std::make_pair(x2,y2)))
+            newPointsVec.push_back(std::make_pair(x2, y2));
+        } 
+      }
+
+      // Update the active_lane_segments and lane_segements vectors if not found
+      if(!found){
+        inactiveCount += 1;
+        //ROS_INFO_STREAM("inactive: "<<inactiveCount);
+        // remove from active and store them in lane segement
+        if(inactiveCount > INACTIVECOUNT){
+          lane_segments.push_back(laneSegment);
+          active_lane_segments.erase(active_lane_segments.begin()+i);
+        }else{
+          std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, inactiveCount);
+          active_lane_segments[i] = segementActiveOrInactive;
+        }
+      }
+    }
+    ROS_INFO_STREAM("newPointsVec: "<<newPointsVec.size());
+    for(size_t k=0; k<newPointsVec.size(); k++){
+      auto point = newPointsVec[k]; auto x1 = point.first; auto y1 = point.second;
+      std::vector<std::pair<double, double>> laneSegment;
+      laneSegment.push_back(std::make_pair(x1, y1));
+      active_lane_segments.push_back(std::make_pair(laneSegment, 0));
+    }
+    //if(seq_count > 2)
+    // exit(0);
+  
+  }//else close
+}
 
 // call whenever receive a pointcloud - spit out new filtered version
 void
@@ -1158,11 +1593,6 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
     
     pcl::PointCloud<pcl::PointXYZIR>::Ptr input_pointcloud_bl(new pcl::PointCloud<pcl::PointXYZIR>);
     pcl::copyPointCloud(*input_pointcloud_box_filter, *input_pointcloud_bl);
-    /*pcl::PassThrough<pcl::PointXYZIR> pass;
-    pass.setInputCloud (input_pointcloud_box_filter);
-    pass.setFilterFieldName ("z");
-    pass.setFilterLimits (-0.2, 0.15);
-    pass.filter (*input_pointcloud_bl);*/ 
     pcl::transformPointCloud(*input_pointcloud, *input_pointcloud, world_origin, world_rotation);
 
     int x_index = (world_origin[0] * 100.) / cm_resolution;
@@ -1174,65 +1604,51 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
     double z_max  = -100000000.;
        
     if(input_pointcloud_bl->points.size() > 0){
-	auto extractedPC = extractEdges(input_pointcloud_bl, pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec);
-	auto lanePC = intensityBasedFilter(extractedPC);
-	//ROS_INFO_STREAM("Extracted PC size: "<<extractedPC.size());
-	//ROS_INFO_STREAM("Lane PC size: "<<lanePC.size());
+      auto extractedPC = extractEdges(input_pointcloud_bl, pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec);
+      
+      // Filtering on baselink
+      auto lanePC = pointCloudFilter(extractedPC);
+      
+      // Transfroming to odom frame
+      pcl::transformPointCloud(lanePC, lanePC, world_origin, world_rotation);
+      
+      // Construct lane segement
+      constructLaneSegments(lanePC); 
+      
+      
+      /*if(seq_count == 418){
+        for(auto& lane_segment: lane_segments){
+          ROS_INFO_STREAM("--------------------");
+          for(auto& point: lane_segment){
+            ROS_INFO_STREAM("Lane segments: "<<point.first<<" "<<point.second);
+          }    
+        }
+
+      }*/
+      //if(seq_count<1)
+      for(size_t i=0; i<lanePC.points.size(); i++){		
+        auto x = lanePC.points[i].x;
+        auto y = lanePC.points[i].y;
+        int x_index = (x * 100.) / cm_resolution;
+        int y_index = (y * 100.) / cm_resolution;
+        lane_points.push_back(std::make_pair(-1. * y_index, x_index));
+        lane_odom.push_back(std::make_pair(x, y));
+      }
 
 
-	/*std::map<std::pair<int,int>, double> intensity_map;
-	pcl::PointCloud<pcl::PointXYZI> lanePC;
-	double previousInt = 0;
-	double intThreshold = 0.50;
-	double previousZ = 0;
-	double heightThreshold = 0.50;
-	for (size_t i = 0; i < extractedPC.points.size(); ++i) {
-		double x = extractedPC.points[i].x;
-		double y = extractedPC.points[i].y;
-		double z = extractedPC.points[i].z;
-		double intensity = extractedPC.points[i].intensity;
- 		z_min = std::min<double>(z_min, z);
-    		z_max = std::max<double>(z_max, z);
-				
-		if(intensity > 1.75){
-			pcl::PointXYZI point;
-			point.x = x;
-			point.y = y;
-			point.z = z;
-			point.intensity = intensity;
-			lanePC.push_back(point);
+      seq_count += 1;
+      
+      //ROS_INFO_STREAM("lane points size: "<<lanePC.size()<<" Intensity map size: "<<intensity_map.size());
 
-			int x_index = (x * 100.) / cm_resolution;
-                	int y_index = (y * 100.) / cm_resolution;
-               	 	if (fabs(x_index) > 1e7 || fabs(y_index) > 1e7) {
-                        	continue;
-                	}
-               		intensity_map[std::make_pair(-1. * y_index,
-                                             x_index)] = intensity;
-		}
-	}*/
+      /*if(std::find(secWatch.begin(), secWatch.end(), pointcloud_msg->header.stamp.sec) != secWatch.end()){
 
-	pcl::transformPointCloud(lanePC, lanePC, world_origin, world_rotation);
-	for(size_t i=0; i<lanePC.points.size(); i++){		
-		auto x = lanePC.points[i].x;
-		auto y = lanePC.points[i].y;
-		int x_index = (x * 100.) / cm_resolution;
-   	 	int y_index = (y * 100.) / cm_resolution;
-    		lane_points.push_back(std::make_pair(-1. * y_index, x_index));
-		lane_odom.push_back(std::make_pair(x, y));
-	}
-	
-	//ROS_INFO_STREAM("lane points size: "<<lanePC.size()<<" Intensity map size: "<<intensity_map.size());
-
-	/*if(std::find(secWatch.begin(), secWatch.end(), pointcloud_msg->header.stamp.sec) != secWatch.end()){
-
-    	}else{
-		secWatch.push_back(pointcloud_msg->header.stamp.sec);
-	}
-   	
-        if(secWatch.size()%10 == 0 && secWatch.size() < 15){
-		outputImage(intensity_map, "/constraint_model/images/combined_image.png");
-	}*/
+          }else{
+        secWatch.push_back(pointcloud_msg->header.stamp.sec);
+      }
+        
+            if(secWatch.size()%10 == 0 && secWatch.size() < 15){
+        outputImage(intensity_map, "/constraint_model/images/combined_image.png");
+      }*/
     }
     
     // put each point into the intensity map

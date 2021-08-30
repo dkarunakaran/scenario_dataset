@@ -12,6 +12,8 @@ RUN git config --global user.email "dkar9051@uni.sydney.edu.au"
 ADD .ssh /root/.ssh
 RUN touch /root/.ssh/known_hosts
 
+ADD .vimrc /root/.vimrc
+
 # IMPORTANT TO CHANGE DEPENDS ON THE GIT REPO YOU HAVE: RUN ssh-keyscan <git repo domain> >> /root/.ssh/known_hosts
 RUN ssh-keyscan gitlab.acfr.usyd.edu.au >> /root/.ssh/known_hosts
 RUN apt-get update
