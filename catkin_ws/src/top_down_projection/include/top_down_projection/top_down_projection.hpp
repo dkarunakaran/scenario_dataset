@@ -97,6 +97,12 @@ private:
 
   void joinLanes();
 
+  float lineMagnitude(std::pair<double, double>, std::pair<double, double>);  
+  
+  void removingNoise(std::vector<std::pair<double, double>> tempPoints);    
+
+  bool IsPointInBoundingBox(float x1, float y1, float x2, float y2, float px, float py);
+  
   // initialise ros stuff
   virtual void onInit();
 

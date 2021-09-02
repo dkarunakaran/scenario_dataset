@@ -45,7 +45,7 @@ client_docker_c=model_c
 rviz_docker_i=model_rviz_i
 rviz_docker_c=model_rviz_c
 home_volume=/home/beastan/Documents/phd/scenario_extraction:/model
-data_volume=/media/beastan/ubuntuHD/waymo/processed/data:/data
+data_volume=/home/beastan/Documents/phd/dataset:/data
 echo "Running '$1' and '$2' options"
 
 # Start the carla server
