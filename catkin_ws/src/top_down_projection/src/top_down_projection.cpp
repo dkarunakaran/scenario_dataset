@@ -192,31 +192,69 @@ float FeatureExtractor::lineMagnitude(std::pair<double, double> point1, std::pai
 
 bool FeatureExtractor::IsPointInBoundingBox(float x1, float y1, float x2, float y2, float px, float py){
     float left, top, right, bottom; // Bounding Box For Line Segment
+    float padding = 5.;
 
     // For Bounding Box
     if(x1 < x2){
         left = x1;
         right = x2;
+        //auto x_mid = (x1+x2)/2;
+        //left = x_mid-padding;
+        //right = x_mid+padding;
     }else{
         left = x2;
         right = x1;
+        //auto x_mid = (x1+x2)/2;
+        //left = x_mid+padding;
+        //right = x_mid-padding;
     }
 
     if(y1 < y2){
         top = y1;
         bottom = y2;
+        //auto y_mid = (y1+y2)/2;
+        //top =y_mid-padding;
+        //bottom =y_mid+padding;
+
     }else{
-        top = y1;
-        bottom = y2;
+        top = y2;
+        bottom = y1;
+        //auto y_mid = (y1+y2)/2;
+        //top =y_mid+padding;
+        //bottom =y_mid-padding;
+
+
     }
+    /*std::vector<std::pair<double,double>> temp;
+    temp.push_back(std::make_pair(left,top));
+    temp.push_back(std::make_pair(left,bottom));
+    temp.push_back(std::make_pair(right,top));
+    temp.push_back(std::make_pair(right,bottom));
+    boundingBoxes.push_back(temp);*/
     
-    float add = 0.01; //0.01
+    if(px >=left && py>=top)
+      return true;
+    else if(px<=right && py <= bottom)
+      return true;
+    else
+      return false;
 
-    if( (px+add) >= left && (px-add) <= right && (py+add) >= top && (py-add) <= bottom ){
-        return true;
-    }else
-        return false;
+}
 
+bool FeatureExtractor::isAngleBetween(int target, int angle1, int angle2) {
+  // make the angle from angle1 to angle2 to be <= 180 degrees
+  auto rAngle = ((angle2 - angle1) % 360 + 360) % 360;
+  if (rAngle >= 180) {
+    auto  temp = angle2;
+    angle2 = angle1;
+    angle1 = temp;
+  }
+
+  // check if it passes through zero
+  if (angle1 <= angle2)
+    return target >= angle1 && target <= angle2;
+  else
+    return target >= angle1 || target <= angle2;
 }
 
 void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> tempPoints){
@@ -271,7 +309,9 @@ void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> temp
   }
 
   joinLanes();
-
+  
+  auto tempLanes = lanes;
+  lanes.clear();
 
   // construct the odom line for a segment and compare all the lines that has
   // one point lies on region of odom lane. If the lines slope is far greater
@@ -290,31 +330,53 @@ void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> temp
     y2 = odom.second;
     float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
     if(d > 5){
-      
-      //Create a region of interest using bounding box
-      //mid odom region:
-      auto x_mid = (x1+x2)/2;auto y_mid = (y1+y2)/2;
-      auto add = 5.;
-      std::pair<double, double> top_left = std::make_pair((x_mid+add), (y_mid+add));
-      std::pair<double, double> top_right = std::make_pair((x_mid-add), (y_mid+add));
-      std::pair<double, double> bottom_right = std::make_pair((x_mid-add), (y_mid-add));
-      std::pair<double, double> bottom_left = std::make_pair((x_mid+add), (y_mid-add));
-      ROS_INFO_STREAM("("<<top_left.first<<","<<top_left.second<<")"<<"("<<top_right.first<<","<<top_right.second<<")"<<"("<<bottom_left.first<<","<<bottom_left.second<<")"<<"("<<bottom_right.first<<","<<bottom_right.second<<")"<<" "<<x1<<" "<<y1); 
 
-      for(size_t i=0;i<lanes.size();i++){
-        auto lane = lanes[i];
+      //find the angle inclination of a line
+      //https://www.brightstorm.com/math/trigonometry/advanced-trigonometry/angle-inclination-of-a-line/
+      auto slope = (y2-y1)/(x2-x1);
+      //Angle, theta is the tan inverse of slope or slope is the tan of theta.
+      auto theta = atan(slope)*(180.0/3.141592653589793238463);
+      ROS_INFO_STREAM("Theta: "<<theta);
+
+      for(size_t i=0;i<tempLanes.size();i++){
+        auto lane = tempLanes[i];
         auto lane_x1 = lane.first[0];auto lane_y1 = lane.first[1];
         auto lane_x2 = lane.second[0]; auto lane_y2 = lane.second[1];
-
-        if((lane_x1<=top_left.first && lane_y1<=top_left.second) && (lane_x1<=bottom_left.first && lane_y1<=bottom_left.second) && (lane_x1 >= top_right.first && lane_y1 >=top_right.second) && (lane_x1 >= bottom_right.first && lane_y1 >=bottom_right.second)){
-          ROS_INFO_STREAM("Found");
-        }
-
-        if((lane_x2<=top_left.first && lane_y2<=top_left.second) && (lane_x2<=bottom_left.first && lane_y2<=bottom_left.second) && (lane_x2 >= top_right.first && lane_y2 >=top_right.second) && (lane_x2 >= bottom_right.first && lane_y2 >=bottom_right.second)){
-          ROS_INFO_STREAM("Found1");
-        }
-
+        auto px = lane_x1; auto py = lane_y1;
+        auto res = IsPointInBoundingBox(x1, y1, x2, y2, px, py);
+        if(res){
+          auto slope = (lane_y2-lane_y1)/(lane_x2-lane_x1);
+          auto line_theta = atan(slope)*(180.0/3.141592653589793238463);
+          if(isAngleBetween(line_theta, (theta+20), (theta-20)) == true)
+          {
+            std::vector<double> row1;
+            row1.push_back(lane_x1);
+            row1.push_back(lane_y1);
+            std::vector<double> row2;
+            row2.push_back(lane_x2);
+            row2.push_back(lane_y2);
+            //checkLanes.push_back(std::make_pair(row1,row2));
+            lanes.push_back(std::make_pair(row1,row2));
+          }
+          ROS_INFO_STREAM("Line theta: "<<line_theta);
+        } 
+        /*px = lane_x2; py = lane_y2;
+        res = IsPointInBoundingBox(x1, y1, x2, y2, px, py);
+        if(res){
+          std::vector<double> row1;
+          row1.push_back(lane_x1);
+          row1.push_back(lane_y1);
+          std::vector<double> row2;
+          row2.push_back(lane_x2);
+          row2.push_back(lane_y2);
+          checkLanes.push_back(std::make_pair(row1,row2));
+        }*/
       }
+      
+      //Find the line angle of each lane and comapre with odom lane. If the
+      //angle is way far from the odom lane angle we can discard the lane. Also
+      //do not discard lane with angle almost close to 90 degree as they might
+      //be crossing lanes.
       firstPoint.clear();
       firstPoint.push_back(x2);
       firstPoint.push_back(y2);
@@ -322,105 +384,9 @@ void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> temp
       y1 = y2;
       ROS_INFO_STREAM("Distance "<<d<<" reached at ("<<x1<<","<<y1<<")");
     }
-
-
-
-
-    
-
     
 
   }
-
-
-
-
-  /*
-  //Remove vertical lines
-  //http://www.softwareandfinance.com/Visual_CPP/VCPP_Intersection_Two_lines_EndPoints.html
-  //http://www.softwareandfinance.com/Visual_CPP/VCPP_Intersection_Two_line_Segments_EndPoints.html 
-  auto tempLanes = lanes;
-  lanes.clear();
-  std::vector<size_t> skip;
-  for(size_t i=0;i<tempLanes.size();i++){
-    auto x1 = tempLanes[i].first[0];auto y1 = tempLanes[i].first[1];
-    auto x2 = tempLanes[i].second[0];auto y2 = tempLanes[i].second[1];
-    
-    //Equation of the lane in intercept form
-    auto dx = x2 - x1;
-    auto dy = y2 - y1;
-    if(dx == 0)
-      continue;
-    auto m1 = dy / dx;
-    
-    // y = mx + c
-    // intercept c = y - mx
-    auto c1 = y1 - m1 * x1; // which is same as y2 - slope * x2
-    for(size_t j=0;j<tempLanes.size();j++){
-      if(i==j)// || std::find(skip.begin(), skip.end(), j) != skip.end() )
-        continue;
-     
-      auto lane2_x1 = tempLanes[j].first[0];auto lane2_y1 = tempLanes[j].first[1];
-      auto lane2_x2 = tempLanes[j].second[0];auto lane2_y2 = tempLanes[j].second[1];
-
-      // Finding the equation of the second line  
-      dx = lane2_x2 - lane2_x1;
-      dy = lane2_y2 - lane2_y1;
-      if(dx==0)
-        continue;
-      auto m2 = dy / dx;
-      auto c2 = lane2_y2 - m2 * lane2_x2; // which is same as y2 - slope * x2 
-      
-      if( (m1 - m2) == 0)
-          ROS_INFO_STREAM("No Intersection between the lines");
-      else
-      {
-          auto intersection_X = (c2 - c1) / (m1 - m2);
-          auto intersection_Y = m1 * intersection_X + c1;
-          //ROS_INFO_STREAM("Intersecting Point: = " << intersection_X << ","<< intersection_Y);
-          
-          if(IsPointInBoundingBox(x1, y1, x2, y2, intersection_X, intersection_Y) == true && IsPointInBoundingBox(lane2_x1, lane2_y1, lane2_x2, lane2_y2, intersection_X, intersection_Y) == true)
-          {
-            //return 1;
-            ROS_INFO_STREAM("I "<<i<<" Intersecting Point: = " << intersection_X << ","<< intersection_Y);
-            ROS_INFO_STREAM("within");
-            
-            auto y1_dist = std::abs(std::abs(y2)-std::abs(y1));
-            auto y2_dist = std::abs(std::abs(lane2_y2)-std::abs(lane2_y1));
-            //auto x1 = tempLanes[j].first[0];auto y1 = tempLanes[j].first[1];
-            //auto x2 = tempLanes[j].second[0];auto y2 = tempLanes[j].second[1];
-            //std::vector<double> row1;
-            //row1.push_back(x1);
-            //row1.push_back(y1);
-            //std::vector<double> row2;
-            //row2.push_back(x2);
-            //row2.push_back(y2);
-            //lanes.push_back(std::make_pair(row1,row2));
-            
-            if(y2_dist > 1)
-              skip.push_back(j);
-        
-          }else{
-            //return 0;
-          }
-      }
-    }
-  } 
-
-  for(size_t i=0;i<tempLanes.size();i++){
-    if(std::find(skip.begin(), skip.end(), i) != skip.end())
-      continue;
-      
-    auto x1 = tempLanes[i].first[0];auto y1 = tempLanes[i].first[1];
-    auto x2 = tempLanes[i].second[0];auto y2 = tempLanes[i].second[1];
-    std::vector<double> row1;
-    row1.push_back(x1);
-    row1.push_back(y1);
-    std::vector<double> row2;
-    row2.push_back(x2);
-    row2.push_back(y2);
-    lanes.push_back(std::make_pair(row1,row2));
-  }*/
 }
 
 void FeatureExtractor::constructLane(){
@@ -484,7 +450,54 @@ void FeatureExtractor::constructLane(){
   //lane_segments = tempLanes;
   
   ROS_INFO_STREAM("tempPoints size: "<<tempPoints.size());
+  
+  //removes the unwanted points and lanes
   removingNoise(tempPoints);
+
+  auto tempLines = lanes;
+  //lanes.clear();
+
+  //Join lane segments
+  //During the straight drive:
+  for(size_t i=0; i<tempLines.size(); i++){
+    auto x1 = tempLines[i].first[0];
+    auto y1 = tempLines[i].first[1];
+    auto x2 = tempLines[i].second[0];
+    auto y2 = tempLines[i].second[1];
+
+    for(size_t j=0; j<tempLines.size(); j++){
+      
+      if(i==j)
+        continue;
+
+      //Compute the traingle with three points in the both lane segments and find the area of triangle. If the results comes to be zero then the points will be collinear.
+      //https://www.quora.com/How-do-I-prove-that-three-points-are-collinear
+      //https://mathworld.wolfram.com/Collinear.html
+      auto lane = tempLines[j];
+      auto x3 = lane.first[0];auto y3 = lane.first[1];
+      auto x4 = lane.second[0]; auto y4 = lane.second[1];
+      
+      //First three points (x1,y1), (x2,y2), (x3,y3)
+      auto area1 = (x1*(y2-y3)+x2*(y3-y1)+x3*(y1-y2))/2;
+      
+      
+      ROS_INFO_STREAM("Area: "<<area);
+      
+      
+      /* 
+      auto m2 = (lane_y2-lane_y1)/(lane_x2-lane_x1);
+      auto line_theta = atan(m2)*(180.0/3.141592653589793238463);
+      
+      //Only consider those lines with similar angles
+      if(isAngleBetween(line_theta, (theta+10), (theta-10)) == true){
+        auto c2 = lane_y1 - m2 * lane_x1; // which is same as y2 - slope * x2
+      
+        ROS_INFO_STREAM("Main lane:("<<tempLines[i].first[0]<<","<<tempLines[i].first[1]<<") ("<<tempLines[i].second[0]<<","<<tempLines[i].second[1]<<")");
+        ROS_INFO_STREAM("second lane:("<<lane.first[0]<<","<<lane.first[1]<<") ("<<lane.second[0]<<","<<lane.second[1]<<")");
+      }*/
+    }
+  }
+
 }
 
 void FeatureExtractor::joinLanes(){
@@ -749,6 +762,55 @@ void FeatureExtractor::WriteImage() {
     else 
       cv::line(output_image, p1, p2, color, thickness, cv::LINE_8);
   }
+
+  thickness = 1;
+  for(auto& lane: checkLanes){
+    cv::Scalar odom_colour1(0., 0., 255., 180);
+    auto first_pair = lane.first;
+    auto second_pair = lane.second;
+    int x_index1 = ((first_pair[1]*100)/cm_resolution)*-1;
+    int y_index1 = (first_pair[0]*100)/cm_resolution;
+    int value_x1 = x_index1 - min_x;
+    int value_y1 = y_index1 - min_y;
+     
+    int x_index2 = ((second_pair[1]*100)/cm_resolution)*-1;
+    int y_index2 = (second_pair[0]*100)/cm_resolution;
+    int value_x2 = x_index2 - min_x;
+    int value_y2 = y_index2 - min_y;
+
+    cv::Point p1(value_y1, value_x1);
+    cv::Point p2(value_y2, value_x2);
+    cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
+  }
+
+  for(auto& boundingBox: boundingBoxes){
+    
+    cv::Scalar odom_colour1(0., 0., 255., 180); // red - top, left
+    cv::Scalar odom_colour2(0., 255., 0., 180);// green - bottom, left
+    cv::Scalar odom_colour3(255., 0., 0., 180); //blue - top, right
+    cv::Scalar odom_colour4(255., 255., 255., 180); //white - bottom, right
+    int index = 0; 
+    for(auto& point: boundingBox){
+      
+        int x_index = ((point.second*100)/cm_resolution)*-1;
+        int y_index = (point.first*100)/cm_resolution;
+        int value_x = x_index - min_x;
+        int value_y = y_index - min_y;
+        if(index == 0)
+          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour1, CV_FILLED);
+        if(index == 1)
+          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour2, CV_FILLED);
+        if(index == 2)
+          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour3, CV_FILLED);
+        if(index == 3)
+          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour4, CV_FILLED);
+        index += 1;  
+    }
+    
+    //ROS_INFO_STREAM("top_left(red): "<<boundingBox[0].first<<boundingBox[0].second<<"bottom_left(green): "<<boundingBox[1].first<<boundingBox[1].second<<"top_right(blue): "<<boundingBox[2].first<<boundingBox[2].second<<"bottom_right(white): "<<boundingBox[3].first<<boundingBox[3].second);    
+  }
+
+
 
 
   for (auto &ring_number: rings_included) {

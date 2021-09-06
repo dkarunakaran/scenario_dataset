@@ -103,6 +103,10 @@ private:
 
   bool IsPointInBoundingBox(float x1, float y1, float x2, float y2, float px, float py);
   
+  
+  bool isAngleBetween(int target, int angle1, int angle2);
+
+
   // initialise ros stuff
   virtual void onInit();
 
@@ -165,6 +169,8 @@ private:
   std::vector<std::pair<std::vector<std::pair<double, double>>, int>> active_lane_segments;//[lane points in lane segments, inactive count]
   std::list<std::vector<std::pair<double, double>>> lane_segments;//[lane points lane segements]
   std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes;
+  std::vector<std::pair<std::vector<double>,std::vector<double>>> checkLanes;
+  std::vector<std::vector<std::pair<double,double>>> boundingBoxes;
 };
 
 
