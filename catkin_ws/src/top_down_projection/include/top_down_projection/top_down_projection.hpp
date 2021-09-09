@@ -171,6 +171,7 @@ private:
   std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes;
   std::vector<std::pair<std::vector<double>,std::vector<double>>> checkLanes;
   std::vector<std::vector<std::pair<double,double>>> boundingBoxes;
+  std::vector<std::pair<std::vector<double>,std::vector<double>>> activeLanes;
 };
 
 
