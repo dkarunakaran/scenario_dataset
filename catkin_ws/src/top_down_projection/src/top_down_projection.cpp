@@ -1921,6 +1921,13 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
         if(inactiveCount > INACTIVECOUNT){
           lane_segments.push_back(laneSegment);
           active_lane_segments.erase(active_lane_segments.begin()+i);
+
+          //NEW CODE HERE
+          if(laneSegment.size() > 1){
+            activeLanes.push_back(laneSegment); 
+          }
+
+
         }else{
           std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, inactiveCount);
           active_lane_segments[i] = segementActiveOrInactive;
