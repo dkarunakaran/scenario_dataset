@@ -450,12 +450,14 @@ void FeatureExtractor::constructLane(){
   removingNoise(tempPoints);
   
   auto tempLines = lanes;
-  //lanes.clear();
+  lanes.clear();
   
   joinLanesFurther(tempLines); 
+  lanes = checkLanes;
   tempLines = checkLanes;
-  //checkLanes.clear();
- 
+  checkLanes.clear();
+  //joinLanes();
+  ROS_INFO_STREAM("lane size: "<<lanes.size()); 
 }
 
 void FeatureExtractor::joinLanesFurther(std::vector<std::pair<std::vector<double>,std::vector<double>>> tempLines){
@@ -464,20 +466,16 @@ void FeatureExtractor::joinLanesFurther(std::vector<std::pair<std::vector<double
  
   //std::list<std::vector<std::pair<double, double>>> 
   lane_segments.clear();
-  
   std::vector<std::vector<std::pair<double, double>>> active_lines;
-  
   std::vector<std::pair<double, double>> searchVec;
   int count = 0; 
   while(count < tempLines.size()){
-  
     auto x1 = tempLines[count].first[0];auto y1 = tempLines[count].first[1];
     auto x2 = tempLines[count].second[0];auto y2 = tempLines[count].second[1];
     std::vector<std::pair<double, double>> laneSegment;
     laneSegment.push_back(std::make_pair(x1, y1));
     laneSegment.push_back(std::make_pair(x2, y2));
     active_lines.push_back(laneSegment);
-    
     auto limit = tempLines.size();
     if(count+5<= tempLines.size())
       limit = count+5;
@@ -485,7 +483,6 @@ void FeatureExtractor::joinLanesFurther(std::vector<std::pair<std::vector<double
     for(size_t i=count+1; i<limit; i++){
       auto x1 = tempLines[i].first[0];auto y1 = tempLines[i].first[1];
       auto x2 = tempLines[i].second[0];auto y2 = tempLines[i].second[1];
-      
       if(checkVector(searchVec, std::make_pair(x1,y1)))
         continue;
      
@@ -513,7 +510,6 @@ void FeatureExtractor::joinLanesFurther(std::vector<std::pair<std::vector<double
         auto lineS2 = laneSegment[laneSegment.size()-2];
         auto x4 = lineS2.first;auto y4 = lineS2.second;
         dx = x4 - x3;dy = y4 - y3;
-        
         if(dx == 0 || dy == 0)
          continue;
 
@@ -530,7 +526,6 @@ void FeatureExtractor::joinLanesFurther(std::vector<std::pair<std::vector<double
         // Convert the angle from
         // radian to degree
         double val = (ret * 180) / 3.141592653589793238463;
-        
         if(val < 1. && y_diff< 1.){
           //ROS_INFO_STREAM("ELSE count: "<<count<<" i: "<<i<<"y_diff"<<y_diff<<" angle: "<<val);
           laneSegment.push_back(std::make_pair(x1, y1));
@@ -539,10 +534,44 @@ void FeatureExtractor::joinLanesFurther(std::vector<std::pair<std::vector<double
           searchVec.push_back(std::make_pair(x2, y2));
           active_lines[count] = laneSegment;
         }
-
       }
-      
     }
+
+    /*if(active_lines.size() > 1){  
+      for(size_t i=0; i<active_lines.size(); i++){
+        auto segment = active_lines[i];
+        auto x1 = segment[0].first; auto y1 = segment[0].second;
+        auto x2 = segment[segment.size()-1].first; auto y2 = segment[segment.size()-1].second;
+        auto dx = x2 - x1;auto dy = y2 - y1;
+        if(dx == 0 || dy == 0)
+          continue;
+
+        // y = mx + c
+        // intercept c = y - mx
+        auto m1 = dy / dx;
+        auto c1 = y1 - m1 * x1; // which is same as y2 - slope * x2
+        
+        std::pair<double, double> lastPoint;
+        bool active = false;
+        for(size_t j=i+1; j<active_lines.size(); j++){
+          auto laneSegment = active_lines[j];
+          auto lineS1 = laneSegment[0];
+          auto lineS2 = laneSegment[laneSegment.size()-1];
+          auto x3 = lineS1.first;auto y3 = lineS1.second;
+          auto x4 = lineS2.first;auto y4 = lineS2.second;
+          auto y = m1*x3+c1;
+          auto y_diff = std::abs(std::abs(y)-std::abs(y3));
+          if(y_diff<0.2){
+            active =  true;
+            lastPoint = std::make_pair(x4,y4);      
+          }
+        }
+        if(active == true){
+          segment.push_back(lastPoint);
+          active_lines[i] = segment;
+        }
+      }
+    }*/
 
     count++;  
   } 
