@@ -329,14 +329,13 @@ void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> temp
     x2 = odom.first;
     y2 = odom.second;
     float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
-    if(d > 5){
+    if(d > 0.5){
 
       //find the angle inclination of a line
       //https://www.brightstorm.com/math/trigonometry/advanced-trigonometry/angle-inclination-of-a-line/
       auto slope = (y2-y1)/(x2-x1);
       //Angle, theta is the tan inverse of slope or slope is the tan of theta.
       auto theta = atan(slope)*(180.0/3.141592653589793238463);
-      ROS_INFO_STREAM("Theta: "<<theta);
 
       for(size_t i=0;i<tempLanes.size();i++){
         auto lane = tempLanes[i];
@@ -347,7 +346,7 @@ void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> temp
         if(res){
           auto slope = (lane_y2-lane_y1)/(lane_x2-lane_x1);
           auto line_theta = atan(slope)*(180.0/3.141592653589793238463);
-          if(isAngleBetween(line_theta, (theta+20), (theta-20)) == true)
+          if(isAngleBetween(line_theta, (theta+5), (theta-5)) == true)
           {
             std::vector<double> row1;
             row1.push_back(lane_x1);
@@ -358,7 +357,6 @@ void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> temp
             //checkLanes.push_back(std::make_pair(row1,row2));
             lanes.push_back(std::make_pair(row1,row2));
           }
-          ROS_INFO_STREAM("Line theta: "<<line_theta);
         } 
         /*px = lane_x2; py = lane_y2;
         res = IsPointInBoundingBox(x1, y1, x2, y2, px, py);
@@ -382,10 +380,7 @@ void FeatureExtractor::removingNoise(std::vector<std::pair<double, double>> temp
       firstPoint.push_back(y2);
       x1 = x2;
       y1 = y2;
-      ROS_INFO_STREAM("Distance "<<d<<" reached at ("<<x1<<","<<y1<<")");
     }
-    
-
   }
 }
 
@@ -453,49 +448,118 @@ void FeatureExtractor::constructLane(){
   
   //removes the unwanted points and lanes
   removingNoise(tempPoints);
-
+  
   auto tempLines = lanes;
   //lanes.clear();
+  
+  joinLanesFurther(tempLines); 
+  tempLines = checkLanes;
+  //checkLanes.clear();
+ 
+}
 
+void FeatureExtractor::joinLanesFurther(std::vector<std::pair<std::vector<double>,std::vector<double>>> tempLines){
   //Join lane segments
   //During the straight drive:
-  for(size_t i=0; i<tempLines.size(); i++){
-    auto x1 = tempLines[i].first[0];
-    auto y1 = tempLines[i].first[1];
-    auto x2 = tempLines[i].second[0];
-    auto y2 = tempLines[i].second[1];
+ 
+  //std::list<std::vector<std::pair<double, double>>> 
+  lane_segments.clear();
+  
+  std::vector<std::vector<std::pair<double, double>>> active_lines;
+  
+  std::vector<std::pair<double, double>> searchVec;
+  int count = 0; 
+  while(count < tempLines.size()){
+  
+    auto x1 = tempLines[count].first[0];auto y1 = tempLines[count].first[1];
+    auto x2 = tempLines[count].second[0];auto y2 = tempLines[count].second[1];
+    std::vector<std::pair<double, double>> laneSegment;
+    laneSegment.push_back(std::make_pair(x1, y1));
+    laneSegment.push_back(std::make_pair(x2, y2));
+    active_lines.push_back(laneSegment);
+    
+    auto limit = tempLines.size();
+    if(count+5<= tempLines.size())
+      limit = count+5;
 
-    for(size_t j=0; j<tempLines.size(); j++){
+    for(size_t i=count+1; i<limit; i++){
+      auto x1 = tempLines[i].first[0];auto y1 = tempLines[i].first[1];
+      auto x2 = tempLines[i].second[0];auto y2 = tempLines[i].second[1];
       
-      if(i==j)
+      if(checkVector(searchVec, std::make_pair(x1,y1)))
         continue;
+     
+      auto dx = x2 - x1;auto dy = y2 - y1;
+      if(dx == 0 || dy == 0)
+       continue;
 
-      //Compute the traingle with three points in the both lane segments and find the area of triangle. If the results comes to be zero then the points will be collinear.
-      //https://www.quora.com/How-do-I-prove-that-three-points-are-collinear
-      //https://mathworld.wolfram.com/Collinear.html
-      auto lane = tempLines[j];
-      auto x3 = lane.first[0];auto y3 = lane.first[1];
-      auto x4 = lane.second[0]; auto y4 = lane.second[1];
+      // y = mx + c
+      // intercept c = y - mx
+      auto m1 = dy / dx;
+      auto c1 = y1 - m1 * x1; // which is same as y2 - slope * x2
+      auto laneSegment = active_lines[count];
+      auto lineS = laneSegment.back();
+      auto x3 = lineS.first;auto y3 = lineS.second;
+      auto y = m1*x3+c1;
+      auto y_diff = std::abs(std::abs(y)-std::abs(y3));
+      if(y_diff<0.5){//0.6 works nicely
+        laneSegment.push_back(std::make_pair(x1, y1));
+        laneSegment.push_back(std::make_pair(x2, y2));
+        searchVec.push_back(std::make_pair(x1, y1));
+        searchVec.push_back(std::make_pair(x2, y2));
+        active_lines[count] = laneSegment;
+        //ROS_INFO_STREAM("count: "<<count<<" i: "<<i<<" y_diff: "<<y_diff);
+      }else{
+        auto lineS2 = laneSegment[laneSegment.size()-2];
+        auto x4 = lineS2.first;auto y4 = lineS2.second;
+        dx = x4 - x3;dy = y4 - y3;
+        
+        if(dx == 0 || dy == 0)
+         continue;
+
+        // y = mx + c
+        // intercept c = y - mx
+        auto m2 = dy / dx;
+        auto c2 = y3 - m2 * x3;
+        double angle = std::abs((m2 - m1)
+                         / (1 + m1 * m2));
+   
+        // Calculate tan inverse of the angle
+        double ret = atan(angle);
+   
+        // Convert the angle from
+        // radian to degree
+        double val = (ret * 180) / 3.141592653589793238463;
+        
+        if(val < 1. && y_diff< 1.){
+          //ROS_INFO_STREAM("ELSE count: "<<count<<" i: "<<i<<"y_diff"<<y_diff<<" angle: "<<val);
+          laneSegment.push_back(std::make_pair(x1, y1));
+          laneSegment.push_back(std::make_pair(x2, y2));
+          searchVec.push_back(std::make_pair(x1, y1));
+          searchVec.push_back(std::make_pair(x2, y2));
+          active_lines[count] = laneSegment;
+        }
+
+      }
       
-      //First three points (x1,y1), (x2,y2), (x3,y3)
-      auto area1 = (x1*(y2-y3)+x2*(y3-y1)+x3*(y1-y2))/2;
-      
-      
-      ROS_INFO_STREAM("Area: "<<area);
-      
-      
-      /* 
-      auto m2 = (lane_y2-lane_y1)/(lane_x2-lane_x1);
-      auto line_theta = atan(m2)*(180.0/3.141592653589793238463);
-      
-      //Only consider those lines with similar angles
-      if(isAngleBetween(line_theta, (theta+10), (theta-10)) == true){
-        auto c2 = lane_y1 - m2 * lane_x1; // which is same as y2 - slope * x2
-      
-        ROS_INFO_STREAM("Main lane:("<<tempLines[i].first[0]<<","<<tempLines[i].first[1]<<") ("<<tempLines[i].second[0]<<","<<tempLines[i].second[1]<<")");
-        ROS_INFO_STREAM("second lane:("<<lane.first[0]<<","<<lane.first[1]<<") ("<<lane.second[0]<<","<<lane.second[1]<<")");
-      }*/
     }
+
+    count++;  
+  } 
+
+   for(auto& segment:active_lines){
+      
+    auto x1 = segment[0].first;
+    auto y1 = segment[0].second;
+    auto x2 = segment[segment.size()-1].first;
+    auto y2 = segment[segment.size()-1].second;
+    std::vector<double> row1;
+    row1.push_back(x1);
+    row1.push_back(y1);
+    std::vector<double> row2;
+    row2.push_back(x2);
+    row2.push_back(y2);
+    checkLanes.push_back(std::make_pair(row1,row2));
   }
 
 }
@@ -521,9 +585,8 @@ void FeatureExtractor::joinLanes(){
       auto y2 = lane2_first[1];
       auto x_dist = std::abs(std::abs(x1)-std::abs(x2));
       auto y_dist = std::abs(std::abs(y1)-std::abs(y2));
-     
       float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
-
+      
       //if(x_dist < 2 and y_dist < 0.25){
       if(d<1 && y_dist<0.4){
         std::vector<double> row1;
@@ -733,6 +796,7 @@ void FeatureExtractor::WriteImage() {
   }
   
   int thickness = 1;
+  int count =0;
   for(auto& lane: lanes){
     cv::Scalar color(
       (double)std::rand() / RAND_MAX * 255,
@@ -761,6 +825,11 @@ void FeatureExtractor::WriteImage() {
       cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
     else 
       cv::line(output_image, p1, p2, color, thickness, cv::LINE_8);
+    
+    cv::circle(output_image, cv::Point(value_y1, value_x1), 1., odom_colour1, CV_FILLED);
+    
+    //cv::putText(output_image,std::to_string(count),cv::Point(value_y1, value_x1), cv::FONT_HERSHEY_SIMPLEX,0.5,odom_colour1,1,false);
+    //count ++;
   }
 
   thickness = 1;
@@ -1690,6 +1759,8 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
           continue;
         float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
         auto y_dist = std::abs(std::abs(y2)-std::abs(y1));
+        
+        //Avoiding closest lateral points
         if(d<RADIUS){
           searchVec.push_back(std::make_pair(x2, y2));
         }
@@ -1721,6 +1792,8 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
           continue;
         float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
         auto y_dist = std::abs(std::abs(y2)-std::abs(y1));
+        
+        //Adding closest longitudinal points 
         if(d<RADIUS){
           searchVec.push_back(std::make_pair(x2, y2));
           laneSegment.push_back(std::make_pair(x2, y2));

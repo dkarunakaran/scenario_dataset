@@ -103,9 +103,9 @@ private:
 
   bool IsPointInBoundingBox(float x1, float y1, float x2, float y2, float px, float py);
   
-  
   bool isAngleBetween(int target, int angle1, int angle2);
 
+  void joinLanesFurther(std::vector<std::pair<std::vector<double>,std::vector<double>>>);
 
   // initialise ros stuff
   virtual void onInit();
