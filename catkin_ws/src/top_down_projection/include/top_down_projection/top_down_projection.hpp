@@ -94,22 +94,13 @@ private:
   bool checkVector(std::vector<std::pair<std::vector<std::pair<double, double>>, int>>, std::pair<double, double>);
 
   void constructLane();
-
-  void joinLanes();
-
-  float lineMagnitude(std::pair<double, double>, std::pair<double, double>);  
-  
-  void removingNoise(std::vector<std::pair<double, double>> tempPoints);    
-
-  bool IsPointInBoundingBox(float x1, float y1, float x2, float y2, float px, float py);
-  
-  bool isAngleBetween(int target, int angle1, int angle2);
-
-  void joinLanesFurther(std::vector<std::pair<std::vector<double>,std::vector<double>>>);
   
   double findSlopeODOM();
-  std::pair<std::vector<double>,std::vector<double>> findSlopeLaneSeg(std::vector<std::pair<double, double>>);
-
+  
+  std::pair<std::vector<double>,std::vector<double>> findSlopeLaneSeg(std::vector<std::pair<double, double>>, double);
+  
+  void joinLaneSegment(); 
+  
   // initialise ros stuff
   virtual void onInit();
 
@@ -174,6 +165,8 @@ private:
   std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes;
   std::vector<std::pair<std::vector<double>,std::vector<double>>> checkLanes;
   std::vector<std::vector<std::pair<double,double>>> boundingBoxes;
+  std::vector<std::pair<std::vector<std::pair<double, double>>, int>> activeLanes; //[lane segments, inactive count]
+  long int laneSCount;
 };
 
 
