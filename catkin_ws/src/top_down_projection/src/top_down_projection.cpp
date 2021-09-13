@@ -237,13 +237,13 @@ void FeatureExtractor::constructLane(){
       auto x1 = segment[0].first;
       auto y1 = segment[0].second;
       tempSeg.push_back(std::make_pair(x1,y1));
-      /*std::vector<double> row1;
+      std::vector<double> row1;
       row1.push_back(x1);
       row1.push_back(y1);
       std::vector<double> row2;
       row2.push_back(x1);
       row2.push_back(y1);
-      lanes.push_back(std::make_pair(row1,row2));*/
+      lanes.push_back(std::make_pair(row1,row2));
       tempPoints.push_back(std::make_pair(x1, y1));
     }
     
@@ -1428,7 +1428,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
   //ROS_INFO_STREAM("lanPC size: "<<lanePC.points.size());
 
   float RADIUS = 0.75; //0.75 works
-  float INACTIVECOUNT = 10; //10 and below only works - tried with 20, 50, and 100, but not getting good result
+  float INACTIVECOUNT = 20; //20 and below only works - tried with 50, and 100, but not getting good result
   if(active_lane_segments.size() == 0){
     std::vector<std::pair<double, double>> searchVec; 
     for(size_t i=0;i<lanePC.points.size();i++){
@@ -1494,6 +1494,10 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
       }
       
       if(_continue){ 
+        double radiusSmall = 1000;
+        size_t selectedERIndex = 10000; 
+        std::vector<double> radiusVec;
+        std::vector<size_t> elseVec;
         for(size_t j=0;j<lanePC.points.size();j++){
           auto x2 = lanePC.points[j].x;
           auto y2 = lanePC.points[j].y;
@@ -1502,7 +1506,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
           
           float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
 
-          //Checking we can construct a lane with active lane segment
+          //Checking we can construct a lane with activae lane segment
           if(d >= 1. && laneSegment.size()>1){
             auto laneP = findSlopeLaneSeg(laneSegment, 1.); 
             double xa1; double ya1; double xa2; double ya2;
@@ -1530,7 +1534,9 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
               enable = true;
             else if(y_diff<0.05 && slopeDiff<0.1)
               enable = true;
-
+            else if(d<RADIUS)
+              enable = true; 
+           
             if(enable){
               searchVec.push_back(std::make_pair(x2, y2));
               laneSegment.push_back(std::make_pair(x2, y2));
@@ -1547,19 +1553,19 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
           }else if(d<RADIUS){
             searchVec.push_back(std::make_pair(x2, y2));
             laneSegment.push_back(std::make_pair(x2, y2));
-            //ROS_INFO_STREAM("d<1: "<<j<<": "<<x2<<" "<<y2<<", d="<<d<<", and ls size: "<<laneSegment.size());
+            ROS_INFO_STREAM("d<1: "<<j<<": "<<x2<<" "<<y2<<", d="<<d<<", and ls size: "<<laneSegment.size());
             std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, 0);
             active_lane_segments[i] = segementActiveOrInactive; 
             found = true;
             multiplePoints += 1;
-          }else{
-
-            //Adding new active lane points
+          }
+          else{
             if(!checkVector(newPointsVec, std::make_pair(x2,y2)))
               newPointsVec.push_back(std::make_pair(x2, y2));
 
           } 
         }//for loop of lanepc close here
+
       }//_contunue close here
       // Update the active_lane_segments and lane_segements vectors if not found
       if(!found){
@@ -1584,11 +1590,10 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
       active_lane_segments.push_back(std::make_pair(laneSegment, 0));
     }
   }//else close
-  
 }
 
 void FeatureExtractor::joinLaneSegment(){
-  if(laneSCount > 20){
+  /*if(laneSCount > 20){
     laneSCount = 0;
     auto tempSegments = lane_segments;
     std::vector<size_t> eraseList;
@@ -1646,7 +1651,7 @@ void FeatureExtractor::joinLaneSegment(){
       lane_segments.erase(lane_segments.begin()+i);
     }
 
-  }//ifclose
+  }//ifclose*/
 }
 
 // call whenever receive a pointcloud - spit out new filtered version
