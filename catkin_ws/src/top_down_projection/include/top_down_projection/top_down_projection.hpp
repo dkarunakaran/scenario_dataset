@@ -95,7 +95,7 @@ private:
 
   void constructLane();
   
-  double findSlopeODOM();
+  std::pair<std::vector<double>,std::vector<double>> findODOMPoints();
   
   std::pair<std::vector<double>,std::vector<double>> findSlopeLaneSeg(std::vector<std::pair<double, double>>, double);
   
@@ -160,7 +160,7 @@ private:
   std::list<std::pair<double,double>> lane_odom;
   std::list<std::pair<int,int>> lane_points;
   std::vector<std::pair<double,double>> vehicle_odom_double;
-  std::vector<std::pair<std::vector<std::pair<double, double>>, int>> active_lane_segments;//[lane points in lane segments, inactive count]
+  std::vector<std::tuple<std::vector<std::pair<double, double>>, int, std::vector<std::pair<double, double>>>> active_lane_segments;//[lane points in lane segments, inactive count]
   std::vector<std::vector<std::pair<double, double>>> lane_segments;//[lane points lane segements]
   std::vector<std::pair<std::vector<double>,std::vector<double>>> lanes;
   std::vector<std::pair<std::vector<double>,std::vector<double>>> checkLanes;

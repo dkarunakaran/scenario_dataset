@@ -38,7 +38,10 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/point_types_conversion.h>
 #include <random>
+#include <boost/bind/bind.hpp>
+#include <boost/math/statistics/linear_regression.hpp>
 
+using boost::math::statistics::simple_ordinary_least_squares_with_R_squared;
 
 int main(int argc, char **argv) {
 
@@ -47,7 +50,8 @@ int main(int argc, char **argv) {
 
   FeatureExtractor pole_detect;
   pole_detect.bypass_init();
-
+  
+  
   return 0;
 }
 
@@ -186,15 +190,10 @@ FeatureExtractor::onInit() {
 void FeatureExtractor::constructLane(){
   ROS_INFO_STREAM("constructLane function called");
 
+  /*
   // Remaining active lane segament which are not added to the lane segments list
   for(size_t i=0;i<active_lane_segments.size();i++){
       auto laneSegment = active_lane_segments[i].first;
-      lane_segments.push_back(laneSegment);
-  } 
-
-  //Remaining activeLanes
-  for(size_t i=0;i<activeLanes.size();i++){
-      auto laneSegment = activeLanes[i].first;
       lane_segments.push_back(laneSegment);
   } 
 
@@ -207,18 +206,6 @@ void FeatureExtractor::constructLane(){
     
     std::vector<std::pair<double, double>> tempSeg;
     if(segment.size() > 1){
-     /* for(size_t i=0;i<segment.size()-1;i++){
-        auto x1 = segment[i].first;
-        auto y1 = segment[i].second;
-        auto x2 = segment[i+1].first;
-        auto y2 = segment[i+1].second;
-        auto x = (x1+x2)/2;
-        auto y = (y1+y2)/2;
-        tempSeg.push_back(std::make_pair(x,y));
-      }
-      auto front_pair = tempSeg.front();
-      auto back_pair = tempSeg.back();
-      */
       auto front_pair = segment[0];
       auto back_pair = segment[segment.size()-1];
       std::vector<double> row1;
@@ -233,6 +220,8 @@ void FeatureExtractor::constructLane(){
       // points. so we are doing the y_dist check to avoid that.
       //if(y_dist < 2 )
       lanes.push_back(std::make_pair(row1,row2));
+      
+
     }else{
       auto x1 = segment[0].first;
       auto y1 = segment[0].second;
@@ -253,6 +242,7 @@ void FeatureExtractor::constructLane(){
   lane_segments.clear();
   ROS_INFO_STREAM("tempPoints size: "<<tempPoints.size());
   ROS_INFO_STREAM("lane size: "<<lanes.size()); 
+  */
 }
 
 
@@ -463,8 +453,10 @@ void FeatureExtractor::WriteImage() {
     cv::Point p1(value_y1, value_x1);
     cv::Point p2(value_y2, value_x2);
     if(first_pair[0] == second_pair[0] && first_pair[1] == second_pair[1])
-      cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
-    else 
+    {
+      //cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
+      continue;
+    } else 
       cv::line(output_image, p1, p2, color, thickness, cv::LINE_8);
     
     cv::circle(output_image, cv::Point(value_y1, value_x1), 1., odom_colour1, CV_FILLED);
@@ -1291,12 +1283,14 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCl
 		pcl::copyPointCloud(intensityPC, *intensityPCPtr);
 		pcl::KdTreeFLANN<pcl::PointXYZI> kdtree;
 		kdtree.setInputCloud (intensityPCPtr); 
-		int radius = 4.0;
+		double radius = 2.; //2 works
     std::vector<std::pair<double, double>> searchVec;
 		for (int i=0; i<avgMatrixPC.size(); i++)
 		{
       auto x1 = avgMatrixPC[i][0];
       auto y1 = avgMatrixPC[i][1];
+      if(checkVector(searchVec, std::make_pair(x1,y1)))
+        continue; 
       std::vector<std::vector<float>> knnMatrixPC;
       std::vector<float> row;
       row.push_back(avgMatrixPC[i][0]);
@@ -1307,7 +1301,7 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCl
       for(int j=0; j<avgMatrixPC.size(); j++){
         auto x2 = avgMatrixPC[j][0]; 
         auto y2 = avgMatrixPC[j][1];
-        if(!checkVector(searchVec, std::make_pair(x2,y2)) && i != j){
+        if(i != j){
           float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
           if(d <= radius){
 						row.clear();
@@ -1316,10 +1310,11 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCl
             row.push_back(avgMatrixPC[i][2]);
             row.push_back(avgMatrixPC[i][3]); 
             knnMatrixPC.push_back(row);
+            searchVec.push_back(std::make_pair(x2, y2));
           }
         }
       }
-      searchVec.push_back(std::make_pair(x1, y1));
+      //searchVec.push_back(std::make_pair(x1, y1));
       std::sort(knnMatrixPC.begin(), knnMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
       
       int middlePoint = knnMatrixPC.size()/2;
@@ -1358,7 +1353,7 @@ bool FeatureExtractor::checkVector(std::vector<std::pair<std::vector<std::pair<d
   bool status = false;  
   for(size_t i=0; i<searchVec.size(); i++){
     auto segementActiveOrInactive = active_lane_segments[i];
-    auto laneSegment = segementActiveOrInactive.first;
+    auto laneSegment = std::get<0>(segementActiveOrInactive);
     for(size_t j=0; j<searchVec.size(); j++){
       auto point = laneSegment[j];
       auto x2 = point.first;
@@ -1373,26 +1368,28 @@ bool FeatureExtractor::checkVector(std::vector<std::pair<std::vector<std::pair<d
   return status;
 }
 
-double FeatureExtractor::findSlopeODOM(){
-  double m = 1000000000;
+std::pair<std::vector<double>,std::vector<double>> FeatureExtractor::findODOMPoints(){
+  std::pair<std::vector<double>,std::vector<double>> _return;
+  std::vector<double> xs;std::vector<double> ys;
   if(vehicle_odom_double.size() > 1){
     auto x1 = vehicle_odom_double[vehicle_odom_double.size()-1].first;
     auto y1 = vehicle_odom_double[vehicle_odom_double.size()-1].second;
+    xs.push_back(x1);
+    ys.push_back(y1);
     for(size_t i=vehicle_odom_double.size()-2;i>=0;i--){
         auto x2 = vehicle_odom_double[i].first;
         auto y2 = vehicle_odom_double[i].second;
+        xs.push_back(x2);
+        ys.push_back(y2);
         float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
         if(d >= 1.){
-          auto dx = x2 - x1;auto dy = y2 - y1;
-          if(dx == 0 || dy == 0)
-            continue;
-          m = dy / dx;auto c1 = y1 - m * x1;
           break;
         }
     }
+    _return = std::make_pair(xs, ys);
   }
   
-  return m;
+  return _return;
 }
 
 std::pair<std::vector<double>,std::vector<double>> FeatureExtractor::findSlopeLaneSeg(std::vector<std::pair<double, double>> laneSeg, double threshold){
@@ -1422,12 +1419,19 @@ std::pair<std::vector<double>,std::vector<double>> FeatureExtractor::findSlopeLa
 void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lanePC){
   //std::vector<std::pair<std::vector<std::pair<double, double>>, int>> active_lane_segments;//[lane po    ints in lane segments, inactive count]
   //std::map<long int, std::vector<std::pair<double, double>>> lane_segment;//[lane points lane segements]
-  //ROS_INFO_STREAM("_____________________________________: "<<seq_count);
-  //ROS_INFO_STREAM("Active lane segments size: "<<active_lane_segments.size());
-  //ROS_INFO_STREAM("Lane segments size: "<<lane_segments.size());
-  //ROS_INFO_STREAM("lanPC size: "<<lanePC.points.size());
+  ROS_INFO_STREAM("_____________________________________: "<<seq_count);
+  ROS_INFO_STREAM("Active lane segments size: "<<active_lane_segments.size());
+  ROS_INFO_STREAM("Lane segments size: "<<lane_segments.size());
+  ROS_INFO_STREAM("lanPC size: "<<lanePC.points.size());
 
-  float RADIUS = 0.75; //0.75 works
+  /*for(size_t i=0;i<lanePC.points.size();i++){
+    auto x1 = lanePC.points[i].x;
+    auto y1 = lanePC.points[i].y;
+    std::vector<std::pair<double, double>> laneSegment;
+    laneSegment.push_back(std::make_pair(x1, y1));  
+    lane_segments.push_back(laneSegment);
+  }*/
+  float RADIUS = 1.; //0.75 works
   float INACTIVECOUNT = 20; //20 and below only works - tried with 50, and 100, but not getting good result
   if(active_lane_segments.size() == 0){
     std::vector<std::pair<double, double>> searchVec; 
@@ -1454,8 +1458,9 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
       if(!checkVector(searchVec, std::make_pair(x1,y1))) {
           std::vector<std::pair<double, double>> laneSegment;
           laneSegment.push_back(std::make_pair(x1, y1));
-          std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, 0);
-          active_lane_segments.push_back(segementActiveOrInactive);
+          std::vector<std::pair<double, double>> odomPoints;
+          odomPoints.push_back(std::make_pair(vehicle_odom_double[vehicle_odom_double.size()-1].first, vehicle_odom_double[vehicle_odom_double.size()-1].second));
+          active_lane_segments.push_back(std::make_tuple(laneSegment, 0, odomPoints));
       }
 
     }
@@ -1463,133 +1468,113 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
   }else{
     std::vector<std::pair<double, double>> searchVec;
     std::vector<std::pair<double, double>> newPointsVec;
-    for(size_t i=0;i<active_lane_segments.size(); i++){
-      auto laneSegment = active_lane_segments[i].first;
-      auto inactiveCount = active_lane_segments[i].second;
-      auto point = laneSegment.back();
-      auto x1 = point.first; auto y1 = point.second;
+    std::vector<size_t> activeList;
+    for(size_t i=0;i<lanePC.points.size();i++){
+      auto x1 = lanePC.points[i].x;
+      auto y1 = lanePC.points[i].y;
+      double smallRadius = 10000.;
+      size_t activeIndex = 100000;
       bool found = false;
-      bool _continue = true;
-      int multiplePoints = 0;
-      
-      auto odomSlope = findSlopeODOM();
-      double xc1; double yc1; double xc2; double yc2;
-      xc1 = laneSegment[0].first;yc1 = laneSegment[0].second;
-      xc2 = x1;yc2 = y1;
-
-
-      float dist = std::sqrt(std::pow((xc2-xc1),2)+std::pow((yc2-yc1),2));
-      //Removing the unwanted active lane segments by comapring with ODOM Slope;
-      if(dist > 0.25){
-        auto dx = xc2 - xc1;auto dy = yc2 - yc1;
-        if(dx == 0 || dy == 0)
-          continue;
-        auto m1 = dy / dx;auto c1 = yc1 - m1 * xc1;
-        auto slopeDiff = std::abs(odomSlope-m1);
-        if(slopeDiff > 0.75){
-          active_lane_segments.erase(active_lane_segments.begin()+i);
-          _continue = false; 
-          continue;
-        }
-      }
-      
-      if(_continue){ 
-        double radiusSmall = 1000;
-        size_t selectedERIndex = 10000; 
-        std::vector<double> radiusVec;
-        std::vector<size_t> elseVec;
-        for(size_t j=0;j<lanePC.points.size();j++){
-          auto x2 = lanePC.points[j].x;
-          auto y2 = lanePC.points[j].y;
-          if(checkVector(searchVec, std::make_pair(x2,y2)))
-            continue;
-          
-          float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
-
-          //Checking we can construct a lane with activae lane segment
-          if(d >= 1. && laneSegment.size()>1){
-            auto laneP = findSlopeLaneSeg(laneSegment, 1.); 
-            double xa1; double ya1; double xa2; double ya2;
-            if(laneP.first.size() > 1){
-              xa1 = laneP.first[0];ya1 = laneP.first[1];
-              xa2 = laneP.second[0];ya2 = laneP.second[1];
-            }else{
-              xa1 = laneSegment[0].first;ya1 = laneSegment[0].second;
-              xa2 = x1;ya2 = y1;
-            }
-
-            //xa1 = laneSegment[0].first;ya1 = laneSegment[0].second;
-            //xa2 = x1;ya2 = y1;
-
-            auto dx = xa2 - xa1;auto dy = ya2 - ya1;
-            if(dx == 0 || dy == 0)
-              continue;
-            auto m1 = dy / dx;auto c1 = ya1 - m1 * xa1;
-            auto y = m1*x2+c1;
-            auto y_diff = std::abs(std::abs(y)-std::abs(y2));
-            auto slopeDiff = std::abs(odomSlope-m1);
-            //ROS_INFO_STREAM("Slope: "<<odomSlope<<" lane slope: "<<m1<<" Slope diff: "<<slopeDiff<<" y_diff: "<<y_diff);
-            bool enable = false;
-            if(y_diff < 0.5 && slopeDiff<0.05) //0.5 and 0.1 works for 6 to 8
-              enable = true;
-            else if(y_diff<0.05 && slopeDiff<0.1)
-              enable = true;
-            else if(d<RADIUS)
-              enable = true; 
-           
-            if(enable){
-              searchVec.push_back(std::make_pair(x2, y2));
-              laneSegment.push_back(std::make_pair(x2, y2));
-              std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, 0);
-              active_lane_segments[i] = segementActiveOrInactive; 
-              found = true;
-              multiplePoints += 1;
-            }else{
-              //Adding new active lane points
-              if(!checkVector(newPointsVec, std::make_pair(x2,y2)))
-                newPointsVec.push_back(std::make_pair(x2, y2));
-
-            }
-          }else if(d<RADIUS){
-            searchVec.push_back(std::make_pair(x2, y2));
-            laneSegment.push_back(std::make_pair(x2, y2));
-            ROS_INFO_STREAM("d<1: "<<j<<": "<<x2<<" "<<y2<<", d="<<d<<", and ls size: "<<laneSegment.size());
-            std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, 0);
-            active_lane_segments[i] = segementActiveOrInactive; 
-            found = true;
-            multiplePoints += 1;
-          }
-          else{
-            if(!checkVector(newPointsVec, std::make_pair(x2,y2)))
-              newPointsVec.push_back(std::make_pair(x2, y2));
-
-          } 
-        }//for loop of lanepc close here
-
-      }//_contunue close here
-      // Update the active_lane_segments and lane_segements vectors if not found
-      if(!found){
-        inactiveCount += 1;
+      for(size_t j=0;j<active_lane_segments.size(); j++){
         
-        // Remove from active and store them in lane segement
-        if(inactiveCount > INACTIVECOUNT){
-          lane_segments.push_back(laneSegment);
-          active_lane_segments.erase(active_lane_segments.begin()+i);
-          laneSCount ++; 
-        }else{
-          std::pair<std::vector<std::pair<double, double>>, int> segementActiveOrInactive = std::make_pair(laneSegment, inactiveCount);
-          active_lane_segments[i] = segementActiveOrInactive;
-        }
+        if (std::find(activeList.begin(), activeList.end(), j) != activeList.end()) 
+          continue;
+        
+        auto laneSegment = std::get<0>(active_lane_segments[j]);
+        auto point = laneSegment.back();
+        auto x2 = point.first; auto y2 = point.second;
+        float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+        if(d<RADIUS && d<smallRadius){
+          smallRadius = d;
+          activeIndex = j;
+          found = true;
+        } 
+      }//first active lane segment for loop close
+      
+      if(found){
+        auto laneSegment = std::get<0>(active_lane_segments[activeIndex]);
+        auto odomPoints = std::get<2>(active_lane_segments[activeIndex]);
+        laneSegment.push_back(std::make_pair(x1, y1));
+        odomPoints.push_back(std::make_pair(vehicle_odom_double[vehicle_odom_double.size()-1].first, vehicle_odom_double[vehicle_odom_double.size()-1].second));
+        active_lane_segments[activeIndex] = std::make_tuple(laneSegment, 0, odomPoints);
+        activeList.push_back(activeIndex);
+      }else{
+        newPointsVec.push_back(std::make_pair(x1, y1));
       }
-    }
-    //ROS_INFO_STREAM("newPointsVec: "<<newPointsVec.size());
+
+    }//lanePC for loop close
+    for(size_t j=0;j<active_lane_segments.size(); j++){
+        if(std::find(activeList.begin(), activeList.end(), j) != activeList.end()) 
+          continue;
+        else{
+          auto laneSegment = std::get<0>(active_lane_segments[j]);
+          auto inactiveCount = std::get<1>(active_lane_segments[j]);
+          auto odomPoints = std::get<2>(active_lane_segments[j]);
+          inactiveCount += 1;
+        
+          // Remove from active and store them in lane segement
+          if(inactiveCount > INACTIVECOUNT){
+            bool proceed = true;
+            std::vector<double> xs;
+            std::vector<double> ys;
+            for(auto& lSeg: laneSegment){
+              xs.push_back(lSeg.first);
+              ys.push_back(lSeg.second);
+            }
+            if(xs.size() > 1){
+              // The fit is good if r2 is close to 1.
+              // https://www.boost.org/doc/libs/1_77_0/libs/math/doc/html/math_toolkit/linear_regression.html
+              auto lineDetails = simple_ordinary_least_squares_with_R_squared(xs, ys);
+              ROS_INFO_STREAM("r2: "<<std::get<2>(lineDetails));
+              auto r2 = std::get<2>(lineDetails);
+              if(r2<0.8) //0.80 works fine
+                proceed = false;
+
+              //Also checking the slope of odom and lane odom
+              auto x1 = odomPoints[0].first;
+              auto y1 = odomPoints[0].second;
+              auto x2 = odomPoints[odomPoints.size()-1].first;
+              auto y2 = odomPoints[odomPoints.size()-1].second;
+              float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+              if(odomPoints.size() > 1 && d > 0.25){
+                std::vector<double> odomX; std::vector<double> odomY;
+                for(auto& odom: odomPoints){
+                  odomX.push_back(odom.first);
+                  odomY.push_back(odom.second);
+                } 
+                auto odomLineDetails = simple_ordinary_least_squares_with_R_squared(odomX, odomY);
+                auto slopeOdom =  std::get<1>(odomLineDetails);
+                auto lineOdom =  std::get<1>(lineDetails);
+                auto slopeDiff = std::abs(slopeOdom-lineOdom);
+                if(slopeDiff > 0.5) //0.5 work
+                  proceed = false;
+              }
+            }else{
+                //discard lanSegments that has only one point.
+                proceed = false;
+            }
+
+            if(proceed)
+                lane_segments.push_back(laneSegment);
+            active_lane_segments.erase(active_lane_segments.begin()+j);
+          }else{
+            active_lane_segments[j] = std::make_tuple(laneSegment, inactiveCount, odomPoints);
+          }
+        }//else close
+
+    }//second active lane segment for loop close
+    
     for(size_t k=0; k<newPointsVec.size(); k++){
       auto point = newPointsVec[k]; auto x1 = point.first; auto y1 = point.second;
       std::vector<std::pair<double, double>> laneSegment;
       laneSegment.push_back(std::make_pair(x1, y1));
-      active_lane_segments.push_back(std::make_pair(laneSegment, 0));
+      std::vector<std::pair<double, double>> odomPoints;
+      odomPoints.push_back(std::make_pair(vehicle_odom_double[vehicle_odom_double.size()-1].first, vehicle_odom_double[vehicle_odom_double.size()-1].second));
+      active_lane_segments.push_back(std::make_tuple(laneSegment, 0, odomPoints));
+
     }
   }//else close
+  
 }
 
 void FeatureExtractor::joinLaneSegment(){

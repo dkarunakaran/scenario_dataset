@@ -15,9 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV REQUIRED)
 
+find_package(Boost REQUIRED)
+
 ## Setup include directories
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
   include/${PROJECT_NAME}
 )
 
