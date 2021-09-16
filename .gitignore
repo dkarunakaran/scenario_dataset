@@ -4,6 +4,7 @@ catkin_ws/logs
 catkin_ws/.catkin_tools
 
 boost_1_74_0*
+boost_1_65_1*
 
 /data
 /plot

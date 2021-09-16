@@ -184,60 +184,6 @@ FeatureExtractor::onInit() {
 
 void FeatureExtractor::constructLane(){
   ROS_INFO_STREAM("constructLane function called");
-
-  /*
-  // Remaining active lane segament which are not added to the lane segments list
-  for(size_t i=0;i<active_lane_segments.size();i++){
-      auto laneSegment = active_lane_segments[i].first;
-      lane_segments.push_back(laneSegment);
-  } 
-
-  std::vector<std::vector<std::pair<double, double>>> tempLanes;
-  std::vector<std::pair<double, double>> tempPoints;
-  for(auto& segment:lane_segments){
-    
-    //Sorting 
-    std::sort(segment.begin(), segment.end(), [](const std::pair<double, double>& a, const std::pair<double, double>& b) {return a.first < b.first;});
-    
-    std::vector<std::pair<double, double>> tempSeg;
-    if(segment.size() > 1){
-      auto front_pair = segment[0];
-      auto back_pair = segment[segment.size()-1];
-      std::vector<double> row1;
-      row1.push_back(front_pair.first);
-      row1.push_back(front_pair.second);
-      std::vector<double> row2;
-      row2.push_back(back_pair.first);
-      row2.push_back(back_pair.second);
-      auto y_dist = std::abs(std::abs(back_pair.second) - std::abs(front_pair.second));
-      
-      // Some points are attached as lane and it's y_dist is larger than a lane
-      // points. so we are doing the y_dist check to avoid that.
-      //if(y_dist < 2 )
-      lanes.push_back(std::make_pair(row1,row2));
-      
-
-    }else{
-      auto x1 = segment[0].first;
-      auto y1 = segment[0].second;
-      tempSeg.push_back(std::make_pair(x1,y1));
-      std::vector<double> row1;
-      row1.push_back(x1);
-      row1.push_back(y1);
-      std::vector<double> row2;
-      row2.push_back(x1);
-      row2.push_back(y1);
-      lanes.push_back(std::make_pair(row1,row2));
-      tempPoints.push_back(std::make_pair(x1, y1));
-    }
-    
-    tempLanes.push_back(tempSeg);
-  }// main for loop close
-
-  lane_segments.clear();
-  ROS_INFO_STREAM("tempPoints size: "<<tempPoints.size());
-  ROS_INFO_STREAM("lane size: "<<lanes.size()); 
-  */
 }
 
 
@@ -395,14 +341,6 @@ void FeatureExtractor::WriteImage() {
   }
 
   cv::Scalar odom_colour1(0., 0., 255., 180);
-  /*float odom_radius1 = 1.;
-  // Draw a circle for each of the odom positions
-  for (auto &lane_odom: lane_points) {
-    int value_x = lane_odom.first - min_x;
-    int value_y = lane_odom.second - min_y;
-    cv::circle(output_image, cv::Point(value_y, value_x), odom_radius1, odom_colour1, CV_FILLED);
-  }*/
-  
   float odom_radius1 = 1.;
   for(auto& lane_segment: lane_segments){
     cv::Scalar color(
@@ -463,74 +401,29 @@ void FeatureExtractor::WriteImage() {
   thickness = 1;
   for(auto& lane: checkLanes){
     cv::Scalar odom_colour1(0., 0., 255., 180);
-    auto first_pair = lane.first;
-    auto second_pair = lane.second;
-    int x_index1 = ((first_pair[1]*100)/cm_resolution)*-1;
-    int y_index1 = (first_pair[0]*100)/cm_resolution;
-    int value_x1 = x_index1 - min_x;
-    int value_y1 = y_index1 - min_y;
-     
-    int x_index2 = ((second_pair[1]*100)/cm_resolution)*-1;
-    int y_index2 = (second_pair[0]*100)/cm_resolution;
-    int value_x2 = x_index2 - min_x;
-    int value_y2 = y_index2 - min_y;
-
-    cv::Point p1(value_y1, value_x1);
-    cv::Point p2(value_y2, value_x2);
+    auto first_pair = lane.first;auto second_pair = lane.second;
+    int x_index1 = ((first_pair[1]*100)/cm_resolution)*-1;int y_index1 = (first_pair[0]*100)/cm_resolution;
+    int value_x1 = x_index1 - min_x;int value_y1 = y_index1 - min_y;
+    int x_index2 = ((second_pair[1]*100)/cm_resolution)*-1;int y_index2 = (second_pair[0]*100)/cm_resolution;
+    int value_x2 = x_index2 - min_x;int value_y2 = y_index2 - min_y;
+    cv::Point p1(value_y1, value_x1);cv::Point p2(value_y2, value_x2);
     cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
   }
 
-  for(auto& boundingBox: boundingBoxes){
-    
-    cv::Scalar odom_colour1(0., 0., 255., 180); // red - top, left
-    cv::Scalar odom_colour2(0., 255., 0., 180);// green - bottom, left
-    cv::Scalar odom_colour3(255., 0., 0., 180); //blue - top, right
-    cv::Scalar odom_colour4(255., 255., 255., 180); //white - bottom, right
-    int index = 0; 
-    for(auto& point: boundingBox){
-      
-        int x_index = ((point.second*100)/cm_resolution)*-1;
-        int y_index = (point.first*100)/cm_resolution;
-        int value_x = x_index - min_x;
-        int value_y = y_index - min_y;
-        if(index == 0)
-          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour1, CV_FILLED);
-        if(index == 1)
-          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour2, CV_FILLED);
-        if(index == 2)
-          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour3, CV_FILLED);
-        if(index == 3)
-          cv::circle(output_image, cv::Point(value_y, value_x), odom_radius, odom_colour4, CV_FILLED);
-        index += 1;  
-    }
-    
-    //ROS_INFO_STREAM("top_left(red): "<<boundingBox[0].first<<boundingBox[0].second<<"bottom_left(green): "<<boundingBox[1].first<<boundingBox[1].second<<"top_right(blue): "<<boundingBox[2].first<<boundingBox[2].second<<"bottom_right(white): "<<boundingBox[3].first<<boundingBox[3].second);    
-  }
-
-  for(auto& seg: lines){
+  for(auto& lineSeg: lines){
     cv::Scalar odom_colour1(0., 0., 255., 180);
-    double x1 = bg::get<0, 0>(seg); 
-    double y1 = bg::get<0, 1>(seg);
-    double x2 = bg::get<1, 0>(seg);
-    double y2 = bg::get<1, 1>(seg);
-
-    int x_index1 = ((y1*100)/cm_resolution)*-1;
-    int y_index1 = (x1*100)/cm_resolution;
-    int value_x1 = x_index1 - min_x;
-    int value_y1 = y_index1 - min_y;
-     
-    int x_index2 = ((y2*100)/cm_resolution)*-1;
-    int y_index2 = (x2*100)/cm_resolution;
-    int value_x2 = x_index2 - min_x;
-    int value_y2 = y_index2 - min_y;
-
-    cv::Point p1(value_y1, value_x1);
-    cv::Point p2(value_y2, value_x2);
+    auto seg = std::get<0>(lineSeg);
+    double x1 = bg::get<0, 0>(seg); double y1 = bg::get<0, 1>(seg);
+    double x2 = bg::get<1, 0>(seg);double y2 = bg::get<1, 1>(seg);
+    ROS_INFO_STREAM("x1: "<<x1<<" y1:"<<y1);
+    
+    int x_index1 = ((y1*100)/cm_resolution)*-1;int y_index1 = (x1*100)/cm_resolution;
+    int value_x1 = x_index1 - min_x;int value_y1 = y_index1 - min_y;
+    int x_index2 = ((y2*100)/cm_resolution)*-1;int y_index2 = (x2*100)/cm_resolution;
+    int value_x2 = x_index2 - min_x;int value_y2 = y_index2 - min_y;
+    cv::Point p1(value_y1, value_x1);cv::Point p2(value_y2, value_x2);
     cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
   }
-
-
-
 
   for (auto &ring_number: rings_included) {
     ROS_INFO_STREAM("Ring " << ring_number << " included in image");
@@ -1587,7 +1480,9 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
                 auto x2 = laneSegment[laneSegment.size()-1].first;
                 auto y2 = m*x2+c;
                 segment seg(point_t(x1, y1), point_t(x2, y2));
-                lines.push_back(seg);
+                lines.push_back(std::make_tuple(seg, m,c));
+                joinLaneSegment(std::make_tuple(seg, m,c));
+                laneSCount++;
             }
             
             // Delete the corresponding active_lane_segments.
@@ -1645,66 +1540,41 @@ std::tuple<double, double, double> FeatureExtractor::linearRegression(std::vecto
   return std::make_tuple(m, c, mse);
 }
 
-void FeatureExtractor::joinLaneSegment(){
-  /*if(laneSCount > 20){
-    laneSCount = 0;
-    auto tempSegments = lane_segments;
-    std::vector<size_t> eraseList;
-    //lane_segments.clear();
-    for(size_t i=0; i<tempSegments.size();i++){
-      auto segment1 = tempSegments[i];
-      auto first_pair = segment1[0];
-      auto last_pair =  segment1[segment1.size()-1];
-      auto x1 = first_pair.first; auto y1 = first_pair.second;
-      auto x2 = last_pair.first; auto y2 = last_pair.second;
-      auto dx = x2 - x1;auto dy = y2 - y1;
-      if(dx == 0 || dy == 0)
-        continue;
-      auto m1 = dy / dx;auto c1 = y1 - m1 * x1;
-
-      for(size_t j=0; j<tempSegments.size();j++){
-        
-        if(i==j)
-          continue;
-
-        auto segment2 = tempSegments[j];
-        first_pair = segment2[0];
-        last_pair =  segment2[segment2.size()-1];
-        auto x3 = first_pair.first; auto y3 = first_pair.second;
-        auto x4 = last_pair.first; auto y4 = last_pair.second;
-        dx = x4 - x3;dy = y4 - y3;
-        if(dx == 0 || dy == 0)
-          continue;
-        auto m2 = dy / dx;auto c2 = y3 - m2 * x3;
-        auto slopeDiff = std::abs(m2-m1);
-        float dLanes= std::sqrt(std::pow((x3-x2),2)+std::pow((y3-y2),2));
-        //if(dLanes > 35)
-        //  continue;
-
-        //findout which lane is bigger
-        float dLane1= std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
-        float dLane2= std::sqrt(std::pow((x4-x3),2)+std::pow((y4-y3),2));
-        double y_diff1; double y_diff2;
-        
-        //if(dLane1 >20 || dLane2 > 20)
-        //  continue;
-
-        auto y = m1*x4+c1;
-        auto y_diff = std::abs(std::abs(y)-std::abs(y4));
-        if(slopeDiff<0.01 && y_diff<0.05){
-          ROS_INFO_STREAM("First: "<<y_diff<<" "<<slopeDiff);
-          lane_segments[i].push_back(std::make_pair(x3,y3)); 
-          eraseList.push_back(j);
-        }
-      }//other for loop close
-    }//main for loop close
-
-    for(auto i: eraseList){
-      ROS_INFO_STREAM("erase list: "<<i);
-      lane_segments.erase(lane_segments.begin()+i);
+void FeatureExtractor::joinLaneSegment(std::tuple<segment,double,double> newSeg){
+  if(activeLaneSeg.size() == 0){
+    std::vector<std::tuple<segment,double,double>> line;
+    line.push_back(newSeg);
+    activeLaneSeg.push_back(std::make_pair(line,0));
+  }else{
+    bool found = false;
+    for(size_t i=0; i<activeLaneSeg.size(); i++){
+      auto lineSegVec = activeLaneSeg[i].first;
+      auto lineSeg = lineSegVec.back();
+      std::vector<point_t> output;
+      auto seg = std::get<0>(lineSeg);
+      auto m = std::get<1>(lineSeg);
+      auto c = std::get<2>(lineSeg);
+      
+      //Using the first principle, find y of the by inputting the x poins from
+      //the new segment.
+      //Then project the active line seg to new point to create the new
+      //extended active segment
+      //Then use boost to check the extended active segment is intersect with the
+      //new seg
+      
+      /*bg::overlaps(lineSeg, newSeg, output);   
+      ROS_INFO_STREAM("here: "<<output.size());
+      if(output.size() > 0){
+        ROS_INFO_STREAM(output[0].get<0>());
+        found = true; 
+      }*/
     }
-
-  }//ifclose*/
+    if(!found){
+      std::vector<std::tuple<segment,double,double>> line;
+      line.push_back(newSeg);
+      activeLaneSeg.push_back(std::make_pair(line,0));
+    }
+  }
 }
 
 // call whenever receive a pointcloud - spit out new filtered version
@@ -1792,8 +1662,7 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
       // Construct lane segement
       constructLaneSegments(lanePC); 
 
-      // Join lane segments
-      joinLaneSegment();
+     // joinLaneSegment();
       
       for(size_t i=0; i<lanePC.points.size(); i++){		
         auto x = lanePC.points[i].x;
