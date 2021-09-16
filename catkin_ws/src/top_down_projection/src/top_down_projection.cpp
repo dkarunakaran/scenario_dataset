@@ -38,16 +38,11 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/point_types_conversion.h>
 #include <random>
-#include <boost/bind/bind.hpp>
-#include <boost/math/statistics/linear_regression.hpp>
-
-using boost::math::statistics::simple_ordinary_least_squares_with_R_squared;
 
 int main(int argc, char **argv) {
 
   ros::init(argc, argv, "TopDownProjection");
   ros::NodeHandle n;
-
   FeatureExtractor pole_detect;
   pole_detect.bypass_init();
   
@@ -510,6 +505,28 @@ void FeatureExtractor::WriteImage() {
     }
     
     //ROS_INFO_STREAM("top_left(red): "<<boundingBox[0].first<<boundingBox[0].second<<"bottom_left(green): "<<boundingBox[1].first<<boundingBox[1].second<<"top_right(blue): "<<boundingBox[2].first<<boundingBox[2].second<<"bottom_right(white): "<<boundingBox[3].first<<boundingBox[3].second);    
+  }
+
+  for(auto& seg: lines){
+    cv::Scalar odom_colour1(0., 0., 255., 180);
+    double x1 = bg::get<0, 0>(seg); 
+    double y1 = bg::get<0, 1>(seg);
+    double x2 = bg::get<1, 0>(seg);
+    double y2 = bg::get<1, 1>(seg);
+
+    int x_index1 = ((y1*100)/cm_resolution)*-1;
+    int y_index1 = (x1*100)/cm_resolution;
+    int value_x1 = x_index1 - min_x;
+    int value_y1 = y_index1 - min_y;
+     
+    int x_index2 = ((y2*100)/cm_resolution)*-1;
+    int y_index2 = (x2*100)/cm_resolution;
+    int value_x2 = x_index2 - min_x;
+    int value_y2 = y_index2 - min_y;
+
+    cv::Point p1(value_y1, value_x1);
+    cv::Point p2(value_y2, value_x2);
+    cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
   }
 
 
@@ -1203,21 +1220,21 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCl
 	}
 
 	//Other side of the points
-        for (int i=middle; i>0; i--)
-        {
-                double z = matrixPC[i][2];
-                double heightDelta = z-previousHeight;
-		if(z < heightThreshold && heightDelta < heightDeltaThreshold){
-                        std::vector<float> row;
-                        row.push_back(matrixPC[i][0]);
-                        row.push_back(matrixPC[i][1]);
-                        row.push_back(matrixPC[i][2]);
-                        row.push_back(matrixPC[i][3]);
-                        heightMatrixPC.push_back(row);
-                	previousHeight = z;
-                }
+  for (int i=middle; i>0; i--)
+  {
+      double z = matrixPC[i][2];
+      double heightDelta = z-previousHeight;
+      if(z < heightThreshold && heightDelta < heightDeltaThreshold){
+        std::vector<float> row;
+        row.push_back(matrixPC[i][0]);
+        row.push_back(matrixPC[i][1]);
+        row.push_back(matrixPC[i][2]);
+        row.push_back(matrixPC[i][3]);
+        heightMatrixPC.push_back(row);
+        previousHeight = z;
+      }
 
-        }
+  }
 
 	//ROS_INFO_STREAM("Size of heightPC: "<<heightMatrixPC.size());
 
@@ -1227,7 +1244,7 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCl
 	auto intensity_min = (max_intensity*70)/100;
 	
 	// Sorting
-        std::sort(heightMatrixPC.begin(), heightMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+  std::sort(heightMatrixPC.begin(), heightMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
 
 	
 	pcl::PointCloud<pcl::PointXYZI> intensityPC;
@@ -1419,10 +1436,10 @@ std::pair<std::vector<double>,std::vector<double>> FeatureExtractor::findSlopeLa
 void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lanePC){
   //std::vector<std::pair<std::vector<std::pair<double, double>>, int>> active_lane_segments;//[lane po    ints in lane segments, inactive count]
   //std::map<long int, std::vector<std::pair<double, double>>> lane_segment;//[lane points lane segements]
-  ROS_INFO_STREAM("_____________________________________: "<<seq_count);
-  ROS_INFO_STREAM("Active lane segments size: "<<active_lane_segments.size());
-  ROS_INFO_STREAM("Lane segments size: "<<lane_segments.size());
-  ROS_INFO_STREAM("lanPC size: "<<lanePC.points.size());
+  //ROS_INFO_STREAM("_____________________________________: "<<seq_count);
+  //ROS_INFO_STREAM("Active lane segments size: "<<active_lane_segments.size());
+  //ROS_INFO_STREAM("Lane segments size: "<<lane_segments.size());
+  //ROS_INFO_STREAM("lanPC size: "<<lanePC.points.size());
 
   /*for(size_t i=0;i<lanePC.points.size();i++){
     auto x1 = lanePC.points[i].x;
@@ -1521,14 +1538,18 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
               xs.push_back(lSeg.first);
               ys.push_back(lSeg.second);
             }
-            if(xs.size() > 1){
-              // The fit is good if r2 is close to 1.
-              // https://www.boost.org/doc/libs/1_77_0/libs/math/doc/html/math_toolkit/linear_regression.html
-              auto lineDetails = simple_ordinary_least_squares_with_R_squared(xs, ys);
-              ROS_INFO_STREAM("r2: "<<std::get<2>(lineDetails));
-              auto r2 = std::get<2>(lineDetails);
-              if(r2<0.8) //0.80 works fine
+
+            auto lineDetails = linearRegression(xs, ys);
+            double m; double c;
+            if(xs.size() > 2){
+              auto lineDetails = linearRegression(xs, ys);
+              auto mse = std::get<2>(lineDetails);
+              m = std::get<0>(lineDetails);
+              c = std::get<1>(lineDetails);
+              ROS_INFO_STREAM("m: "<<m<<" c: "<<c<<" mse: "<<mse);
+              if(mse>0.05){ //0.05 works fine
                 proceed = false;
+              }
 
               //Also checking the slope of odom and lane odom
               auto x1 = odomPoints[0].first;
@@ -1536,26 +1557,40 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
               auto x2 = odomPoints[odomPoints.size()-1].first;
               auto y2 = odomPoints[odomPoints.size()-1].second;
               float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
-              if(odomPoints.size() > 1 && d > 0.25){
+              if(odomPoints.size() > 2 && d > 0.15){
                 std::vector<double> odomX; std::vector<double> odomY;
                 for(auto& odom: odomPoints){
                   odomX.push_back(odom.first);
                   odomY.push_back(odom.second);
                 } 
-                auto odomLineDetails = simple_ordinary_least_squares_with_R_squared(odomX, odomY);
-                auto slopeOdom =  std::get<1>(odomLineDetails);
-                auto lineOdom =  std::get<1>(lineDetails);
-                auto slopeDiff = std::abs(slopeOdom-lineOdom);
-                if(slopeDiff > 0.5) //0.5 work
+                auto odomLineDetails = linearRegression(odomX, odomY);
+                auto slopeOdom =  std::get<0>(odomLineDetails);
+                auto slopeDiff = std::abs(slopeOdom-m);
+                ROS_INFO_STREAM("slopeOdom: "<<slopeOdom<<" lineOdom: "<<m<<" diff: "<<slopeDiff);
+                if(slopeDiff > 0.75) //1.good for 5 to 8
                   proceed = false;
               }
+
             }else{
                 //discard lanSegments that has only one point.
                 proceed = false;
             }
-
-            if(proceed)
+            
+            // Push the value to lane_segments
+            if(proceed){
                 lane_segments.push_back(laneSegment);
+                //We have equation of the line in the form y=mx+b. It would be
+                //great to calculate the start and end points by taking x value
+                //from first and last point in the lane segment. 
+                auto x1 = laneSegment[0].first;
+                auto y1 = m*x1+c;
+                auto x2 = laneSegment[laneSegment.size()-1].first;
+                auto y2 = m*x2+c;
+                segment seg(point_t(x1, y1), point_t(x2, y2));
+                lines.push_back(seg);
+            }
+            
+            // Delete the corresponding active_lane_segments.
             active_lane_segments.erase(active_lane_segments.begin()+j);
           }else{
             active_lane_segments[j] = std::make_tuple(laneSegment, inactiveCount, odomPoints);
@@ -1575,6 +1610,39 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
     }
   }//else close
   
+}
+
+std::tuple<double, double, double> FeatureExtractor::linearRegression(std::vector<double> x, std::vector<double> y){
+  //Linear regression based on least square method
+  //Reference doc: https://www.mathsisfun.com/data/least-squares-regression.html  
+  auto N = x.size();
+  double sumXY = 0;
+  double sumX = 0;
+  double sumY = 0;
+  double sumXSquared = 0;
+  for(size_t i=0; i<N; i++){
+    
+    auto xy = x[i]*y[i];
+    sumXY += xy;
+    sumX += x[i];
+    sumY += y[i];
+    auto xSquared = std::pow(x[i], 2);
+    sumXSquared += xSquared;
+  }
+  double m = 0.;
+  double c = 0.; 
+  m =  ((N*sumXY) - (sumX*sumY))/((N*sumXSquared)-(std::pow(sumX, 2)));
+  c = (sumY-(m*sumX))/N; 
+  
+  //Mean squared error
+  double mse = 0.;
+  for(size_t i=0; i<N; i++){
+    auto y_pred = m*x[i]+c; // y = mx+c form
+    mse += std::pow((y[i] - y_pred),2);
+  }
+  mse = mse/N;
+
+  return std::make_tuple(m, c, mse);
 }
 
 void FeatureExtractor::joinLaneSegment(){

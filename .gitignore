@@ -3,6 +3,8 @@ catkin_ws/devel
 catkin_ws/logs
 catkin_ws/.catkin_tools
 
+boost_1_74_0*
+
 /data
 /plot
 /rpg_trajectory_evaluation

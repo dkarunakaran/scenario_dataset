@@ -20,8 +20,6 @@
   <depend>custom_point_types</depend>
   <depend>tf_conversions</depend>
   <depend>lane_points_msg</depend>
-
-
 </package>
 
 

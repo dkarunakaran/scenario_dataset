@@ -22,7 +22,7 @@
         <param name="min_intensity" value="0.04" /><!--0.04-->
         <param name="max_intensity" value="2." /><!--2-->
         <!-- parameters for the h264 bag playback -->
-        <param name="percentage_start" value="23" />
+        <param name="percentage_start" value="18" />
         <param name="percentage_end" value="25" />
         <param name="horizon_in_buffer" value="true" />
         <param name="new_roll" value="0.0" />
@@ -37,8 +37,9 @@
     <node pkg="read_bag" type="read_bag" name="read_bag" output="screen" required="true"></node>
     -->
     <param name="result" value="$(arg result)"/>
-	<node pkg="extract" type="check_topic.py" name="check_topic" output="screen"></node>
-    <node pkg="extract" type="read_save_lane_points.py" name="read_save_lane_points" output="screen"></node>
+	<!--<node pkg="extract" type="check_topic.py" name="check_topic" output="screen"></node>
+  node pkg="extract" type="read_save_lane_points.py"
+name="read_save_lane_points" output="screen"></node>-->
     
     <!--<node pkg="extract" type="lane_pointcloud" name="lane_pointcloud" output="screen" required="true"></node>-->
 </launch>

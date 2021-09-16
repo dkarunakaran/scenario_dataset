@@ -15,12 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV REQUIRED)
 
-find_package(Boost REQUIRED)
+#find_package(Boost REQUIRED COMPONENTS system)
 
 ## Setup include directories
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
+  #${Boost_INCLUDE_DIRS}
   include/${PROJECT_NAME}
 )
 
@@ -28,6 +28,8 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME}
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp std_msgs pcl_ros tf_conversions tf h264_bag_playback dataset_tools
+  #DEPENDS Boost
+
 )
 
 find_package(PCL REQUIRED)
@@ -43,6 +45,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
+    #${Boost_LIBRARIES}
     ${OpenCV_LIBS}
 )
 if(catkin_EXPORTED_LIBRARIES)

@@ -29,6 +29,12 @@
 
 #include "draw_shapes.hpp"
 #include <lane_points_msg/LanePoints.h>
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/geometries.hpp> 
+namespace bg = boost::geometry;
+typedef bg::model::point<double, 2, bg::cs::cartesian> point_t;
+typedef bg::model::segment<point_t> segment;
+
 
 class FeatureExtractor : public dataset_toolkit::h264_bag_playback
 {
@@ -100,6 +106,8 @@ private:
   std::pair<std::vector<double>,std::vector<double>> findSlopeLaneSeg(std::vector<std::pair<double, double>>, double);
   
   void joinLaneSegment(); 
+
+  std::tuple<double, double, double> linearRegression(std::vector<double> x, std::vector<double> y);
   
   // initialise ros stuff
   virtual void onInit();
@@ -167,6 +175,8 @@ private:
   std::vector<std::vector<std::pair<double,double>>> boundingBoxes;
   std::vector<std::pair<std::vector<std::pair<double, double>>, int>> activeLanes; //[lane segments, inactive count]
   long int laneSCount;
+  std::vector<segment> lines;
+
 };
 
 
