@@ -32,11 +32,12 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/geometries.hpp>
 #include <boost/geometry/algorithms/overlaps.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
 
 namespace bg = boost::geometry;
-typedef bg::model::point<double, 2, bg::cs::cartesian> point_t;
-typedef bg::model::segment<point_t> segment;
-typedef bg::model::linestring<point_t> linestring;
+typedef bg::model::d2::point_xy<double> Point;
+typedef bg::model::d2::point_xy<double> Vector;
+typedef bg::model::segment<Point> Segment;
 
 class FeatureExtractor : public dataset_toolkit::h264_bag_playback
 {
@@ -107,10 +108,12 @@ private:
   
   std::pair<std::vector<double>,std::vector<double>> findSlopeLaneSeg(std::vector<std::pair<double, double>>, double);
   
-  void joinLaneSegment(std::tuple<segment,double,double>); 
+  void joinLaneSegment(std::tuple<Segment,double,double>); 
 
   std::tuple<double, double, double> linearRegression(std::vector<double> x, std::vector<double> y);
-  
+ 
+  double perp(const Vector& v1, const Vector& v2); 
+ 
   // initialise ros stuff
   virtual void onInit();
 
@@ -177,8 +180,9 @@ private:
   std::vector<std::vector<std::pair<double,double>>> boundingBoxes;
   std::vector<std::pair<std::vector<std::pair<double, double>>, int>> activeLanes; //[lane segments, inactive count]
   long int laneSCount;
-  std::vector<std::tuple<segment,double,double>> lines;
-  std::vector<std::pair<std::vector<std::tuple<segment,double,double>>,int>> activeLaneSeg;
+  std::vector<std::tuple<Segment,double,double>> lines;
+  std::vector<std::pair<std::vector<std::tuple<Segment,double,double>>,int>> activeLaneSeg;
+  std::vector<std::vector<Segment>> allLines;
 };
 
 
