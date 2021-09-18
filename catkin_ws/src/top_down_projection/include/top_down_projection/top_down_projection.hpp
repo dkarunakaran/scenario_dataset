@@ -112,8 +112,8 @@ private:
 
   std::tuple<double, double, double> linearRegression(std::vector<double> x, std::vector<double> y);
  
-  double perp(const Vector& v1, const Vector& v2); 
- 
+  std::vector<double> polynomialRegression(const std::vector<double> &t, const std::vector<double> &v, int order);
+  
   // initialise ros stuff
   virtual void onInit();
 
