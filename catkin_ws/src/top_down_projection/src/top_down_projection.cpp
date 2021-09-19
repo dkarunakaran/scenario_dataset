@@ -198,8 +198,36 @@ void FeatureExtractor::constructLane(){
   }
   ROS_INFO_STREAM("All line size after: "<<allLines.size());  
   
+  //Add a new line between the broken lines.
+  /*std::vector<std::vector<Segment>> tempAllLines;
+  tempAllLines = allLines;
+  allLines.clear();
+  for(auto& lineSegVec: tempAllLines){
+    std::vector<Segment> tempSegments;
+    if(lineSegVec.size() > 1){ 
+      for(size_t i=0; i<lineSegVec.size()-1; i++){
+        auto seg1 = lineSegVec[i];
+        double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
+        double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
+        auto seg3 = lineSegVec[i+1];
+        double x5 = bg::get<0, 0>(seg3); double y5 = bg::get<0, 1>(seg3);
+        double x6 = bg::get<1, 0>(seg3);double y6 = bg::get<1, 1>(seg3);
+        double x3 = x1; double y3 = y1;
+        double x4 = x6; double y4 = y6;
+        Segment seg2(Point(x3, y3), Point(x4, y4));
+        tempSegments.push_back(seg1);
+        tempSegments.push_back(seg2);
+        tempSegments.push_back(seg3);
+      } 
+    }else{
+      auto seg1 = lineSegVec[0];
+      tempSegments.push_back(seg1);
+    }  
+    allLines.push_back(tempSegments); 
+  }*/
+
   //Apply polynomial fitting
-  for(auto& lineSegVec: allLines){
+  /*for(auto& lineSegVec: allLines){
     std::vector<double> x;std::vector<double> y;
     for(auto& seg: lineSegVec){
       double x1 = bg::get<0, 0>(seg); double y1 = bg::get<0, 1>(seg);
@@ -213,9 +241,8 @@ void FeatureExtractor::constructLane(){
     }else{
       auto coeff = polynomialRegression(x,y,1);
       ROS_INFO_STREAM("First order - "<<"a: "<<coeff[0]<<" b: "<<coeff[1]);
-
     } 
-  }
+  }*/
 }
 
 std::vector<double> FeatureExtractor::polynomialRegression(const std::vector<double> &t, const std::vector<double> &v, int order){
@@ -1433,7 +1460,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
     laneSegment.push_back(std::make_pair(x1, y1));  
     lane_segments.push_back(laneSegment);
   }*/
-  float RADIUS = 1.; //0.75 works
+  float RADIUS = 1.; //1. works
   float INACTIVECOUNT = 20; //20 and below only works - tried with 50, and 100, but not getting good result
   if(active_lane_segments.size() == 0){
     std::vector<std::pair<double, double>> searchVec; 
@@ -1703,8 +1730,46 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg)
     }
     
     if(found){
+      
+      //One we found a connection between new line segement and existing active
+      //lane segment we can draw the connection line between two roken line segements.
+      //Sometime the line are joined incorrectly, in that case, we can say is
+      //the difference between connected line and new line segment is greater
+      //than a threshold, then the new line segment is not part of the current
+      //active lane segment and it should be treated as new active lane
+      //segment.
       auto lineSegVec = activeLaneSeg[smallIndex].first;
-      lineSegVec.push_back(newSeg);
+      auto lastLineSegTuple = lineSegVec.back(); 
+      auto seg1 = std::get<0>(lastLineSegTuple);
+      auto m1  = std::get<1>(lastLineSegTuple);
+      double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
+      double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
+      auto seg3 = std::get<0>(newSeg);
+      double x5 = bg::get<0, 0>(seg3); double y5 = bg::get<0, 1>(seg3);
+      double x6 = bg::get<1, 0>(seg3);double y6 = bg::get<1, 1>(seg3);
+      double x3 = x1; double y3 = y1;
+      double x4 = x6; double y4 = y6;
+      auto dx = x4 - x3;auto dy = y4 - y3;
+      if(dx != 0 && dy != 0){
+        auto m2 = dy / dx;auto c2 = y3 - m2 * x3;
+        auto slopeDiff = std::abs(m2-m1);
+        if(slopeDiff < 0.1){
+          //Slope diff between two lines are less than threshold, it should be
+          //added to the current active lane segment.
+          Segment seg2(Point(x3, y3), Point(x4, y4));
+          lineSegVec.push_back(std::make_tuple(seg2, m2, c2));
+          lineSegVec.push_back(newSeg);
+        }else{
+          //Slope diff is greater than threshold new line segment should be
+          //treated as new actibe lane segment.
+          std::vector<std::tuple<Segment,double,double>> line;
+          line.push_back(newSeg);
+          activeLaneSeg.push_back(std::make_pair(line,0));
+        }
+      }else{
+        lineSegVec.push_back(newSeg);
+      }
+      
       activeLaneSeg[smallIndex] = std::make_pair(lineSegVec, 0);
     }else{
       std::vector<std::tuple<Segment,double,double>> line;
