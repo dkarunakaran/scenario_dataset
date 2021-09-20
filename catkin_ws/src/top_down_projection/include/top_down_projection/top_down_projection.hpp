@@ -114,6 +114,10 @@ private:
  
   std::vector<double> polynomialRegression(const std::vector<double> &t, const std::vector<double> &v, int order);
   
+  void joinLinesFurther(double slopeDiffT, double yDiff1T, double yDiff2T, double dT);
+  
+  void removeNoiseLines(); 
+
   // initialise ros stuff
   virtual void onInit();
 
@@ -182,7 +186,9 @@ private:
   long int laneSCount;
   std::vector<std::tuple<Segment,double,double>> lines;
   std::vector<std::pair<std::vector<std::tuple<Segment,double,double>>,int>> activeLaneSeg;
-  std::vector<std::vector<Segment>> allLines;
+  std::vector<std::vector<std::tuple<Segment,double,double>>> allLines;
+  long int laneSCount1;
+  long int laneSCount2;
 };
 
 
