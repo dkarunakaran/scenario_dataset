@@ -529,6 +529,8 @@ void FeatureExtractor::WriteImage() {
       255
     );
 
+    cv::Scalar odom_colour1(0., 0., 255., 180);
+
     for(auto& segDetails: lineSegVec){
       auto seg = std::get<0>(segDetails); 
       cv::Scalar odom_colour1(0., 0., 255., 180);
@@ -540,7 +542,7 @@ void FeatureExtractor::WriteImage() {
       int x_index2 = ((y2*100)/cm_resolution)*-1;int y_index2 = (x2*100)/cm_resolution;
       int value_x2 = x_index2 - min_x;int value_y2 = y_index2 - min_y;
       cv::Point p1(value_y1, value_x1);cv::Point p2(value_y2, value_x2);
-      cv::line(output_image, p1, p2, color, thickness, cv::LINE_8);
+      cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
     } 
   }
   for (auto &ring_number: rings_included) {
@@ -1787,22 +1789,28 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg)
     ROS_INFO_STREAM("allLines size: "<<allLines.size());
     joinLinesFurther(0.05, 0.1, 0.1, 20.);
     removeNoiseLines();
-    laneSCount = 0;
+    //laneSCount = 0;
   }
   
-  if(laneSCount1 !=0 && laneSCount1%10 == 0 ){
-    ROS_INFO_STREAM("****************************: "<<laneSCount1);
+  if(laneSCount !=0 && laneSCount%10 == 0 ){
+    ROS_INFO_STREAM("****************************: "<<laneSCount);
     ROS_INFO_STREAM("allLines size: "<<allLines.size());
     joinLinesFurther(0.1, 0.5, 0.5, 30.);
-    laneSCount1 = 0;
+    //laneSCount1 = 0;
   }
-
- if(laneSCount2 !=0 && laneSCount2%15 == 0 ){
-    ROS_INFO_STREAM("****************************: "<<laneSCount2);
+  
+  /*if(laneSCount !=0 && laneSCount%15 == 0 ){
+    ROS_INFO_STREAM("++++++++++++++++++++++++++: "<<laneSCount);
     ROS_INFO_STREAM("allLines size: "<<allLines.size());
-    joinLinesFurther(0.2, 0.5, 0.5, 50.);//50 works
-    laneSCount1 = 0;
-  }
+    joinLinesFurther(0.2, 0.1, 0.0, 60.);//50 works
+    //laneSCount2 = 0;
+  }*/
+  
+ /*if(laneSCount !=0 && laneSCount%20 == 0 ){
+    ROS_INFO_STREAM("&&&&&&&&&&&&&&&&&&&&&&&&&: "<<laneSCount);
+    ROS_INFO_STREAM("allLines size: "<<allLines.size());
+    joinLinesFurther(0.1, 0.05, 0.05, 300.);//50 works
+ }*/
 
 
 }
@@ -1839,11 +1847,11 @@ void FeatureExtractor::joinLinesFurther(double slopeDiffT, double yDiff1T, doubl
         auto y_diff2 = std::abs(std::abs(y)-std::abs(y1));
         float d = std::sqrt(std::pow((x4-x1),2)+std::pow((y4-y1),2));
         //ROS_INFO_STREAM("slopeDiff: "<<slopeDiff<<" y_diff1: "<<y_diff1<<" y_diff2: "<<y_diff2);
-        if(y_diff1 < yDiff1T && d < dT){
+        if(y_diff1 < yDiff1T){
           found = true;
           index = j;
           break;
-        }else if(y_diff2 < yDiff2T && d < dT){
+        }else if(y_diff2 < yDiff2T){
           found = true;
           index = j;
           break;
@@ -1860,20 +1868,24 @@ void FeatureExtractor::joinLinesFurther(double slopeDiffT, double yDiff1T, doubl
       double x6 = bg::get<1, 0>(seg3);double y6 = bg::get<1, 1>(seg3);
       double x3New = x1; double y3New = y1;
       double x4New = x6; double y4New = y6;
-      auto dx = x4New - x3New;auto dy = y4New - y3New;
-      if(dx != 0 && dy != 0){
-          auto m2New = dy / dx;auto c2New = y3New - m2New * x3New;
-          //auto slopeDiff = std::abs(m2New-m1);
-          Segment seg2New(Point(x3New, y3New), Point(x4New, y4New));
-          lineSegVec.push_back(std::make_tuple(seg2New, m2New, c2New));
-          for(size_t k=0; k<segVec.size(); k++){
-            lineSegVec.push_back(segVec[k]);
-          }
+      float d = std::sqrt(std::pow((x4New-x3New),2)+std::pow((y4New-y3New),2));
+      ROS_INFO_STREAM("d and dT: "<<d<<" "<<dT);
+      if(d<dT){
+        auto dx = x4New - x3New;auto dy = y4New - y3New;
+        if(dx != 0 && dy != 0){
+            auto m2New = dy / dx;auto c2New = y3New - m2New * x3New;
+            //auto slopeDiff = std::abs(m2New-m1);
+            Segment seg2New(Point(x3New, y3New), Point(x4New, y4New));
+            lineSegVec.push_back(std::make_tuple(seg2New, m2New, c2New));
+            for(size_t k=0; k<segVec.size(); k++){
+              lineSegVec.push_back(segVec[k]);
+            }
+        }
+        activeList.push_back(i);
+        activeList.push_back(index);
+        allLines[i] = lineSegVec;
+        allLines.erase(allLines.begin()+index);
       }
-      //activeList.push_back(i);
-      //activeList.push_back(index);
-      allLines[i] = lineSegVec;
-      allLines.erase(allLines.begin()+index);
     }
   }
 }
