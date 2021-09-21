@@ -108,7 +108,7 @@ private:
   
   std::pair<std::vector<double>,std::vector<double>> findSlopeLaneSeg(std::vector<std::pair<double, double>>, double);
   
-  void joinLaneSegment(std::tuple<Segment,double,double>); 
+  void joinLaneSegment(std::tuple<Segment,double,double>, std::tuple<Segment,double,double>); 
 
   std::tuple<double, double, double> linearRegression(std::vector<double> x, std::vector<double> y);
  
@@ -185,8 +185,8 @@ private:
   std::vector<std::pair<std::vector<std::pair<double, double>>, int>> activeLanes; //[lane segments, inactive count]
   long int laneSCount;
   std::vector<std::tuple<Segment,double,double>> lines;
-  std::vector<std::pair<std::vector<std::tuple<Segment,double,double>>,int>> activeLaneSeg;
-  std::vector<std::vector<std::tuple<Segment,double,double>>> allLines;
+  std::vector<std::pair<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>,int>> activeLaneSeg;
+  std::vector<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>> allLines;
   long int laneSCount1;
   long int laneSCount2;
 };
