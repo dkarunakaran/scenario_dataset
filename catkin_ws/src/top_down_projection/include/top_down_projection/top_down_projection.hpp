@@ -33,6 +33,7 @@
 #include <boost/geometry/geometries/geometries.hpp>
 #include <boost/geometry/algorithms/overlaps.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/algorithms/intersection.hpp>
 
 namespace bg = boost::geometry;
 typedef bg::model::d2::point_xy<double> Point;
@@ -117,6 +118,10 @@ private:
   void joinLinesFurther(double slopeDiffT, double yDiff1T, double yDiff2T, double dT);
   
   void removeNoiseLines(); 
+
+  void removeLineIntersects();
+
+  void outliersRemoval(std::vector<std::pair<double, double>> laneSegment, std::vector<double>& xs, std::vector<double>& ys);
 
   // initialise ros stuff
   virtual void onInit();

@@ -1443,6 +1443,30 @@ std::pair<std::vector<double>,std::vector<double>> FeatureExtractor::findSlopeLa
   return lanePoints;
 }
 
+void FeatureExtractor::outliersRemoval(std::vector<std::pair<double, double>> laneSegment, std::vector<double>& xs, std::vector<double>& ys){
+	pcl::PointCloud<pcl::PointXYZ>::Ptr laneSegPC(new pcl::PointCloud<pcl::PointXYZ>);
+  for(auto& lSeg: laneSegment){
+    pcl::PointXYZ point;
+    point.x = lSeg.first;
+    point.y = lSeg.second;
+    point.z = 0.;
+    laneSegPC->push_back(point);
+  }
+  
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+  
+  // Create the filtering object
+  pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+  sor.setInputCloud (laneSegPC);
+  sor.setMeanK (30);
+  sor.setStddevMulThresh (0.75);
+  sor.filter (*cloud_filtered);
+  for(size_t i = 0; i < cloud_filtered->points.size(); ++i) {
+			xs.push_back(cloud_filtered->points[i].x);
+			ys.push_back(cloud_filtered->points[i].y);
+	}
+}
+
 
 void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lanePC){
   //std::vector<std::pair<std::vector<std::pair<double, double>>, int>> active_lane_segments;//[lane po    ints in lane segments, inactive count]
@@ -1542,13 +1566,18 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
         
           // Remove from active and store them in lane segement
           if(inactiveCount > INACTIVECOUNT){
+            
+            //Remove the outliers
+            
             bool proceed = true;
             std::vector<double> xs;
             std::vector<double> ys;
-            for(auto& lSeg: laneSegment){
+            /*for(auto& lSeg: laneSegment){
               xs.push_back(lSeg.first);
               ys.push_back(lSeg.second);
-            }
+            }*/
+
+            outliersRemoval(laneSegment, xs, ys);
 
             auto lineDetails = linearRegression(xs, ys);
             std::vector<double> odomX; std::vector<double> odomY;
@@ -1650,7 +1679,6 @@ std::tuple<double, double, double> FeatureExtractor::linearRegression(std::vecto
   double c = 0.; 
   m =  ((N*sumXY) - (sumX*sumY))/((N*sumXSquared)-(std::pow(sumX, 2)));
   c = (sumY-(m*sumX))/N; 
-  
   //Mean squared error
   double mse = 0.;
   for(size_t i=0; i<N; i++){
@@ -1660,6 +1688,50 @@ std::tuple<double, double, double> FeatureExtractor::linearRegression(std::vecto
   mse = mse/N;
 
   return std::make_tuple(m, c, mse);
+}
+
+void FeatureExtractor::removeLineIntersects(){
+  std::vector<size_t> eraseVec; 
+  for(size_t i=0; i<allLines.size(); i++){
+    auto lineSegVec = allLines[i];
+    if(lineSegVec.size() == 1){
+      auto takeSeg = lineSegVec[0];
+      auto segTuple = takeSeg.first;
+      auto odomSeg = takeSeg.second;
+      auto odomM = std::get<1>(odomSeg);
+      auto m = std::get<1>(segTuple);
+      auto slopeDiff = std::abs(odomM-m);
+      auto seg1 = std::get<0>(segTuple);
+      double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
+      double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
+      float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+      //ROS_INFO_STREAM("Length of the line segment: "<<d);
+      //if(d < 5){
+        for(size_t j=0; j<allLines.size(); j++){
+          if(i==j)
+            continue;
+          auto lineSegVec2 = allLines[j];
+          if(lineSegVec2.size() > 1){
+             for(auto& segPair2: lineSegVec2){
+              auto segTuple2 = segPair2.first;
+              auto seg2 = std::get<0>(segTuple2);
+              auto result = boost::geometry::intersects(seg1, seg2);
+              if(result){
+                eraseVec.push_back(i);
+                break;
+              }
+            }
+          }
+        }
+      //}
+    }
+  }
+  
+  for(size_t i=0; i<eraseVec.size(); i++){
+    ROS_INFO_STREAM("Removing line: "<<eraseVec[i]);
+    allLines.erase(allLines.begin()+eraseVec[i]);
+  }
+
 }
 
 void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg, std::tuple<Segment,double,double> odomSeg){
@@ -1743,6 +1815,7 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
           Segment seg2(Point(x3, y3), Point(x4, y4));
           lineSegVec.push_back(std::make_pair(std::make_tuple(seg2, m2, c2), odomSeg));
           lineSegVec.push_back(std::make_pair(newSeg, odomSeg));
+          
         }else{
           //Slope diff is greater than threshold new line segment should be
           //treated as new actibe lane segment.
@@ -1770,15 +1843,9 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
         inactive += 1;
         //ROS_INFO_STREAM("Inactive: "<<inactive);
         if(inactive > 5){
-          std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> segs;
-          for(auto takeSeg: lineSegVec){
-            segs.push_back(takeSeg);
-          }
-          allLines.push_back(segs);
+          allLines.push_back(lineSegVec);
           activeLaneSeg.erase(activeLaneSeg.begin()+i);
           laneSCount++;
-          laneSCount1++;
-          laneSCount2++;
         }else{
           activeLaneSeg[i] = std::make_pair(lineSegVec, inactive);
         }
@@ -1790,8 +1857,7 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
     ROS_INFO_STREAM("_______________________: "<<laneSCount);
     ROS_INFO_STREAM("allLines size: "<<allLines.size());
     joinLinesFurther(0.05, 0.1, 0.1, 20.);
-    removeNoiseLines();
-    //laneSCount = 0;
+    //removeNoiseLines();
   }
   
   if(laneSCount !=0 && laneSCount%5 == 0 ){
@@ -1812,30 +1878,12 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
     joinLinesFurther(0.05, 0.1, 0.1, 40.);
   }
 
-
-
-
   if(laneSCount !=0 && laneSCount%10 == 0 ){
     ROS_INFO_STREAM("****************************: "<<laneSCount);
     ROS_INFO_STREAM("allLines size: "<<allLines.size());
     joinLinesFurther(0.1, 0.5, 0.5, 30);
-    //laneSCount1 = 0;
+    //removeLineIntersects();
   }
-  
-  /*if(laneSCount !=0 && laneSCount%15 == 0 ){
-    ROS_INFO_STREAM("++++++++++++++++++++++++++: "<<laneSCount);
-    ROS_INFO_STREAM("allLines size: "<<allLines.size());
-    joinLinesFurther(0.05, 0.05, 0.05, 100.);//50 works
-    //laneSCount2 = 0;
-  }*/
-  
- /*if(laneSCount !=0 && laneSCount%20 == 0 ){
-    ROS_INFO_STREAM("&&&&&&&&&&&&&&&&&&&&&&&&&: "<<laneSCount);
-    ROS_INFO_STREAM("allLines size: "<<allLines.size());
-    joinLinesFurther(0.1, 0.05, 0.05, 300.);//50 works
- }*/
-
-
 }
 
 void FeatureExtractor::joinLinesFurther(double slopeDiffT, double yDiff1T, double yDiff2T, double dT){
