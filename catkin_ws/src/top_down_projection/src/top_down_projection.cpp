@@ -722,27 +722,15 @@ std::map<std::pair<int,int>, double> FeatureExtractor::createIntensityMap(pcl::P
 
 pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::extractEdges(pcl::PointCloud<pcl::PointXYZIR>::Ptr input_cloud, long int sec, long int nsec){
 
-	/*pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
-	pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud_filtered1 = pcl::PointCloud<pcl::PointXYZIR>::Ptr(new pcl::PointCloud<pcl::PointXYZIR>);
-    	pcl::PassThrough<pcl::PointXYZIR> pass (false);
-    	pass.setInputCloud(input_cloud);
-    	pass.setFilterFieldName ("x");
-    	pass.setFilterLimits(2, 100);
-   	pass.setFilterLimitsNegative(false);
-    	pass.filter (*cloud_filtered1);*/
-
-  	/*auto intensity_topic = createIntensityMap(input_cloud);
-  	outputImage(intensity_topic, "/constraint_model/images/new_image.png");*/
-	std::vector<std::vector<float>>  ring1;
+  pcl::PointCloud<pcl::PointXYZI> pointCloud;
+  std::vector<std::vector<float>>  ring1;
 	std::vector<std::vector<float>>  ring2;
 	std::vector<std::vector<float>>  ring3;
-	std::vector<std::vector<float>>  ring4;
-	//std::vector<std::vector<float>>  ring5;
-		
+
 	// Sort the pointclouds
 	for (size_t i = 0; i < input_cloud->points.size(); ++i) {
 		std::vector<float> row;
-      		row.push_back(input_cloud->points[i].x); 
+    row.push_back(input_cloud->points[i].x); 
 		row.push_back(input_cloud->points[i].y); 
 		row.push_back(input_cloud->points[i].z); 
 		row.push_back(input_cloud->points[i].intensity);
@@ -752,102 +740,86 @@ pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::extractEdges(pcl::PointCloud<p
 			ring2.push_back(row);
 		}else if(input_cloud->points[i].ring == 92){
 			ring3.push_back(row);
-		}else if(input_cloud->points[i].ring == 93){
-			ring4.push_back(row);
 		}
 	}
 
+  if(ring1.size() != 0 && ring2.size() != 0 && ring3.size() != 0){
 
-	//Sorting	
-	std::sort(ring1.begin(), ring1.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
-	std::sort(ring2.begin(), ring2.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
-	std::sort(ring3.begin(), ring3.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
-	std::sort(ring4.begin(), ring4.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+    //Sorting	
+    std::sort(ring1.begin(), ring1.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+    std::sort(ring2.begin(), ring2.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+    std::sort(ring3.begin(), ring3.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
+    
+    //Just for visulising
+    /*pcl::PointCloud<pcl::PointXYZI> pc1 = mat2PCL(ring1);
+    intensity_topic.clear();
+    intensity_topic = createIntensityMap(pc1);
+          outputImage(intensity_topic, "/constraint_model/images/ring1_sort.png");
+    */
 
+    int middleR1 = middlePoint(ring1, 0);
+    int middleR2 = middlePoint(ring2, 0);
+    int middleR3 = middlePoint(ring3, 0);
+    int middleR4 = 0;
+    
+    std::vector<std::vector<float> > obs_points;
+    // 15 10
+    std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 10, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
+    std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 10, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
+    std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 10, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
 
-	//Just for visulising
-	/*pcl::PointCloud<pcl::PointXYZI> pc1 = mat2PCL(ring1);
-	intensity_topic.clear();
-	intensity_topic = createIntensityMap(pc1);
-        outputImage(intensity_topic, "/constraint_model/images/ring1_sort.png");
-	*/	
+    pcl::PointCloud<pcl::PointXYZI> edge_pc1 = mat2PCL(edge1);
+    pcl::PointCloud<pcl::PointXYZI> edge_pc2 = mat2PCL(edge2);
+    pcl::PointCloud<pcl::PointXYZI> edge_pc3 = mat2PCL(edge3);
+    pcl::PointCloud<pcl::PointXYZI> obs = mat2PCL(obs_points);
+    pcl::PointCloud<pcl::PointXYZI> total;
+    
+    total += edge_pc1;
+    total += edge_pc2;
+    total += edge_pc3;
+    /*intensity_topic.clear();
+          intensity_topic = createIntensityMap(edge_pc1);
+          outputImage(intensity_topic, "/constraint_model/images/edge1.png");
+    
+    intensity_topic.clear();
+          intensity_topic = createIntensityMap(total);
+          outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
+    */	
 
-	int middleR1 = middlePoint(ring1, 0);
-    	int middleR2 = middlePoint(ring2, 0);
-    	int middleR3 = middlePoint(ring3, 0);
-	//int middleR4 = middlePoint(ring4, 0);
-    	int middleR4 = 0;
+    pcl::PCLPointCloud2 cloudR1;pcl::PCLPointCloud2 cloudR2;
+    pcl::PCLPointCloud2 cloudR3;//pcl::PCLPointCloud2 cloudR4;
+    pcl::PCLPointCloud2 cloudFinal;pcl::PCLPointCloud2 obs_pc;
+    pcl::toPCLPointCloud2(edge_pc1,cloudR1);pcl::toPCLPointCloud2(edge_pc2,cloudR2);
+    pcl::toPCLPointCloud2(edge_pc3,cloudR3);//pcl::toPCLPointCloud2(edge_pc4,cloudR4);
+    pcl::toPCLPointCloud2(obs,obs_pc);
+
+    float height2 = 0.37;float height3 = 0.42;float height4 = 0.47;
+        if (ring2[middleR2][2]<height2){
+            pcl::concatenatePointCloud (cloudR2, cloudR1, cloudFinal);
+            if (ring3[middleR3][2]<height3){
+              pcl::concatenatePointCloud (cloudFinal, cloudR3, cloudFinal);
+            }
+        }
+    
+    //sensor_msgs::PointCloud2 roadPC;
+
+    if(total.points.size() > 500){
+      pcl::PointCloud<pcl::PointXYZI> tempCloud;
+      pcl::fromPCLPointCloud2(cloudFinal, pointCloud);
+      /*pcl::fromPCLPointCloud2(cloudFinal, tempCloud);
+      auto result = processForSphericalCoordinateFrame(tempCloud);
+      pcl::copyPointCloud(result, pointCloud);*/
+    }else{
+      auto cloudFiltered = processForSphericalCoordinateFrame(input_cloud);
+      pcl::copyPointCloud(cloudFiltered, pointCloud);
+      /*intensity_topic.clear();
+            intensity_topic = createIntensityMap(cloudFiltered);
+            outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
+      */
+    }
+  }// main if closes	
 	
-	//ROS_INFO_STREAM("Middle Points: "<< middleR1<<" "<<middleR2<<" "<<middleR3<<" "<<middleR4);
-
-	std::vector<std::vector<float> > obs_points;
-	// 15 10
-	std::vector<std::vector<float> > edge1 = findEdges(ring1, 15, 10, 9, ring1[middleR1][3], middleR1, 15, obs_points);// 12 10
-	std::vector<std::vector<float> > edge2 = findEdges(ring2, 15, 10, 9, ring2[middleR2][3], middleR2, 14, obs_points);// 12 10
-	std::vector<std::vector<float> > edge3 = findEdges(ring3, 15, 10, 9, ring3[middleR3][3], middleR3, 10, obs_points);// 12 10
-	//std::vector<std::vector<float> > edge4 = findEdges(ring4, 15, 10, 9, ring4[middleR4][3], middleR4, 8, obs_points);// 12 10
-	//ROS_INFO_STREAM("r1: "<<ring1.size()<<" e1: "<<edge1.size()<<", r2: "<<ring2.size()<<" e2: "<<edge2.size()<<", r3: "<<ring3.size()<<" e3: "<<edge3.size()<<", r4:"<<" e4: "<<", other_points: "<<obs_points.size());	
-
-	pcl::PointCloud<pcl::PointXYZI> edge_pc1 = mat2PCL(edge1);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc2 = mat2PCL(edge2);
-	pcl::PointCloud<pcl::PointXYZI> edge_pc3 = mat2PCL(edge3);
-	//pcl::PointCloud<pcl::PointXYZI> edge_pc4 = mat2PCL(edge4);
-	pcl::PointCloud<pcl::PointXYZI> obs = mat2PCL(obs_points);
-	pcl::PointCloud<pcl::PointXYZI> total;
-	
-	total += edge_pc1;
-	total += edge_pc2;
-        total += edge_pc3;
-	//total += edge_pc4;
-	//ROS_INFO_STREAM("Total points on roads: "<<total.points.size());
-	
-	/*intensity_topic.clear();
-        intensity_topic = createIntensityMap(edge_pc1);
-        outputImage(intensity_topic, "/constraint_model/images/edge1.png");
-	
-	intensity_topic.clear();
-        intensity_topic = createIntensityMap(total);
-        outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
-	*/	
-
-	pcl::PCLPointCloud2 cloudR1;pcl::PCLPointCloud2 cloudR2;
-	pcl::PCLPointCloud2 cloudR3;//pcl::PCLPointCloud2 cloudR4;
-	pcl::PCLPointCloud2 cloudFinal;pcl::PCLPointCloud2 obs_pc;
-	pcl::toPCLPointCloud2(edge_pc1,cloudR1);pcl::toPCLPointCloud2(edge_pc2,cloudR2);
-	pcl::toPCLPointCloud2(edge_pc3,cloudR3);//pcl::toPCLPointCloud2(edge_pc4,cloudR4);
-	pcl::toPCLPointCloud2(obs,obs_pc);
-
-	float height2 = 0.37;float height3 = 0.42;float height4 = 0.47;
-    	if (ring2[middleR2][2]<height2){
-      		pcl::concatenatePointCloud (cloudR2, cloudR1, cloudFinal);
-      		if (ring3[middleR3][2]<height3){
-        		pcl::concatenatePointCloud (cloudFinal, cloudR3, cloudFinal);
-        		/*if (ring4[middleR4][2]<height4){
-          			pcl::concatenatePointCloud (cloudFinal, cloudR4, cloudFinal);
-        		}*/
-      		}
-    	}
-	
-	//sensor_msgs::PointCloud2 roadPC;
-	pcl::PointCloud<pcl::PointXYZI> pointCloud;
-
-	if(total.points.size() > 500){
-		pcl::PointCloud<pcl::PointXYZI> tempCloud;
-		pcl::fromPCLPointCloud2(cloudFinal, pointCloud);
-		/*pcl::fromPCLPointCloud2(cloudFinal, tempCloud);
-		auto result = processForSphericalCoordinateFrame(tempCloud);
-		pcl::copyPointCloud(result, pointCloud);*/
-	}else{
-		auto cloudFiltered = processForSphericalCoordinateFrame(input_cloud);
-		pcl::copyPointCloud(cloudFiltered, pointCloud);
-		/*intensity_topic.clear();
-        	intensity_topic = createIntensityMap(cloudFiltered);
-        	outputImage(intensity_topic, "/constraint_model/images/edge_all.png");
-		*/
-		//ROS_INFO_STREAM("Total points: "<<input_cloud->points.size()<<", "<<cloudFiltered.points.size());
-	}
-	
-	return pointCloud;
+  return pointCloud;
 }
 
 pcl::PointCloud<pcl::PointXYZI> FeatureExtractor::mat2PCL(std::vector<std::vector<float> > matrixPC){
@@ -1209,8 +1181,8 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCl
 
 	std::vector<std::vector<float>> heightMatrixPC;
 	int middle = middlePoint(matrixPC, 0);
-	double heightDeltaThreshold = 0.10;
-	double heightThreshold = 0.20;
+	double heightDeltaThreshold = 0.10; //0.10
+	double heightThreshold = 0.15; //0.20
 	double previousHeight = 0.;
 	
 	//One side of the points
@@ -1252,14 +1224,14 @@ pcl::PointCloud<pcl::PointXYZI>  FeatureExtractor::pointCloudFilter(pcl::PointCl
 	//--------------------Filter based on intensity-------------------	
 
 	// High intensity  = 70% higher
-	auto intensity_min = (max_intensity*70)/100;
+	auto intensity_min = (max_intensity*65)/100; //70
 	
 	// Sorting
   std::sort(heightMatrixPC.begin(), heightMatrixPC.end(), [](const std::vector<float>& a, const std::vector<float>& b) {return a[1] < b[1];});
 
 	
 	pcl::PointCloud<pcl::PointXYZI> intensityPC;
-	double intThreshold = 0.40;	
+	double intThreshold = 0.35; //0.40	
 	bool deltaFlag = false;
 	double previousInt = 0.;
 	
@@ -1572,13 +1544,13 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
             bool proceed = true;
             std::vector<double> xs;
             std::vector<double> ys;
-            /*for(auto& lSeg: laneSegment){
-              xs.push_back(lSeg.first);
-              ys.push_back(lSeg.second);
-            }*/
-
-            outliersRemoval(laneSegment, xs, ys);
-
+            if(laneSegment.size()< 5){
+              for(auto& lSeg: laneSegment){
+                xs.push_back(lSeg.first);
+                ys.push_back(lSeg.second);
+              }
+            }else
+              outliersRemoval(laneSegment, xs, ys);
             auto lineDetails = linearRegression(xs, ys);
             std::vector<double> odomX; std::vector<double> odomY;
             for(auto& odom: odomPoints){
@@ -1587,7 +1559,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
             } 
             auto odomLineDetails = linearRegression(odomX, odomY);
             double m; double c;
-            if(xs.size() > 2){
+            if(xs.size() > 3){ // 2 works
               auto lineDetails = linearRegression(xs, ys);
               auto mse = std::get<2>(lineDetails);
               m = std::get<0>(lineDetails);
@@ -1777,11 +1749,16 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
       auto y_diff2 = std::abs(std::abs(y)-std::abs(y1));
       float d = std::sqrt(std::pow((x4-x1),2)+std::pow((y4-y1),2));
       //ROS_INFO_STREAM("y_diff1: "<<y_diff1<<"y_diff2: "<<y_diff2<<"slopeDiff: "<<slopeDiff);
-      if(slopeDiff < 0.05 && y_diff1 < 0.25){
+      if(slopeDiff < 0.1 && y_diff1 < smallD){ //0.05 works
+        found = true;
+        smallD = y_diff1;
+        smallIndex = i;
+        //break;
+      }/*else if(slopeDiff < 0.05 && y_diff2 < 0.25){
         found = true;
         smallIndex = i;
         break;
-      }
+      }*/ 
     }
     
     if(found){
@@ -1796,6 +1773,8 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
       auto lineSegVec = activeLaneSeg[smallIndex].first;
       auto takeSeg = lineSegVec.back();
       auto lastLineSegTuple = takeSeg.first; 
+      auto odomSegTuple = takeSeg.second; 
+      auto odomM = std::get<1>(odomSegTuple);
       auto seg1 = std::get<0>(lastLineSegTuple);
       auto m1  = std::get<1>(lastLineSegTuple);
       double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
@@ -1809,6 +1788,7 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
       if(dx != 0 && dy != 0){
         auto m2 = dy / dx;auto c2 = y3 - m2 * x3;
         auto slopeDiff = std::abs(m2-m1);
+        auto odomSlopeDiff = std::abs(odomM-m2);
         if(slopeDiff < 0.1){
           //Slope diff between two lines are less than threshold, it should be
           //added to the current active lane segment.
@@ -1818,7 +1798,7 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
           
         }else{
           //Slope diff is greater than threshold new line segment should be
-          //treated as new actibe lane segment.
+          //treated as new active lane segment.
           std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> line;
           line.push_back(std::make_pair(newSeg,odomSeg));
           activeLaneSeg.push_back(std::make_pair(line,0));
@@ -1853,37 +1833,23 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
     }// second active lane seg for loop close
   }//main else close
   
-  if(laneSCount !=0 && laneSCount%5 == 0 ){
-    ROS_INFO_STREAM("_______________________: "<<laneSCount);
-    ROS_INFO_STREAM("allLines size: "<<allLines.size());
-    joinLinesFurther(0.05, 0.1, 0.1, 20.);
+  /*if(laneSCount !=0 && laneSCount%5 == 0 ){
     //removeNoiseLines();
-  }
-  
-  if(laneSCount !=0 && laneSCount%5 == 0 ){
-    ROS_INFO_STREAM("_______________________: "<<laneSCount);
-    ROS_INFO_STREAM("allLines size: "<<allLines.size());
     joinLinesFurther(0.05, 0.1, 0.1, 20.);
   }
-  
   if(laneSCount !=0 && laneSCount%5 == 0 ){
-    ROS_INFO_STREAM("_______________________: "<<laneSCount);
-    ROS_INFO_STREAM("allLines size: "<<allLines.size());
+    joinLinesFurther(0.05, 0.1, 0.1, 20.);
+  }
+  if(laneSCount !=0 && laneSCount%5 == 0 ){
     joinLinesFurther(0.05, 0.1, 0.1, 30.);
   }
-
   if(laneSCount !=0 && laneSCount%5 == 0 ){
-    ROS_INFO_STREAM("_______________________: "<<laneSCount);
-    ROS_INFO_STREAM("allLines size: "<<allLines.size());
     joinLinesFurther(0.05, 0.1, 0.1, 40.);
-  }
-
-  if(laneSCount !=0 && laneSCount%10 == 0 ){
-    ROS_INFO_STREAM("****************************: "<<laneSCount);
-    ROS_INFO_STREAM("allLines size: "<<allLines.size());
+  }*/
+  /*if(laneSCount !=0 && laneSCount%10 == 0 ){
     joinLinesFurther(0.1, 0.5, 0.5, 30);
-    //removeLineIntersects();
-  }
+    removeLineIntersects();
+  }*/
 }
 
 void FeatureExtractor::joinLinesFurther(double slopeDiffT, double yDiff1T, double yDiff2T, double dT){
@@ -1950,12 +1916,14 @@ void FeatureExtractor::joinLinesFurther(double slopeDiffT, double yDiff1T, doubl
             auto m2New = dy / dx;auto c2New = y3New - m2New * x3New;
             auto odomM = std::get<1>(odomSeg3);
             auto slopeDiff = std::abs(odomM-m2New);
-            ROS_INFO_STREAM("slopeDiff: "<<slopeDiff);
+            //ROS_INFO_STREAM("slopeDiff: "<<slopeDiff);
             Segment seg2New(Point(x3New, y3New), Point(x4New, y4New));
             lineSegVec.push_back(std::make_pair(std::make_tuple(seg2New, m2New, c2New), odomSeg3));
             for(size_t k=0; k<segVec.size(); k++){
               lineSegVec.push_back(segVec[k]);
             }
+        }else{
+          ROS_INFO_STREAM("HERE is else");
         }
         activeList.push_back(i);
         activeList.push_back(index);
@@ -2064,24 +2032,26 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
     if(input_pointcloud_bl->points.size() > 0){
       auto extractedPC = extractEdges(input_pointcloud_bl, pointcloud_msg->header.stamp.sec, pointcloud_msg->header.stamp.nsec);
       
-      // Filtering on baselink
-      auto lanePC = pointCloudFilter(extractedPC);
-      
-      // Transfroming to odom frame
-      pcl::transformPointCloud(lanePC, lanePC, world_origin, world_rotation);
-      
-      // Construct lane segement
-      constructLaneSegments(lanePC); 
-      
-      for(size_t i=0; i<lanePC.points.size(); i++){		
-        auto x = lanePC.points[i].x;
-        auto y = lanePC.points[i].y;
-        int x_index = (x * 100.) / cm_resolution;
-        int y_index = (y * 100.) / cm_resolution;
-        lane_points.push_back(std::make_pair(-1. * y_index, x_index));
-        lane_odom.push_back(std::make_pair(x, y));
+      if(extractedPC.points.size() > 0){ 
+        // Filtering on baselink
+        auto lanePC = pointCloudFilter(extractedPC);
+        
+        // Transfroming to odom frame
+        pcl::transformPointCloud(lanePC, lanePC, world_origin, world_rotation);
+        
+        // Construct lane segement
+        constructLaneSegments(lanePC); 
+        
+        for(size_t i=0; i<lanePC.points.size(); i++){		
+          auto x = lanePC.points[i].x;
+          auto y = lanePC.points[i].y;
+          int x_index = (x * 100.) / cm_resolution;
+          int y_index = (y * 100.) / cm_resolution;
+          lane_points.push_back(std::make_pair(-1. * y_index, x_index));
+          lane_odom.push_back(std::make_pair(x, y));
+        }
+        seq_count += 1;
       }
-      seq_count += 1;
     }
     
     // put each point into the intensity map
