@@ -1546,9 +1546,6 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
         
           // Remove from active and store them in lane segement
           if(inactiveCount > INACTIVECOUNT){
-            
-            //Remove the outliers
-            
             bool proceed = true;
             std::vector<double> xs;
             std::vector<double> ys;
@@ -1567,7 +1564,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
             } 
             auto odomLineDetails = linearRegression(odomX, odomY);
             double m; double c;
-            if(xs.size() > 1){ // 2 works
+            if(xs.size() > 2){ // 2 works
               auto lineDetails = linearRegression(xs, ys);
               auto mse = std::get<2>(lineDetails);
               m = std::get<0>(lineDetails);
@@ -1587,7 +1584,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
                 auto slopeOdom =  std::get<0>(odomLineDetails);
                 auto slopeDiff = std::abs(slopeOdom-m);
                 //ROS_INFO_STREAM("slopeOdom: "<<slopeOdom<<" lineOdom: "<<m<<" diff: "<<slopeDiff);
-                if(slopeDiff > 0.5) //1.good for 5 to 8
+                if(slopeDiff > 1.) //1.good for 5 to 8
                   proceed = false;
               }
 
@@ -1841,28 +1838,16 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
       }
     }// second active lane seg for loop close
   }//main else close
+ 
   
-  /*if(laneSCount !=0 && laneSCount%5 == 0 ){
-    //removeNoiseLines();
-    joinLinesFurther(0.05, 0.1, 0.1, 20.);
-  }
-  if(laneSCount !=0 && laneSCount%5 == 0 ){
-    joinLinesFurther(0.05, 0.1, 0.1, 20.);
-  }
-  if(laneSCount !=0 && laneSCount%5 == 0 ){
-    joinLinesFurther(0.05, 0.1, 0.1, 30.);
-  }
-  if(laneSCount !=0 && laneSCount%5 == 0 ){
-    joinLinesFurther(0.05, 0.1, 0.1, 40.);
-  }*/
-  /*if(laneSCount !=0 && laneSCount%10 == 0 ){
-    joinLinesFurther(0.1, 0.5, 0.5, 30);
-    removeLineIntersects();
-  }*/
-}
+  //To do:
+  //Maintainting active line and push to line when active line become inactive
+
+
+ }
 
 void FeatureExtractor::joinLinesFurther(double slopeDiffT, double yDiff1T, double yDiff2T, double dT){
-  std::vector<size_t> activeList;
+  /*std::vector<size_t> activeList;
   for(size_t i=0; i<allLines.size(); i++){
      if(std::find(activeList.begin(), activeList.end(), i) != activeList.end())
       continue;
@@ -1940,7 +1925,7 @@ void FeatureExtractor::joinLinesFurther(double slopeDiffT, double yDiff1T, doubl
         allLines.erase(allLines.begin()+index);
       }
     }
-  }
+  }*/
 }
 
 void FeatureExtractor::removeNoiseLines(){
