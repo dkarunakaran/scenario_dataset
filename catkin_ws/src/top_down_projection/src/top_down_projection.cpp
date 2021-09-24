@@ -431,7 +431,7 @@ void FeatureExtractor::WriteImage() {
   }
 
   cv::Scalar odom_colour1(0., 0., 255., 180);
-  float odom_radius1 = 1.;
+  /*float odom_radius1 = 1.;
   for(auto& lane_segment: lane_segments){
     cv::Scalar color(
       (double)std::rand() / RAND_MAX * 255,
@@ -450,10 +450,18 @@ void FeatureExtractor::WriteImage() {
         int value_y = y_index - min_y;
         cv::circle(output_image, cv::Point(value_y, value_x), odom_radius1, odom_colour1, CV_FILLED);
      }         
-  }
+  }*/
   
+  cv::Scalar lane_point_colour(255., 255., 255., 180);
+  for(auto& points: lane_points){
+    int value_x = points.first - min_x;
+    int value_y = points.second - min_y;
+    cv::circle(output_image, cv::Point(value_y, value_x), 1, lane_point_colour, CV_FILLED);
+
+  }
+
   int thickness = 1;
-  int count =0;
+ /* int count =0;
   for(auto& lane: lanes){
     cv::Scalar color(
       (double)std::rand() / RAND_MAX * 255,
@@ -489,7 +497,7 @@ void FeatureExtractor::WriteImage() {
     
     //cv::putText(output_image,std::to_string(count),cv::Point(value_y1, value_x1), cv::FONT_HERSHEY_SIMPLEX,0.5,odom_colour1,1,false);
     //count ++;
-  }
+  }*/
 
   thickness = 1;
   for(auto& lane: checkLanes){
@@ -1431,7 +1439,7 @@ void FeatureExtractor::outliersRemoval(std::vector<std::pair<double, double>> la
   pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
   sor.setInputCloud (laneSegPC);
   sor.setMeanK (30);
-  sor.setStddevMulThresh (0.75);
+  sor.setStddevMulThresh (0.5);
   sor.filter (*cloud_filtered);
   for(size_t i = 0; i < cloud_filtered->points.size(); ++i) {
 			xs.push_back(cloud_filtered->points[i].x);
@@ -1559,7 +1567,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
             } 
             auto odomLineDetails = linearRegression(odomX, odomY);
             double m; double c;
-            if(xs.size() > 3){ // 2 works
+            if(xs.size() > 1){ // 2 works
               auto lineDetails = linearRegression(xs, ys);
               auto mse = std::get<2>(lineDetails);
               m = std::get<0>(lineDetails);
@@ -1579,7 +1587,7 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
                 auto slopeOdom =  std::get<0>(odomLineDetails);
                 auto slopeDiff = std::abs(slopeOdom-m);
                 //ROS_INFO_STREAM("slopeOdom: "<<slopeOdom<<" lineOdom: "<<m<<" diff: "<<slopeDiff);
-                if(slopeDiff > 1.) //1.good for 5 to 8
+                if(slopeDiff > 0.5) //1.good for 5 to 8
                   proceed = false;
               }
 
@@ -1749,7 +1757,7 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
       auto y_diff2 = std::abs(std::abs(y)-std::abs(y1));
       float d = std::sqrt(std::pow((x4-x1),2)+std::pow((y4-y1),2));
       //ROS_INFO_STREAM("y_diff1: "<<y_diff1<<"y_diff2: "<<y_diff2<<"slopeDiff: "<<slopeDiff);
-      if(slopeDiff < 0.1 && y_diff1 < smallD){ //0.05 works
+      if(slopeDiff < 0.05 && y_diff1 < 0.5 && y_diff1 < smallD){ //0.05 works
         found = true;
         smallD = y_diff1;
         smallIndex = i;
@@ -1790,6 +1798,7 @@ void FeatureExtractor::joinLaneSegment(std::tuple<Segment,double,double> newSeg,
         auto slopeDiff = std::abs(m2-m1);
         auto odomSlopeDiff = std::abs(odomM-m2);
         if(slopeDiff < 0.1){
+          ROS_INFO_STREAM(odomSlopeDiff);
           //Slope diff between two lines are less than threshold, it should be
           //added to the current active lane segment.
           Segment seg2(Point(x3, y3), Point(x4, y4));
