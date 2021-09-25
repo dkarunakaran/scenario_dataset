@@ -115,13 +115,18 @@ private:
  
   std::vector<double> polynomialRegression(const std::vector<double> &t, const std::vector<double> &v, int order);
   
-  void joinLinesFurther(double slopeDiffT, double yDiff1T, double yDiff2T, double dT);
+  void joinLinesFurther(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>);
   
   void removeNoiseLines(); 
 
   void removeLineIntersects();
 
   void outliersRemoval(std::vector<std::pair<double, double>> laneSegment, std::vector<double>& xs, std::vector<double>& ys);
+
+  std::tuple<Segment, double, double> getIntermediateSlope(Segment seg1, Segment seg2);
+
+  void joinLinesFurther2(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>);
+  
 
   // initialise ros stuff
   virtual void onInit();
@@ -194,6 +199,8 @@ private:
   std::vector<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>> allLines;
   long int laneSCount1;
   long int laneSCount2;
+  std::vector<std::pair<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>,int>> activeLaneSeg2;
+  std::vector<std::pair<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>,int>> activeLaneSeg3;
 };
 
 
