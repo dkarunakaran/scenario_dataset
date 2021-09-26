@@ -1970,20 +1970,8 @@ void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segmen
       auto seg2pair = newLine.front();
       auto seg2 = std::get<0>(seg2pair.first);
       auto m2 = std::get<1>(seg2pair.first);
-      auto c2 = std::get<2>(seg2pair.first);
       double x3 = bg::get<0, 0>(seg2); double y3 = bg::get<0, 1>(seg2);
       double x4 = bg::get<1, 0>(seg2); double y4 = bg::get<1, 1>(seg2);
-      if(m1 != m2){
-        
-        intersection_X = (c2 - c1) / (m1 - m2);
-        intersection_Y = m1 * intersection_X + c1;
-        float d = std::sqrt(std::pow((intersection_X-x1),2)+std::pow((intersection_Y-y1),2));
-
-        ROS_INFO_STREAM("Intersection distance: "<<d);
-
-
-      }
-      
       /*auto slopeDiff = std::abs(m2-m1);
       auto y = m1*x4+c1;
       auto y_diff1 = std::abs(std::abs(y)-std::abs(y4));
