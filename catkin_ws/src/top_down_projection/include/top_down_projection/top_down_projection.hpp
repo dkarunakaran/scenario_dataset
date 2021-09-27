@@ -127,7 +127,12 @@ private:
 
   void joinLinesFurther2(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>);
   
-
+  void removeTheLineinConnectedPath();
+  
+  int IsPointInBoundingBox(float x1, float y1, float x2, float y2, float px, float py);
+  
+  std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> joinEachSegInALine(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>);
+  
   // initialise ros stuff
   virtual void onInit();
 

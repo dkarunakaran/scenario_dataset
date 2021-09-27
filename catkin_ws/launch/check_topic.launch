@@ -22,7 +22,7 @@
         <param name="min_intensity" value="0.04" /><!--0.04-->
         <param name="max_intensity" value="2." /><!--2-->
         <!-- parameters for the h264 bag playback -->
-        <param name="percentage_start" value="15" />
+        <param name="percentage_start" value="13" />
         <param name="percentage_end" value="17" />
         <param name="horizon_in_buffer" value="true" />
         <param name="new_roll" value="0.0" />
