@@ -34,11 +34,15 @@
 #include <boost/geometry/algorithms/overlaps.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
+#include <boost/geometry/geometries/linestring.hpp>
+#include <boost/geometry/multi/geometries/multi_linestring.hpp>
 
 namespace bg = boost::geometry;
 typedef bg::model::d2::point_xy<double> Point;
 typedef bg::model::d2::point_xy<double> Vector;
 typedef bg::model::segment<Point> Segment;
+typedef bg::model::linestring<Point> LineString;
+typedef bg::model::multi_linestring<LineString> MultiLineString;
 
 class FeatureExtractor : public dataset_toolkit::h264_bag_playback
 {
