@@ -1651,7 +1651,15 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
                 auto ox2 = odomPoints[odomPoints.size()-1].first;
                 auto oy2 = odomPoints[odomPoints.size()-1].second;
                 Segment odomSeg(Point(ox1, oy1), Point(ox2, oy2)); 
-                joinLaneSegment(std::make_tuple(seg, m,c), std::make_tuple(odomSeg, std::get<0>(odomLineDetails), std::get<1>(odomLineDetails)));
+                auto odomLocPoints = getOdomLocation(Point(x1, y1), Point(x2, y2));
+                auto odomDetails = linearRegression(std::get<0>(odomLocPoints), std::get<1>(odomLocPoints));
+                auto odomM = std::get<0>(odomDetails);
+                auto odomC = std::get<1>(odomDetails);
+                auto y = odomM*x1+odomC;
+                auto y_diff = std::abs(std::abs(y)-std::abs(y1));
+                ROS_INFO_STREAM(y_diff);
+                if(y_diff > 0.3)
+                  joinLaneSegment(std::make_tuple(seg, m,c), std::make_tuple(odomSeg, std::get<0>(odomLineDetails), std::get<1>(odomLineDetails)));
             }
             
             // Delete the corresponding active_lane_segments.
@@ -1674,6 +1682,35 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
     }
   }//else close
   
+}
+
+std::tuple<std::vector<double>, std::vector<double>, LineString> FeatureExtractor::getOdomLocation(Point point1, Point point2){
+  double x1 = point1.get<0>(); double y1 = point1.get<1>();
+  double x2 = point2.get<0>(); double y2 = point2.get<1>();
+  bool firstPointEnable = false;
+  std::vector<double> xs;
+  std::vector<double> ys;
+  LineString linestring1;
+
+  for(size_t i=0; i<vehicle_odom_double.size()-2; i++){
+    
+    if(x1 > vehicle_odom_double[i+2].first & !firstPointEnable){
+      xs.push_back(vehicle_odom_double[i].first); 
+      ys.push_back(vehicle_odom_double[i].second); 
+      linestring1.push_back(Point(vehicle_odom_double[i].first, vehicle_odom_double[i].second));
+      firstPointEnable = true;
+    }
+    if(firstPointEnable){
+      xs.push_back(vehicle_odom_double[i].first); 
+      ys.push_back(vehicle_odom_double[i].second); 
+      linestring1.push_back(Point(vehicle_odom_double[i].first, vehicle_odom_double[i].second));
+      if(x2 > vehicle_odom_double[i].first)
+        break;
+    }
+  }
+  
+  return std::make_tuple(xs, ys, linestring1);
+
 }
 
 std::tuple<double, double, double> FeatureExtractor::linearRegression(std::vector<double> x, std::vector<double> y){
@@ -2317,7 +2354,7 @@ void FeatureExtractor::removeNoiseLines(){
       double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
       //float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
       if(slopeDiff > 0.75){
-        ROS_INFO_STREAM("Deleteting becuae of the slope difference with odom: "<<i);
+        ROS_INFO_STREAM("Deleting because of the slope difference with odom: "<<i);
         allLines.erase(allLines.begin()+i);
       }
     }

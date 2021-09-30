@@ -136,6 +136,8 @@ private:
   int IsPointInBoundingBox(float x1, float y1, float x2, float y2, float px, float py);
   
   std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> joinEachSegInALine(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>);
+ 
+  std::tuple<std::vector<double>, std::vector<double>, LineString> getOdomLocation(Point point1, Point point2);
   
   // initialise ros stuff
   virtual void onInit();
