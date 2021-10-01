@@ -193,20 +193,61 @@ void FeatureExtractor::constructLane(){
     joinLinesFurther(lineSegVec);
     //activeLaneSeg.erase(activeLaneSeg.begin()+i);
   }
-  ROS_INFO_STREAM("All line size after activeLaneSeg: "<<allLines.size());  
   for(size_t i=0; i<activeLaneSeg.size(); i++){
     auto lineSegVec = activeLaneSeg[i].first;
     allLines.push_back(lineSegVec);
   }
-  ROS_INFO_STREAM("All line size: "<<allLines.size());  
+  for(size_t i=0; i<activeLaneSeg2.size(); i++){
+    auto lineSegVec = activeLaneSeg2[i].first;
+    joinLinesFurther2(lineSegVec);
+  }
   for(size_t i=0; i<activeLaneSeg2.size(); i++){
     auto lineSegVec = activeLaneSeg2[i].first;
     allLines.push_back(lineSegVec);
-    activeLaneSeg2.erase(activeLaneSeg2.begin()+i);
   }
-  ROS_INFO_STREAM("All line size after activeLaneSeg2: "<<allLines.size());  
+  for(size_t i=0; i<activeLaneSeg3.size(); i++){
+    auto lineSegVec = activeLaneSeg3[i].first;
+    allLines.push_back(lineSegVec);
+  }
+  ROS_INFO_STREAM("All line size after activeLaneSeg3: "<<allLines.size());  
+
   
+  
+  /*Post processing the lines*/
+
   //removeTheLineinConnectedPath();
+  
+  //1. Some lines has multiple line segmets with same end points which gives
+  //multiple lines between first and last point of the lines.
+  
+  for(size_t i=0; i<allLines.size(); i++){
+    auto linePairVec = allLines[i];
+    std::vector<std::vector<double>> sortedVec;
+    std::vector<double> xs;
+    for(auto& linePair: linePairVec){
+      auto segTuple = linePair.first;
+      auto seg1 = std::get<0>(segTuple);
+      double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
+      double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
+      std::vector<double> row;
+      row.push_back(x1);
+      row.push_back(y1);
+      sortedVec.push_back(row);
+      
+      row.clear();
+      row.push_back(x2);
+      row.push_back(y2);
+      sortedVec.push_back(row);
+    }
+    std::sort(sortedVec.begin(), sortedVec.end(), [](const std::vector<double>& a, const std::vector<double>& b) {return a[0] > b[0];});
+    LineString linestring;
+    for(auto& vec: sortedVec){
+      linestring.push_back(Point(vec[0], vec[1])); 
+    }
+    allLineStrings.push_back(linestring);
+  }
+  allLines.clear();
+  
   
   //Further connect the lines as fast processing
   /*std::vector<size_t> eraseVec;
@@ -562,7 +603,7 @@ void FeatureExtractor::WriteImage() {
     cv::line(output_image, p1, p2, odom_colour1, thickness, cv::LINE_8);
   }
 
-  for(auto& lineSegVec: allLines){
+  /*for(auto& lineSegVec: allLines){
     ROS_INFO_STREAM("size: "<<lineSegVec.size());
     cv::Scalar color(
       (double)std::rand() / RAND_MAX * 255,
@@ -592,7 +633,35 @@ void FeatureExtractor::WriteImage() {
       }
 
     } 
+  }*/
+
+  for(auto& linestring: allLineStrings){
+    cv::Scalar color1(
+      (double)std::rand() / RAND_MAX * 255,
+      (double)std::rand() / RAND_MAX * 255,
+      (double)std::rand() / RAND_MAX * 255,
+      255
+    );
+    cv::Scalar color2(0., 0., 255., 180);
+    bool first = true;
+    for(size_t i=0; i<linestring.size()-1; i++){
+      auto point1 = linestring[i]; auto point2 = linestring[i+1];
+      double x1 = point1.get<0>(); double y1 = point1.get<1>();
+      double x2 = point2.get<0>(); double y2 = point2.get<1>();
+      int x_index1 = ((y1*100)/cm_resolution)*-1;int y_index1 = (x1*100)/cm_resolution;
+      int value_x1 = x_index1 - min_x;int value_y1 = y_index1 - min_y;
+      int x_index2 = ((y2*100)/cm_resolution)*-1;int y_index2 = (x2*100)/cm_resolution;
+      int value_x2 = x_index2 - min_x;int value_y2 = y_index2 - min_y;
+      cv::Point p1(value_y1, value_x1);cv::Point p2(value_y2, value_x2);
+      cv::line(output_image, p1, p2, color1, thickness, cv::LINE_8);
+      if(first){
+        cv::circle(output_image, cv::Point(value_y1, value_x1), 2., color2, CV_FILLED);
+        first = false;
+      }
+    }
   }
+
+
   for (auto &ring_number: rings_included) {
     ROS_INFO_STREAM("Ring " << ring_number << " included in image");
   }
@@ -1657,7 +1726,6 @@ void FeatureExtractor::constructLaneSegments(pcl::PointCloud<pcl::PointXYZI> lan
                 auto odomC = std::get<1>(odomDetails);
                 auto y = odomM*x1+odomC;
                 auto y_diff = std::abs(std::abs(y)-std::abs(y1));
-                ROS_INFO_STREAM(y_diff);
                 if(y_diff > 0.3)
                   joinLaneSegment(std::make_tuple(seg, m,c), std::make_tuple(odomSeg, std::get<0>(odomLineDetails), std::get<1>(odomLineDetails)));
             }
@@ -2011,21 +2079,6 @@ void FeatureExtractor::joinLinesFurther(std::vector<std::pair<std::tuple<Segment
           if(d < 50){
             Segment seg2(Point(x3, y3), Point(x4, y4));
             lineSegVec.push_back(std::make_pair(std::make_tuple(seg2, m2, c2), odomMC));
-            /* This as it get better result from 28 to 31. Remove if we get
-             * better in other areas as well.
-             for(size_t k=0; k<activeLaneSeg2.size(); k++){
-              if(k == smallIndex)
-                continue;
-              auto lineSegVecTemp = activeLaneSeg2[k].first;
-              for(auto& segTuple: lineSegVecTemp){
-                auto segCheck = std::get<0>(segTuple.first);
-                bool result = boost::geometry::intersects(segCheck, seg2);
-                if(result){
-                  eraseVec.push_back(k);
-                  break;
-                }
-              }
-            }*/
             for(auto eachSegPair: newLine){
               lineSegVec.push_back(eachSegPair);
             }
@@ -2071,9 +2124,9 @@ void FeatureExtractor::joinLinesFurther(std::vector<std::pair<std::tuple<Segment
             lineSegVec = joinEachSegInALine(tempLineSegVec);
           }
           removeNoiseLines();
-          allLines.push_back(lineSegVec);
-          //removeTheLineinConnectedPath();
-          //joinLinesFurther2(lineSegVec);
+          //allLines.push_back(lineSegVec);
+          //laneSCount++;
+          joinLinesFurther2(lineSegVec);
           activeLaneSeg2.erase(activeLaneSeg2.begin()+i);
         }else{
           activeLaneSeg2[i] = std::make_pair(lineSegVec, inactive);
@@ -2084,9 +2137,8 @@ void FeatureExtractor::joinLinesFurther(std::vector<std::pair<std::tuple<Segment
 }
 
 void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> newLine){
-  ROS_INFO_STREAM("+++++++++++++++++++++++++");
-  ROS_INFO_STREAM("activeLaneSeg3 size: "<<activeLaneSeg3.size());
-
+  //ROS_INFO_STREAM("+++++++++++++++++++++++++");
+  //ROS_INFO_STREAM("activeLaneSeg3 size: "<<activeLaneSeg3.size());
   if(activeLaneSeg3.size() == 0){
     activeLaneSeg3.push_back(std::make_pair(newLine,0));
   }else{
@@ -2146,11 +2198,11 @@ void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segmen
       auto y = m1*x4+c1;
       auto y_diff1 = std::abs(std::abs(y)-std::abs(y4));
       float d = std::sqrt(std::pow((x4-x1),2)+std::pow((y4-y1),2));
-      if(slopeDiff < 0.5 && y_diff1 < 0.25 && d < 15){ //0.05 works
+      if(slopeDiff < 0.1 && y_diff1 < 0.5 && y_diff1 < smallD){ //0.05 works
         found = true;
         smallD = y_diff1;
         smallIndex = i;
-        break;
+        //break;
       }
     }
     if(found){
@@ -2182,13 +2234,17 @@ void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segmen
         auto odomSlopeDiff = std::abs(odomM-m2);
         ROS_INFO_STREAM("slopeDiff && second odomM: "<<slopeDiff<<" "<<odomSlopeDiff);
         float d = std::sqrt(std::pow((x4-x3),2)+std::pow((y4-y3),2));
-        if(d < 15){ //0.1 and 0.05 works
-          Segment seg2(Point(x3, y3), Point(x4, y4));
-          lineSegVec.push_back(std::make_pair(std::make_tuple(seg2, m2, c2), odomMC));
-          for(auto eachSegPair: newLine){
-            lineSegVec.push_back(eachSegPair);
+        if(slopeDiff < 0.2 && odomSlopeDiff < 0.1){ //0.1 and 0.05 works
+          if(d < 50){
+            Segment seg2(Point(x3, y3), Point(x4, y4));
+            lineSegVec.push_back(std::make_pair(std::make_tuple(seg2, m2, c2), odomMC));
+            for(auto eachSegPair: newLine){
+              lineSegVec.push_back(eachSegPair);
+            }
+            activeLaneSeg3[smallIndex] = std::make_pair(lineSegVec, 0);
+          }else{
+            activeLaneSeg3.push_back(std::make_pair(newLine,0));
           }
-          activeLaneSeg3[smallIndex] = std::make_pair(lineSegVec, 0);
         }else{
           activeLaneSeg3.push_back(std::make_pair(newLine,0));
         }
@@ -2218,9 +2274,7 @@ void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segmen
             lineSegVec.clear();
             lineSegVec = joinEachSegInALine(tempLineSegVec);
           }
-          //allLines.push_back(lineSegVec);
-          //removeNoiseLines();
-          //removeTheLineinConnectedPath();
+          allLines.push_back(lineSegVec);
           activeLaneSeg3.erase(activeLaneSeg3.begin()+i);
         }else{
           activeLaneSeg3[i] = std::make_pair(lineSegVec, inactive);
@@ -2304,7 +2358,7 @@ void FeatureExtractor::removeTheLineinConnectedPath(){
       if(intersection.size() > 1){
         auto d1 = bg::length(segCheck1);
         auto d2 = bg::length(segCheck2);
-        if(d1 > 45 && d2 > 45)
+        if(d1 > 20 && d2 > 20)
           continue;
         else{
           auto selectedIndex = j;
