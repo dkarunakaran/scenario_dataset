@@ -130,6 +130,8 @@ private:
   std::tuple<Segment, double, double> getIntermediateSlope(Segment seg1, Segment seg2);
 
   void joinLinesFurther2(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>);
+
+  void joinLinesFurther3(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>);
   
   void removeTheLineinConnectedPath();
   
@@ -141,6 +143,8 @@ private:
   
   void removeIntersectingLines();
 
+  void cleanLineStrings();
+  
   // initialise ros stuff
   virtual void onInit();
 
@@ -214,6 +218,7 @@ private:
   long int laneSCount2;
   std::vector<std::pair<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>,int>> activeLaneSeg2;
   std::vector<std::pair<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>,int>> activeLaneSeg3;
+  std::vector<std::pair<std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>>,int>> activeLaneSeg4;
   std::vector<LineString> allLineStrings;
 
 };

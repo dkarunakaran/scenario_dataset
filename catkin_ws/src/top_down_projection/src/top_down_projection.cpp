@@ -193,14 +193,19 @@ void FeatureExtractor::constructLane(){
     joinLinesFurther(lineSegVec);
     //activeLaneSeg.erase(activeLaneSeg.begin()+i);
   }
-  for(size_t i=0; i<activeLaneSeg.size(); i++){
-    auto lineSegVec = activeLaneSeg[i].first;
-    allLines.push_back(lineSegVec);
-  }
   for(size_t i=0; i<activeLaneSeg2.size(); i++){
     auto lineSegVec = activeLaneSeg2[i].first;
     joinLinesFurther2(lineSegVec);
   }
+  for(size_t i=0; i<activeLaneSeg3.size(); i++){
+    auto lineSegVec = activeLaneSeg3[i].first;
+    joinLinesFurther3(lineSegVec);
+  }
+  for(size_t i=0; i<activeLaneSeg.size(); i++){
+    auto lineSegVec = activeLaneSeg[i].first;
+    allLines.push_back(lineSegVec);
+  }
+
   for(size_t i=0; i<activeLaneSeg2.size(); i++){
     auto lineSegVec = activeLaneSeg2[i].first;
     allLines.push_back(lineSegVec);
@@ -209,18 +214,102 @@ void FeatureExtractor::constructLane(){
     auto lineSegVec = activeLaneSeg3[i].first;
     allLines.push_back(lineSegVec);
   }
+  for(size_t i=0; i<activeLaneSeg4.size(); i++){
+    auto lineSegVec = activeLaneSeg4[i].first;
+    allLines.push_back(lineSegVec);
+  }
+
   ROS_INFO_STREAM("All line size after activeLaneSeg3: "<<allLines.size());  
 
-  
-  
   /*Post processing the lines*/
-
-  //removeTheLineinConnectedPath();
   
-  //1. Some lines has multiple line segmets with same end points which gives
+  //Some lines has multiple line segmets with same end points which gives
   //multiple lines between first and last point of the lines.
+  cleanLineStrings();
+  removeIntersectingLines();
   
-  for(size_t i=0; i<allLines.size(); i++){
+  /*auto lineStrings = allLineStrings;
+  allLineStrings.clear();
+  std::vector<size_t> eraseList;
+  for(size_t i=0; i<lineStrings.size(); i++){
+    auto linestring1 = lineStrings[i];
+    if (std::find(eraseList.begin(), eraseList.end(), i) != eraseList.end())
+      continue;  
+    int count = 0; 
+    std::vector<double> xs; std::vector<double> ys;
+    Point p1 = linestring1[linestring1.size()-1];
+    for(size_t j=linestring1.size()-1; j >=0; j--){
+      if(count == 3)
+       break;
+      auto point = linestring1[j];
+      xs.push_back(point.get<0>()); ys.push_back(point.get<1>());
+      count++;
+    }
+    auto lineDetails1 = linearRegression(xs, ys);
+    double smallD = 10000.;
+    size_t smallIndex;
+    bool found = false;
+    Point p2;
+    for(size_t k=0; k<lineStrings.size(); k++){
+      if (std::find(eraseList.begin(), eraseList.end(), k) != eraseList.end() || i == k)  
+        continue;
+      auto linestring2 = lineStrings[k];
+      p2 = linestring2[0];
+      std::vector<double> xs; std::vector<double> ys;
+      int count = 0;
+      for(size_t l=0; l<linestring2.size(); l++){
+        if(count == 3)
+         break;
+        auto point = linestring2[l];
+        xs.push_back(point.get<0>()); ys.push_back(point.get<1>());
+        count++;
+      }
+      auto lineDetails2 = linearRegression(xs, ys);
+
+      //check the lines can be joined;
+      auto m1 = std::get<0>(lineDetails1);
+      auto c1 = std::get<1>(lineDetails1);
+      auto m2 = std::get<0>(lineDetails2);
+      auto c2 = std::get<1>(lineDetails2);
+      auto x2 = p2.get<0>(); auto y2 = p2.get<1>();
+      auto y = m1*x2+c1;
+      double y_diff = std::abs(std::abs(y)-std::abs(y2));
+      double slopeDiff = std::abs(m2-m1);
+      if(slopeDiff < 0.2 && y_diff < 0.1){
+        found = true;
+        smallD = y_diff;
+        smallIndex = k;
+        break;
+      }
+    }// k loop finishes
+
+    if(found){
+      auto linestring2 = lineStrings[smallIndex];
+      LineString linestringInter;
+      linestringInter.push_back(p1);
+      linestringInter.push_back(p2);
+      if(bg::length(linestringInter) < 50){
+        for(auto& point: linestring2){
+          linestring1.push_back(point);
+        }
+        lineStrings[i] = linestring1;
+        eraseList.push_back(smallIndex);
+        ROS_INFO_STREAM(smallIndex<<" is joined with "<<i);
+      }
+    }
+  }// i loop finishes
+
+  for(size_t i=0; i<lineStrings.size(); i++){
+    if (std::find(eraseList.begin(), eraseList.end(), i) != eraseList.end())
+      continue;
+    else{
+      allLineStrings.push_back(lineStrings[i]);
+    }
+  }*/
+}
+
+void FeatureExtractor::cleanLineStrings(){
+ for(size_t i=0; i<allLines.size(); i++){
     auto linePairVec = allLines[i];
     std::vector<std::vector<double>> sortedVec;
     std::vector<double> xs;
@@ -247,7 +336,6 @@ void FeatureExtractor::constructLane(){
     allLineStrings.push_back(linestring);
   }
   allLines.clear();
-  removeIntersectingLines();
 
 }
 
@@ -269,6 +357,8 @@ void FeatureExtractor::removeIntersectingLines(){
         listInter.push_back(j);
       }
     }
+    
+    //Remove intersecting lines
     auto d1 = bg::length(linestring1);
     if(d1 < 10 && listInter.size() == 1){
       auto linestring2 = lineStrings[listInter[0]];
@@ -276,17 +366,18 @@ void FeatureExtractor::removeIntersectingLines(){
       if(d2 > 10)
         eraseVec.push_back(i);
     }
+  
+    //Removing small lines 
     if(d1 < 1.){
       if(std::find(eraseVec.begin(), eraseVec.end(), i) != eraseVec.end())
         continue;
       else
         eraseVec.push_back(i);
     }
-
   }
+  
   for(size_t i=0; i<lineStrings.size(); i++){
     if(std::find(eraseVec.begin(), eraseVec.end(), i) != eraseVec.end()){
-      ROS_INFO_STREAM("Intersection: "<< i);
       continue;
     }else{
       allLineStrings.push_back(lineStrings[i]);
@@ -2055,6 +2146,17 @@ void FeatureExtractor::joinLinesFurther(std::vector<std::pair<std::tuple<Segment
           if(d < 50){
             Segment seg2(Point(x3, y3), Point(x4, y4));
             lineSegVec.push_back(std::make_pair(std::make_tuple(seg2, m2, c2), odomMC));
+            /*for(size_t k=0; k<activeLaneSeg2.size(); k++){
+              if(k == smallIndex)
+                continue;
+              auto lineSegVecTemp = activeLaneSeg2[k].first;
+              auto seg1 = std::get<0>(lineSegVecTemp[0].first);
+              bool result = boost::geometry::intersects(seg1, seg2);
+              if(result){
+                eraseVec.push_back(k);
+              }
+            }*/
+
             for(auto eachSegPair: newLine){
               lineSegVec.push_back(eachSegPair);
             }
@@ -2208,7 +2310,7 @@ void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segmen
         auto odomMC = getIntermediateSlope(odomSeg1, odomSeg2);
         auto odomM = std::get<1>(odomMC);
         auto odomSlopeDiff = std::abs(odomM-m2);
-        ROS_INFO_STREAM("slopeDiff && second odomM: "<<slopeDiff<<" "<<odomSlopeDiff);
+        //ROS_INFO_STREAM("slopeDiff && second odomM: "<<slopeDiff<<" "<<odomSlopeDiff);
         float d = std::sqrt(std::pow((x4-x3),2)+std::pow((y4-y3),2));
         if(slopeDiff < 0.2 && odomSlopeDiff < 0.1){ //0.1 and 0.05 works
           if(d < 50){
@@ -2250,7 +2352,8 @@ void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segmen
             lineSegVec.clear();
             lineSegVec = joinEachSegInALine(tempLineSegVec);
           }
-          allLines.push_back(lineSegVec);
+          //allLines.push_back(lineSegVec);
+          joinLinesFurther3(lineSegVec);
           activeLaneSeg3.erase(activeLaneSeg3.begin()+i);
         }else{
           activeLaneSeg3[i] = std::make_pair(lineSegVec, inactive);
@@ -2260,6 +2363,156 @@ void FeatureExtractor::joinLinesFurther2(std::vector<std::pair<std::tuple<Segmen
   }//main else close
 
 }
+
+void FeatureExtractor::joinLinesFurther3(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> newLine){
+  //ROS_INFO_STREAM("+++++++++++++++++++++++++");
+  //ROS_INFO_STREAM("activeLaneSeg3 size: "<<activeLaneSeg3.size());
+  if(activeLaneSeg4.size() == 0){
+    activeLaneSeg4.push_back(std::make_pair(newLine,0));
+  }else{
+    bool found = false;
+    std::vector<std::pair<double, double>> newLineVec;
+    double smallD = 100000.;
+    size_t smallIndex = 0;
+    for(size_t i=0; i<activeLaneSeg4.size(); i++){
+      auto lineSegVec = activeLaneSeg4[i].first;
+      
+      // Find average m&c using the last two segment in a line 
+      int count = 0;
+      double m1 = 0.;
+      double c1 = 0.;
+      for(auto& takeSeg: lineSegVec){
+        if(count == 3)
+          break;
+        m1 += std::get<1>(takeSeg.first);
+        c1 += std::get<2>(takeSeg.first);
+        count++;
+      }
+      m1 /= count;
+      c1 /= count;
+      
+      auto takeSeg = lineSegVec.back();
+      auto lineSeg = takeSeg.first;
+      auto seg1 = std::get<0>(lineSeg);
+      /*auto m1 = std::get<1>(lineSeg);
+      auto c1 = std::get<2>(lineSeg);*/
+      double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
+      double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
+      auto seg2pair = newLine.front();
+      auto seg2 = std::get<0>(seg2pair.first);
+      /*auto m2 = std::get<1>(seg2pair.first);
+      auto c2 = std::get<2>(seg2pair.first);*/
+      count = 0;
+      double m2 = 0;
+      double c2 = 0;
+      for(auto takeSeg: newLine){
+        if(count == 3)
+          break;
+        m2 += std::get<1>(takeSeg.first);
+        c2 += std::get<2>(takeSeg.first);
+        count++;
+      }
+      
+      m2 /= count;
+      c2 /= count;
+
+      double x3 = bg::get<0, 0>(seg2); double y3 = bg::get<0, 1>(seg2);
+      double x4 = bg::get<1, 0>(seg2); double y4 = bg::get<1, 1>(seg2);
+      auto slopeDiff = std::abs(m2-m1);
+      /*auto y = m1*x4+c1;
+      auto y_diff1 = std::abs(std::abs(y)-std::abs(y4));
+      y = m2*x1+c1;
+      auto y_diff2 = std::abs(std::abs(y)-std::abs(y1));*/
+      auto y = m1*x4+c1;
+      auto y_diff1 = std::abs(std::abs(y)-std::abs(y4));
+      float d = std::sqrt(std::pow((x4-x1),2)+std::pow((y4-y1),2));
+      if(slopeDiff < 0.2 && y_diff1 < 0.5 && y_diff1 < smallD){ //0.05 works
+        found = true;
+        smallD = y_diff1;
+        smallIndex = i;
+        //break;
+      }
+    }
+    if(found){
+      auto lineSegVec = activeLaneSeg4[smallIndex].first;
+      auto takeSeg = lineSegVec.back();
+      auto lastLineSegTuple = takeSeg.first;
+      auto odomSegTuple = takeSeg.second;
+      //auto odomM = std::get<1>(odomSegTuple);
+      auto odomSeg1 = std::get<0>(odomSegTuple);
+      auto seg1 = std::get<0>(lastLineSegTuple);
+      auto m1  = std::get<1>(lastLineSegTuple);
+      double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
+      double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
+
+      auto seg3pair = newLine.front();
+      auto seg3 = std::get<0>(seg3pair.first);
+      //auto odomM = std::get<1>(seg3pair.second);
+      auto odomSeg2 = std::get<0>(seg3pair.second);
+      double x5 = bg::get<0, 0>(seg3); double y5 = bg::get<0, 1>(seg3);
+      double x6 = bg::get<1, 0>(seg3);double y6 = bg::get<1, 1>(seg3);
+      double x3 = x1; double y3 = y1;
+      double x4 = x6; double y4 = y6;
+      auto dx = x4 - x3;auto dy = y4 - y3;
+      if(dx != 0 && dy != 0){
+        auto m2 = dy / dx;auto c2 = y3 - m2 * x3;
+        auto slopeDiff = std::abs(m2-m1);
+        auto odomMC = getIntermediateSlope(odomSeg1, odomSeg2);
+        auto odomM = std::get<1>(odomMC);
+        auto odomSlopeDiff = std::abs(odomM-m2);
+        //ROS_INFO_STREAM("slopeDiff && second odomM: "<<slopeDiff<<" "<<odomSlopeDiff);
+        float d = std::sqrt(std::pow((x4-x3),2)+std::pow((y4-y3),2));
+        if(slopeDiff < 0.2 && odomSlopeDiff < 0.1){ //0.1 and 0.05 works
+          if(d < 50){
+            Segment seg2(Point(x3, y3), Point(x4, y4));
+            lineSegVec.push_back(std::make_pair(std::make_tuple(seg2, m2, c2), odomMC));
+            for(auto eachSegPair: newLine){
+              lineSegVec.push_back(eachSegPair);
+            }
+            activeLaneSeg4[smallIndex] = std::make_pair(lineSegVec, 0);
+          }else{
+            activeLaneSeg4.push_back(std::make_pair(newLine,0));
+          }
+        }else{
+          activeLaneSeg4.push_back(std::make_pair(newLine,0));
+        }
+      }else{
+        for(auto eachSegPair: newLine){
+          lineSegVec.push_back(eachSegPair);
+        }
+      }
+
+    }else{
+      activeLaneSeg4.push_back(std::make_pair(newLine,0));
+    }
+
+    for(size_t i=0;i<activeLaneSeg4.size();i++){
+      if(i == smallIndex)
+        continue;
+      else{
+        auto lineSegVec = activeLaneSeg4[i].first;
+        auto inactive = activeLaneSeg4[i].second;
+        inactive += 1;
+        //ROS_INFO_STREAM("Inactive: "<<inactive);
+        if(inactive > 5){
+          //Add intermediate line inside all the lines and we can put it in
+          //a seperate method
+          if(lineSegVec.size() > 1){
+            auto tempLineSegVec = lineSegVec;
+            lineSegVec.clear();
+            lineSegVec = joinEachSegInALine(tempLineSegVec);
+          }
+          allLines.push_back(lineSegVec);
+          activeLaneSeg4.erase(activeLaneSeg4.begin()+i);
+        }else{
+          activeLaneSeg4[i] = std::make_pair(lineSegVec, inactive);
+        }
+      }
+    }// second active lane seg for loop close
+  }//main else close
+
+}
+
 
 
 std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> FeatureExtractor::joinEachSegInALine(std::vector<std::pair<std::tuple<Segment,double,double>, std::tuple<Segment,double,double>>> tempLineSegVec){
