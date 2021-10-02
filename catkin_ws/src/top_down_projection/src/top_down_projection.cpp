@@ -247,75 +247,51 @@ void FeatureExtractor::constructLane(){
     allLineStrings.push_back(linestring);
   }
   allLines.clear();
-  
-  
-  //Further connect the lines as fast processing
-  /*std::vector<size_t> eraseVec;
-  auto tempLines = allLines;
-  allLines.clear();
-  for(size_t i=0; i<tempLines.size(); i++){
-    
-    if(std::find(eraseVec.begin(), eraseVec.end(), i) != eraseVec.end()) 
-      continue;
+  removeIntersectingLines();
 
-    auto lineSegVec = tempLines[i];
-    auto takeSeg = lineSegVec.back();
-    auto segTuple = takeSeg.first;
-    auto odomSeg1 = std::get<0>(takeSeg.second);
-    Segment odomSeg2;
-    double x3; double y3; double x4; double y4;
-    auto m1 = std::get<1>(segTuple);
-    auto seg1 = std::get<0>(segTuple);
-    double x1 = bg::get<0, 0>(seg1); double y1 = bg::get<0, 1>(seg1);
-    double x2 = bg::get<1, 0>(seg1);double y2 = bg::get<1, 1>(seg1);
-    double smallD = 10000.;
-    size_t selectedIndex = 0;
+}
+
+void FeatureExtractor::removeIntersectingLines(){
+  auto lineStrings = allLineStrings;
+  allLineStrings.clear();
+  std::vector<size_t> eraseVec;
+  for(size_t i=0; i<lineStrings.size(); i++){
+    auto linestring1 = lineStrings[i];
     bool found = false;
-    for(size_t j=i+1; j<tempLines.size(); j++){
-      if(std::find(eraseVec.begin(), eraseVec.end(), j) != eraseVec.end() || i==j) 
-        continue;
-
-      auto lineSegVec2 = tempLines[j];
-      auto takeSeg2 = lineSegVec2.front();
-      auto segTuple2 = takeSeg2.first;
-      auto seg2 = std::get<0>(segTuple2);
-      auto m2 = std::get<1>(segTuple2);
-      auto odomSeg2 = std::get<0>(takeSeg2.second);
-      auto slopeDiff = std::abs(m2-m1);
-      double x5 = bg::get<0, 0>(seg2); double y5 = bg::get<0, 1>(seg2);
-      double x6 = bg::get<1, 0>(seg2);double y6 = bg::get<1, 1>(seg2);
-      float d = std::sqrt(std::pow((x5-x2),2)+std::pow((y5-y2),2));
-      if(slopeDiff < 0.05 && d < smallD && d < 50){
-        smallD = d;
-        found = true;
-        selectedIndex = j;
-        x3 = x2; y3 = y2;
-        x4 = x5; y4 = y5;
+    std::vector<size_t> listInter;
+    for(size_t j=0; j<lineStrings.size(); j++){
+      if(std::find(eraseVec.begin(), eraseVec.end(), j) != eraseVec.end()|| i == j)
+       continue; 
+      auto linestring2 = lineStrings[j];
+      MultiLineString intersection;
+      bg::intersection(linestring1, linestring2, intersection);
+      if(intersection.size() > 0){
+        listInter.push_back(j);
       }
     }
-    if(found){
-      ROS_INFO_STREAM("Found "<<i<<" "<<selectedIndex);
-      auto lineSegVec2 = tempLines[selectedIndex];
-      auto dx = x4 - x3;auto dy = y4 - y3;
-      if(dx != 0 && dy != 0){
-        auto m2 = dy / dx;auto c2 = y3 - m2 * x3;
-        auto odomMC = getIntermediateSlope(odomSeg1, odomSeg2);
-        Segment seg2(Point(x3, y3), Point(x4, y4));
-        lineSegVec.push_back(std::make_pair(std::make_tuple(seg2, m2, c2), odomMC));
-        for(auto& segPair: lineSegVec2){
-          lineSegVec.push_back(segPair);
-        }
-        allLines.push_back(lineSegVec);
-        eraseVec.push_back(selectedIndex);
-      }
+    auto d1 = bg::length(linestring1);
+    if(d1 < 10 && listInter.size() == 1){
+      auto linestring2 = lineStrings[listInter[0]];
+      auto d2 = bg::length(linestring2);
+      if(d2 > 10)
+        eraseVec.push_back(i);
+    }
+    if(d1 < 1.){
+      if(std::find(eraseVec.begin(), eraseVec.end(), i) != eraseVec.end())
+        continue;
+      else
+        eraseVec.push_back(i);
+    }
+
+  }
+  for(size_t i=0; i<lineStrings.size(); i++){
+    if(std::find(eraseVec.begin(), eraseVec.end(), i) != eraseVec.end()){
+      ROS_INFO_STREAM("Intersection: "<< i);
+      continue;
+    }else{
+      allLineStrings.push_back(lineStrings[i]);
     }
   }
-  
-  for(size_t i=0; i<eraseVec.size(); i++){
-    ROS_INFO_STREAM("eraseVec: "<<eraseVec[i]);
-    //allLines.erase(allLines.begin()+eraseVec[i]);
-  }*/
-
 }
 
 std::vector<double> FeatureExtractor::polynomialRegression(const std::vector<double> &t, const std::vector<double> &v, int order){

@@ -139,6 +139,8 @@ private:
  
   std::tuple<std::vector<double>, std::vector<double>, LineString> getOdomLocation(Point point1, Point point2);
   
+  void removeIntersectingLines();
+
   // initialise ros stuff
   virtual void onInit();
 
