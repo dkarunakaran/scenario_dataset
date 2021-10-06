@@ -228,84 +228,113 @@ void FeatureExtractor::constructLane(){
   cleanLineStrings();
   removeIntersectingLines();
   
-  /*auto lineStrings = allLineStrings;
-  allLineStrings.clear();
-  std::vector<size_t> eraseList;
-  for(size_t i=0; i<lineStrings.size(); i++){
-    auto linestring1 = lineStrings[i];
-    if (std::find(eraseList.begin(), eraseList.end(), i) != eraseList.end())
-      continue;  
-    int count = 0; 
-    std::vector<double> xs; std::vector<double> ys;
-    Point p1 = linestring1[linestring1.size()-1];
-    for(size_t j=linestring1.size()-1; j >=0; j--){
-      if(count == 3)
-       break;
-      auto point = linestring1[j];
-      xs.push_back(point.get<0>()); ys.push_back(point.get<1>());
-      count++;
-    }
-    auto lineDetails1 = linearRegression(xs, ys);
-    double smallD = 10000.;
-    size_t smallIndex;
-    bool found = false;
-    Point p2;
-    for(size_t k=0; k<lineStrings.size(); k++){
-      if (std::find(eraseList.begin(), eraseList.end(), k) != eraseList.end() || i == k)  
-        continue;
-      auto linestring2 = lineStrings[k];
-      p2 = linestring2[0];
-      std::vector<double> xs; std::vector<double> ys;
-      int count = 0;
-      for(size_t l=0; l<linestring2.size(); l++){
-        if(count == 3)
-         break;
-        auto point = linestring2[l];
-        xs.push_back(point.get<0>()); ys.push_back(point.get<1>());
-        count++;
-      }
-      auto lineDetails2 = linearRegression(xs, ys);
+  // LineStrings are created from a set of points with linear interpolation between them.
+  /*lanelet::Point3d p1{lanelet::utils::getId(), 0, 0, 0};
+  lanelet::Point3d p2{lanelet::utils::getId(), 1, 0, 0};
+  lanelet::Point3d p3{lanelet::utils::getId(), 2, 0, 0};
+  lanelet::LineString3d ls(lanelet::utils::getId(), {p1, p2, p3});*/
 
-      //check the lines can be joined;
-      auto m1 = std::get<0>(lineDetails1);
-      auto c1 = std::get<1>(lineDetails1);
-      auto m2 = std::get<0>(lineDetails2);
-      auto c2 = std::get<1>(lineDetails2);
-      auto x2 = p2.get<0>(); auto y2 = p2.get<1>();
-      auto y = m1*x2+c1;
-      double y_diff = std::abs(std::abs(y)-std::abs(y2));
-      double slopeDiff = std::abs(m2-m1);
-      if(slopeDiff < 0.2 && y_diff < 0.1){
-        found = true;
-        smallD = y_diff;
-        smallIndex = k;
-        break;
-      }
-    }// k loop finishes
+  //Loop through ODOM range
+  bool init = false;
+  Point p1; Point p2;
+  std::vector<double> xs;std::vector<double> ys;
+  for(size_t i=0; i<vehicle_odom_double.size()-1; i++){
+    if(!init){
+      xs.push_back(vehicle_odom_double[i].first);
+      ys.push_back(vehicle_odom_double[i].second);
+      p1.set<0>(vehicle_odom_double[i].first); 
+      p1.set<1>(vehicle_odom_double[i].second);
+      init = true;
+    }else{
+      xs.push_back(vehicle_odom_double[i].first);
+      ys.push_back(vehicle_odom_double[i].second);
+      p2.set<0>(vehicle_odom_double[i].first); 
+      p2.set<1>(vehicle_odom_double[i].second);
+      LineString odomLS;
+      odomLS.push_back(p1); 
+      odomLS.push_back(p2);
+      if(bg::length(odomLS) > 5){
+        ROS_INFO_STREAM(p1.get<0>()<<" "<<p1.get<1>()<<" , "<<p2.get<0>()<<" "<<p2.get<1>());
+        std::vector<std::pair<size_t, lanelet::LineString3d>> selectedLines;
+        //Loop through the lines
+        for(size_t j=0; j < allLineStrings.size(); j++){
+          auto line = allLineStrings[j];
+          //Only consider the line that has a length more than a threshold
+          if(bg::length(line) > 5){
+            auto line3d = linestringToLineString3d(line);
+            lanelet::BasicPoint3d pProj = lanelet::geometry::project(line3d, lanelet::Point3d(lanelet::utils::getId(), p1.get<0>(), p1.get<1>(), 0));
+            ROS_INFO_STREAM("projection: "<<pProj.x()<<" "<<pProj.y());
+            
+            //we are getting projection, but we need to make sure the projected
+            //line to the point is perpendicular to the odom line
 
-    if(found){
-      auto linestring2 = lineStrings[smallIndex];
-      LineString linestringInter;
-      linestringInter.push_back(p1);
-      linestringInter.push_back(p2);
-      if(bg::length(linestringInter) < 50){
-        for(auto& point: linestring2){
-          linestring1.push_back(point);
+
+            /*auto x = p1.get<0>();
+            auto y = p1.get<1>();
+            // y+8 logic does not work in all situation. 
+            Point checkP1(x, y+8);
+            // consider y-8 as well
+            LineString checkLS;checkLS.push_back(p1);checkLS.push_back(checkP1);
+            std::vector<LineString> intersection1;
+            bg::intersection(line, checkLS, intersection1);
+            x = p2.get<0>();
+            y = p2.get<1>();
+            Point checkP2(x, y+8);
+            // consider y-8 as well
+            checkLS.clear();
+            checkLS.push_back(p2);checkLS.push_back(checkP2);
+            std::vector<LineString> intersection2 ;
+            bg::intersection(line, checkLS, intersection2);
+           if(intersection1.size() > 0 && intersection2.size() > 0){
+              auto inter1 = intersection1[0]; //multilinestring to linestring
+              auto inter2 = intersection2[0]; //multilinestring to linestring
+              auto interP1 = inter1[0];auto interP2 = inter1[1];
+              lanelet::Point3d laneletP1{lanelet::utils::getId(), interP1.get<0>(), interP1.get<1>(), 0};
+              interP1 = inter2[0];interP2 = inter2[1];
+              lanelet::Point3d laneletP2{lanelet::utils::getId(), interP1.get<0>(), interP1.get<1>(), 0};
+              lanelet::LineString3d laneletLS(lanelet::utils::getId(),{laneletP1, laneletP2});
+              selectedLines.push_back(std::make_pair(j, laneletLS));
+            }else{
+
+
+            }*/
+          }
         }
-        lineStrings[i] = linestring1;
-        eraseList.push_back(smallIndex);
-        ROS_INFO_STREAM(smallIndex<<" is joined with "<<i);
-      }
-    }
-  }// i loop finishes
+        
+       if(selectedLines.size() > 0){
+          //1.Go through selected lines and see the bounding boxesintersects. If
+          //some of the lines are intersecting, then we only consider the line
+          //that has seen on p1 and p2. If it has seen on both, then biggest
+          //line prevails
+          for(auto& checkPair: selectedLines){
+            auto ls1 = checkPair.second;   
+            auto lsBox1 = lanelet::geometry::boundingBox3d(ls1);
+            for(auto& pair: selectedLines){
+              auto ls2 = pair.second;   
+              auto lsBox2 = lanelet::geometry::boundingBox3d(ls2);
+              if(lanelet::geometry::intersects(lsBox1, lsBox2))
+                ROS_INFO_STREAM("intersects");
+            }  
+          }
+          //2. Once we have the filtered line, sort it on y
+          //3. Then construct the lanelets
+        }
+        xs.clear();
+        ys.clear();
+        init = false;
+      }//threshold if close
+    }//else close
+  }//odom for loop close  
+  
+}
 
-  for(size_t i=0; i<lineStrings.size(); i++){
-    if (std::find(eraseList.begin(), eraseList.end(), i) != eraseList.end())
-      continue;
-    else{
-      allLineStrings.push_back(lineStrings[i]);
-    }
-  }*/
+lanelet::LineString3d FeatureExtractor::linestringToLineString3d(LineString ls){
+  lanelet::LineString3d ls3d(lanelet::utils::getId(), {});
+  for(auto& point: ls){
+    ls3d.push_back(lanelet::Point3d(lanelet::utils::getId(), point.get<0>(), point.get<1>(), 0));
+  }
+
+  return ls3d;
 }
 
 void FeatureExtractor::cleanLineStrings(){
@@ -2739,6 +2768,8 @@ FeatureExtractor::SegmentPointCloud_intensity(sensor_msgs::PointCloud2::ConstPtr
           lane_odom.push_back(std::make_pair(x, y));
         }
         seq_count += 1;
+        
+        
       }
     }
     

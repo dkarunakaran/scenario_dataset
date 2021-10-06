@@ -37,6 +37,17 @@
 #include <boost/geometry/geometries/linestring.hpp>
 #include <boost/geometry/multi/geometries/multi_linestring.hpp>
 
+
+#include <lanelet2_core/LaneletMap.h>
+#include <lanelet2_core/geometry/Area.h>
+#include <lanelet2_core/geometry/Lanelet.h>
+#include <lanelet2_core/primitives/Area.h>
+#include <lanelet2_core/primitives/Lanelet.h>
+#include <lanelet2_core/primitives/LineString.h>
+#include <lanelet2_core/primitives/Point.h>
+#include <lanelet2_core/primitives/Polygon.h>
+
+
 namespace bg = boost::geometry;
 typedef bg::model::d2::point_xy<double> Point;
 typedef bg::model::d2::point_xy<double> Vector;
@@ -144,6 +155,8 @@ private:
   void removeIntersectingLines();
 
   void cleanLineStrings();
+  
+  lanelet::LineString3d linestringToLineString3d(LineString ls);
   
   // initialise ros stuff
   virtual void onInit();

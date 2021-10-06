@@ -11,7 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
         tf
         tf_conversions
         custom_point_types
-	lane_points_msg)
+        lane_points_msg
+        lanelet2_core)
 
 find_package(OpenCV REQUIRED)
 

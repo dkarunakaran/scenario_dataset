@@ -8,7 +8,6 @@
   <url type="website">http://acfr</url>
 
   <buildtool_depend>catkin</buildtool_depend>
-
   <depend>libpcl-all</depend>
   <depend>pcl_ros</depend>
   <depend>h264_bag_playback</depend>
