@@ -158,6 +158,10 @@ private:
   
   lanelet::LineString3d linestringToLineString3d(LineString ls);
   
+  void removeDuplicates();
+  
+  bool checkDuplicates(LineString , double, std::vector<std::pair<double, LineString>>);
+  
   // initialise ros stuff
   virtual void onInit();
 

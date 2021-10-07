@@ -226,14 +226,13 @@ void FeatureExtractor::constructLane(){
   //Some lines has multiple line segmets with same end points which gives
   //multiple lines between first and last point of the lines.
   cleanLineStrings();
+  ROS_INFO_STREAM("No. of lines: "<<allLineStrings.size());
+  //Removing duplicate lines
+  removeDuplicates();
+  ROS_INFO_STREAM("No. of lines: "<<allLineStrings.size());
   removeIntersectingLines();
+  ROS_INFO_STREAM("No. of lines: "<<allLineStrings.size());
   
-  // LineStrings are created from a set of points with linear interpolation between them.
-  /*lanelet::Point3d p1{lanelet::utils::getId(), 0, 0, 0};
-  lanelet::Point3d p2{lanelet::utils::getId(), 1, 0, 0};
-  lanelet::Point3d p3{lanelet::utils::getId(), 2, 0, 0};
-  lanelet::LineString3d ls(lanelet::utils::getId(), {p1, p2, p3});*/
-
   //Loop through ODOM range
   bool init = false;
   Point p1; Point p2;
@@ -253,51 +252,42 @@ void FeatureExtractor::constructLane(){
       LineString odomLS;
       odomLS.push_back(p1); 
       odomLS.push_back(p2);
-      if(bg::length(odomLS) > 5){
+      if(bg::length(odomLS) > 10){
         ROS_INFO_STREAM(p1.get<0>()<<" "<<p1.get<1>()<<" , "<<p2.get<0>()<<" "<<p2.get<1>());
-        std::vector<std::pair<size_t, lanelet::LineString3d>> selectedLines;
+        std::vector<std::pair<size_t, std::pair<lanelet::BasicPoint3d, lanelet::BasicPoint3d>>> selectedLines;
+        
         //Loop through the lines
         for(size_t j=0; j < allLineStrings.size(); j++){
           auto line = allLineStrings[j];
+          
           //Only consider the line that has a length more than a threshold
-          if(bg::length(line) > 5){
+          if(bg::length(line) > 10){
+            auto odomLineDetails = linearRegression(xs, ys);
+            auto m = std::get<0>(odomLineDetails); 
+            auto M2 = (1/m)*-1;
             auto line3d = linestringToLineString3d(line);
-            lanelet::BasicPoint3d pProj = lanelet::geometry::project(line3d, lanelet::Point3d(lanelet::utils::getId(), p1.get<0>(), p1.get<1>(), 0));
-            ROS_INFO_STREAM("projection: "<<pProj.x()<<" "<<pProj.y());
-            
+            auto point3d1 = lanelet::Point3d(lanelet::utils::getId(), p1.get<0>(), p1.get<1>(), 0);
+            lanelet::BasicPoint3d pProj1 = lanelet::geometry::project(line3d, point3d1);
+            auto point3d2 = lanelet::Point3d(lanelet::utils::getId(), p2.get<0>(), p2.get<1>(), 0);
+            lanelet::BasicPoint3d pProj2 = lanelet::geometry::project(line3d, point3d2);
             //we are getting projection, but we need to make sure the projected
-            //line to the point is perpendicular to the odom line
-
-
-            /*auto x = p1.get<0>();
-            auto y = p1.get<1>();
-            // y+8 logic does not work in all situation. 
-            Point checkP1(x, y+8);
-            // consider y-8 as well
-            LineString checkLS;checkLS.push_back(p1);checkLS.push_back(checkP1);
-            std::vector<LineString> intersection1;
-            bg::intersection(line, checkLS, intersection1);
-            x = p2.get<0>();
-            y = p2.get<1>();
-            Point checkP2(x, y+8);
-            // consider y-8 as well
-            checkLS.clear();
-            checkLS.push_back(p2);checkLS.push_back(checkP2);
-            std::vector<LineString> intersection2 ;
-            bg::intersection(line, checkLS, intersection2);
-           if(intersection1.size() > 0 && intersection2.size() > 0){
-              auto inter1 = intersection1[0]; //multilinestring to linestring
-              auto inter2 = intersection2[0]; //multilinestring to linestring
-              auto interP1 = inter1[0];auto interP2 = inter1[1];
-              lanelet::Point3d laneletP1{lanelet::utils::getId(), interP1.get<0>(), interP1.get<1>(), 0};
-              interP1 = inter2[0];interP2 = inter2[1];
-              lanelet::Point3d laneletP2{lanelet::utils::getId(), interP1.get<0>(), interP1.get<1>(), 0};
-              lanelet::LineString3d laneletLS(lanelet::utils::getId(),{laneletP1, laneletP2});
-              selectedLines.push_back(std::make_pair(j, laneletLS));
-            }else{
-
-
-            }*/
+            //line to the point is perpendicular to the odom line. Most os the
+            //cases there will be some different in the perpendicularity. We
+            //can consider perpendicular to the 
+            std::vector<double> tempXVec; tempXVec.push_back(p1.get<0>()); tempXVec.push_back(pProj1.x());
+            std::vector<double> tempYVec; tempYVec.push_back(p1.get<1>()); tempYVec.push_back(pProj1.y());
+            auto projLineDetails = linearRegression(tempXVec, tempYVec);
+            auto M1 = std::get<0>(projLineDetails);
+            auto gradDiff1 = std::abs(M2-M1);
+            tempXVec.clear(); tempXVec.push_back(p2.get<0>()); tempXVec.push_back(pProj2.x());
+            tempYVec.clear(); tempYVec.push_back(p2.get<1>()); tempYVec.push_back(pProj2.y());
+            projLineDetails = linearRegression(tempXVec, tempYVec);
+            M1 = std::get<0>(projLineDetails);
+            auto gradDiff2 = std::abs(M2-M1);
+            if(gradDiff1 < 0.5 && gradDiff2 < 0.5){
+              ROS_INFO_STREAM("j: "<<j<<" size of j: "<<bg::length(line)<<" projection1: "<<pProj1.x()<<" "<<pProj1.y()<<" , "<<pProj2.x()<<" "<<pProj2.y());
+              selectedLines.push_back(std::make_pair(j, std::make_pair(pProj1, pProj2)));
+            }
           }
         }
         
@@ -306,17 +296,49 @@ void FeatureExtractor::constructLane(){
           //some of the lines are intersecting, then we only consider the line
           //that has seen on p1 and p2. If it has seen on both, then biggest
           //line prevails
-          for(auto& checkPair: selectedLines){
-            auto ls1 = checkPair.second;   
-            auto lsBox1 = lanelet::geometry::boundingBox3d(ls1);
-            for(auto& pair: selectedLines){
-              auto ls2 = pair.second;   
-              auto lsBox2 = lanelet::geometry::boundingBox3d(ls2);
-              if(lanelet::geometry::intersects(lsBox1, lsBox2))
-                ROS_INFO_STREAM("intersects");
-            }  
+          std::vector<size_t> eraseVec;
+          for(size_t k=0; k<selectedLines.size(); k++){
+            auto checkPair = selectedLines[k];
+            if(std::find(eraseVec.begin(), eraseVec.end(), k) != eraseVec.end())
+              continue;
+            auto line1 = allLineStrings[checkPair.first];
+            auto pProj1 = checkPair.second.first;auto pProj2 = checkPair.second.second;   
+            for(size_t l=0; l<selectedLines.size(); l++){
+              auto pair = selectedLines[l];
+              if(std::find(eraseVec.begin(), eraseVec.end(), l) != eraseVec.end() || k == l)
+                continue;
+              auto line2 = allLineStrings[pair.first];
+              auto pProj3 = pair.second.first;auto pProj4 = pair.second.second;   
+              auto xdiff1 = std::abs(pProj3.x()- pProj1.x()); 
+              auto ydiff1 = std::abs(pProj3.y()- pProj1.y());
+              auto xdiff2 = std::abs(pProj4.x()- pProj2.x()); 
+              auto ydiff2 = std::abs(pProj4.y()- pProj2.y()); 
+              if(xdiff1 < 0.1 && ydiff1 < 0.1 && xdiff2 < 0.1 && ydiff2 < 0.1){
+                auto selected = k;
+                if(bg::length(line1) > bg::length(line2))
+                  selected  = l; 
+                eraseVec.push_back(selected);
+                break;
+              }
+            }
           }
+          
+          ROS_INFO_STREAM("erasevec size: "<<eraseVec.size());
+          std::vector<size_t> selectedLineIndexs;
+          for(size_t k=0; k<selectedLines.size(); k++){
+            if(std::find(eraseVec.begin(), eraseVec.end(), k) != eraseVec.end())
+              continue;
+            else{
+              selectedLineIndexs.push_back(selectedLines[k].first);
+            }
+
+          }
+
+          ROS_INFO_STREAM("selected lines size: "<<selectedLineIndexs.size()); 
           //2. Once we have the filtered line, sort it on y
+          
+          
+          
           //3. Then construct the lanelets
         }
         xs.clear();
@@ -326,6 +348,44 @@ void FeatureExtractor::constructLane(){
     }//else close
   }//odom for loop close  
   
+}
+
+void FeatureExtractor::removeDuplicates(){
+  auto tempLineStrings = allLineStrings;
+  allLineStrings.clear();
+  std::vector<std::pair<double, LineString>> lines;
+  for(size_t i=0; i < tempLineStrings.size(); i++){
+    auto line = tempLineStrings[i];
+    auto length = bg::length(line);
+    if(line.size() == 0){
+      lines.push_back(std::make_pair(length, line));
+      allLineStrings.push_back(line);
+    }else{
+      if(!checkDuplicates(line, length, lines)){
+        lines.push_back(std::make_pair(length, line));
+        allLineStrings.push_back(line);
+      }
+    }
+  }
+  tempLineStrings.clear();
+}
+
+bool FeatureExtractor::checkDuplicates(LineString checkLine, double checkLength, std::vector<std::pair<double, LineString>> lines){
+  bool result = false;
+  auto checkP1 = checkLine[0];
+  auto checkP2 = checkLine[checkLine.size()-1];
+  for(size_t i=0; i<lines.size(); i++){
+    auto length = lines[i].first;
+    auto line = lines[i].second;
+    if(length == checkLength){
+      auto p1 = line[0];
+      auto p2 = line[line.size()-1];
+      if(p1.get<0>() == checkP1.get<0>() && p1.get<1>() == checkP1.get<1>() && p2.get<0>() == checkP2.get<0>() && p2.get<1>() == checkP2.get<1>())
+        result = true;
+    }
+  }
+  
+  return result;
 }
 
 lanelet::LineString3d FeatureExtractor::linestringToLineString3d(LineString ls){
@@ -394,6 +454,22 @@ void FeatureExtractor::removeIntersectingLines(){
       auto d2 = bg::length(linestring2);
       if(d2 > 10)
         eraseVec.push_back(i);
+    }else{
+      /*if(listInter.size() == 1){
+        auto linestring2 = lineStrings[listInter[0]];
+        auto d2 = bg::length(linestring2);
+        if(d1 < d2){
+          auto line3d1 = linestringToLineString3d(linestring1);
+          auto line3d2 = linestringToLineString3d(linestring2);
+          auto lsBox1 = lanelet::geometry::boundingBox3d(line3d1);
+          auto lsBox2 = lanelet::geometry::boundingBox3d(line3d2);
+          if(lanelet::geometry::intersects(lsBox1, lsBox2)){
+            ROS_INFO_STREAM("There are: "<<listInter.size()<<" "<<d1<<" "<<d2);
+            ROS_INFO_STREAM("Intersects"); 
+            eraseVec.push_back(i);
+          }
+        }
+      }*/
     }
   
     //Removing small lines 
