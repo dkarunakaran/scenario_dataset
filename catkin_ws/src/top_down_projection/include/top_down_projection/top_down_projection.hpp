@@ -162,6 +162,8 @@ private:
   
   bool checkDuplicates(LineString , double, std::vector<std::pair<double, LineString>>);
   
+  bool isLeft(lanelet::Point3d, lanelet::Point3d, lanelet::Point3d);
+  
   // initialise ros stuff
   virtual void onInit();
 

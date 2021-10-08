@@ -233,6 +233,8 @@ void FeatureExtractor::constructLane(){
   removeIntersectingLines();
   ROS_INFO_STREAM("No. of lines: "<<allLineStrings.size());
   
+  //Create laneletmap
+  lanelet::Lanelets lanelets;
   //Loop through ODOM range
   bool init = false;
   Point p1; Point p2;
@@ -261,7 +263,10 @@ void FeatureExtractor::constructLane(){
           auto line = allLineStrings[j];
           
           //Only consider the line that has a length more than a threshold
-          if(bg::length(line) > 10){
+          if(bg::length(line) > 5){
+            
+            //We are considering slope of the normal line/perpendicular line to
+            //the odom line
             auto odomLineDetails = linearRegression(xs, ys);
             auto m = std::get<0>(odomLineDetails); 
             auto M2 = (1/m)*-1;
@@ -271,9 +276,8 @@ void FeatureExtractor::constructLane(){
             auto point3d2 = lanelet::Point3d(lanelet::utils::getId(), p2.get<0>(), p2.get<1>(), 0);
             lanelet::BasicPoint3d pProj2 = lanelet::geometry::project(line3d, point3d2);
             //we are getting projection, but we need to make sure the projected
-            //line to the point is perpendicular to the odom line. Most os the
-            //cases there will be some different in the perpendicularity. We
-            //can consider perpendicular to the 
+            //line to the point is normal/perpendicular to the odom line. Most of the
+            //cases there will be some different in the perpendicularity. 
             std::vector<double> tempXVec; tempXVec.push_back(p1.get<0>()); tempXVec.push_back(pProj1.x());
             std::vector<double> tempYVec; tempYVec.push_back(p1.get<1>()); tempYVec.push_back(pProj1.y());
             auto projLineDetails = linearRegression(tempXVec, tempYVec);
@@ -285,7 +289,7 @@ void FeatureExtractor::constructLane(){
             M1 = std::get<0>(projLineDetails);
             auto gradDiff2 = std::abs(M2-M1);
             if(gradDiff1 < 0.5 && gradDiff2 < 0.5){
-              ROS_INFO_STREAM("j: "<<j<<" size of j: "<<bg::length(line)<<" projection1: "<<pProj1.x()<<" "<<pProj1.y()<<" , "<<pProj2.x()<<" "<<pProj2.y());
+              //ROS_INFO_STREAM("j: "<<j<<" size of j: "<<bg::length(line)<<" projection1: "<<pProj1.x()<<" "<<pProj1.y()<<" , "<<pProj2.x()<<" "<<pProj2.y());
               selectedLines.push_back(std::make_pair(j, std::make_pair(pProj1, pProj2)));
             }
           }
@@ -323,23 +327,92 @@ void FeatureExtractor::constructLane(){
             }
           }
           
-          ROS_INFO_STREAM("erasevec size: "<<eraseVec.size());
-          std::vector<size_t> selectedLineIndexs;
+          //Removing the duplicate lines
+          std::vector<std::pair<size_t, std::pair<lanelet::BasicPoint3d, lanelet::BasicPoint3d>>> selectedLineIndexs;
           for(size_t k=0; k<selectedLines.size(); k++){
             if(std::find(eraseVec.begin(), eraseVec.end(), k) != eraseVec.end())
               continue;
             else{
-              selectedLineIndexs.push_back(selectedLines[k].first);
+              selectedLineIndexs.push_back(selectedLines[k]);
             }
 
           }
 
           ROS_INFO_STREAM("selected lines size: "<<selectedLineIndexs.size()); 
-          //2. Once we have the filtered line, sort it on y
-          
-          
+          //2. Creating the right order of the line
+          std::vector<std::pair<size_t, std::tuple<size_t, lanelet::BasicPoint3d, lanelet::BasicPoint3d>>> orderVec;
+          for(size_t j=0; j<selectedLineIndexs.size(); j++){
+
+            //Get the check line
+            auto checkLine = selectedLineIndexs[j];
+            auto pointPair = checkLine.second;
+            auto checkp1 = pointPair.first;auto checkp2 = pointPair.second;
+            auto x1 = checkp1.x();auto y1 = checkp1.y();auto x2 = checkp2.x();auto y2 = checkp2.y();
+            auto x = (x1+x2)/2;auto y = (y1+y2)/2;
+            //ROS_INFO_STREAM("-------x1 and y1: "<<x1<<" "<<y1<<" , x2 and y2: "<<x2<<" "<<y2);
+            //ROS_INFO_STREAM("Mid point: "<<x<<" "<<y); 
+            size_t leftCounter = 0;
+            //Go through each line
+            for(size_t k=0; k<selectedLineIndexs.size(); k++){
+              if(j == k)
+                continue;
+              auto line = selectedLineIndexs[k];
+              auto pointPair = line.second;
+              auto tempp1 = pointPair.first;auto tempp2 = pointPair.second;
+              //ROS_INFO_STREAM("Line: "<<tempp1.x()<<" "<<tempp1.y()<<" , "<<tempp2.x()<<" "<<tempp2.y());
+              if(isLeft(lanelet::Point3d(lanelet::utils::getId(), tempp1.x(), tempp1.y(), 0), lanelet::Point3d(lanelet::utils::getId(), tempp2.x(), tempp2.y(), 0), lanelet::Point3d(lanelet::utils::getId(), x, y, 0)))
+              {
+                leftCounter++;
+              }
+            }
+
+            auto tuple = std::make_tuple(checkLine.first, checkp1, checkp2);
+            orderVec.push_back(std::make_pair(leftCounter, tuple));
+            //ROS_INFO_STREAM("Left count: "<<leftCounter);
+          } 
+
+          //sort the orderVec
+          std::sort(orderVec.begin(), orderVec.end(), [](const std::pair<size_t, std::tuple<size_t, lanelet::BasicPoint3d, lanelet::BasicPoint3d>>& a, const std::pair<size_t, std::tuple<size_t, lanelet::BasicPoint3d, lanelet::BasicPoint3d>>& b) {return a.first < b.first;});
+
+          /*for(size_t k=0; k<orderVec.size(); k++){
+            auto vec = orderVec[k];
+            ROS_INFO_STREAM(vec.first); 
+          }*/
           
           //3. Then construct the lanelets
+          if(orderVec.size() == 1){
+            //a. need to find the line is on the left or right of the odom line
+            //b. construct the new line on the side of the odom line where the
+            //line is missing
+            
+            auto checkLine = orderVec[0];
+            auto pointTuple = checkLine.second;
+            auto checkp1 = std::get<1>(pointTuple);auto checkp2 = std::get<2>(pointTuple);
+            auto x1 = checkp1.x();auto y1 = checkp1.y();auto x2 = checkp2.x();auto y2 = checkp2.y();
+            auto x = (x1+x2)/2;auto y = (y1+y2)/2;
+            bool left = false;
+            if(isLeft(lanelet::Point3d(lanelet::utils::getId(), p1.get<0>(), p1.get<1>(), 0), lanelet::Point3d(lanelet::utils::getId(), p2.get<0>(), p2.get<1>(), 0), lanelet::Point3d(lanelet::utils::getId(), x, y, 0)))
+              left = true;
+            
+            //Construct a new arbitary line 
+
+
+          }else{
+            //Construct the lanelets based on the order is the number order vec
+            //is 2 then, there is only one lanelets and if it is three, then
+            //there will be two lanelets and the list goes on
+            for(size_t k=0; k<orderVec.size()-1; k++){ 
+              auto leftTuple = orderVec[k].second;auto rightTuple = orderVec[k+1].second;
+              auto leftP1 = lanelet::Point3d(lanelet::utils::getId(), std::get<1>(leftTuple).x(), std::get<1>(leftTuple).y(), 0);
+              auto leftP2 = lanelet::Point3d(lanelet::utils::getId(), std::get<2>(leftTuple).x(), std::get<2>(leftTuple).y(), 0);
+              lanelet::LineString3d left(lanelet::utils::getId(), {leftP1, leftP2});
+              auto leftP3 = lanelet::Point3d(lanelet::utils::getId(), std::get<1>(rightTuple).x(), std::get<1>(rightTuple).y(), 0);
+              auto leftP4 = lanelet::Point3d(lanelet::utils::getId(), std::get<2>(rightTuple).x(), std::get<2>(rightTuple).y(), 0);
+              lanelet::LineString3d right(lanelet::utils::getId(), {leftP3, leftP4});
+              lanelet::Lanelet lanelet(lanelet::utils::getId(), left, right);
+              lanelets.push_back(lanelet);
+            }  
+          }
         }
         xs.clear();
         ys.clear();
@@ -347,7 +420,17 @@ void FeatureExtractor::constructLane(){
       }//threshold if close
     }//else close
   }//odom for loop close  
+
+  //Creating a laneletmap
+  lanelet::LaneletMapUPtr laneletsMap = lanelet::utils::createMap(lanelets);
+  ROS_INFO_STREAM("Lanelet map is created: "<< laneletsMap->laneletLayer.exists(lanelets.front().id())); 
+}
+
+bool FeatureExtractor::isLeft(lanelet::Point3d a, lanelet::Point3d b, lanelet::Point3d c){
+  //d=(x−x1)(y2−y1)−(y−y1)(x2−x1)   
+  auto d = ((c.x() - a.x())*(b.y() - a.y())) - ((c.y() - a.y())*(b.x() - a.x()));
   
+  return d > 0;
 }
 
 void FeatureExtractor::removeDuplicates(){
