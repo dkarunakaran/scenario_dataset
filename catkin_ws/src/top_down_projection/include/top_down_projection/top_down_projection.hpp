@@ -39,14 +39,14 @@
 
 
 #include <lanelet2_core/LaneletMap.h>
-#include <lanelet2_core/geometry/Area.h>
 #include <lanelet2_core/geometry/Lanelet.h>
-#include <lanelet2_core/primitives/Area.h>
 #include <lanelet2_core/primitives/Lanelet.h>
 #include <lanelet2_core/primitives/LineString.h>
 #include <lanelet2_core/primitives/Point.h>
-#include <lanelet2_core/primitives/Polygon.h>
-
+#include <lanelet2_io/Io.h>
+#include <lanelet2_io/io_handlers/Factory.h>
+#include <lanelet2_io/io_handlers/Writer.h>
+#include <lanelet2_projection/UTM.h>
 
 namespace bg = boost::geometry;
 typedef bg::model::d2::point_xy<double> Point;
@@ -163,6 +163,8 @@ private:
   bool checkDuplicates(LineString , double, std::vector<std::pair<double, LineString>>);
   
   bool isLeft(lanelet::Point3d, lanelet::Point3d, lanelet::Point3d);
+  
+  std::string tempfile(const std::string&);
   
   // initialise ros stuff
   virtual void onInit();

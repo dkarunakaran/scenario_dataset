@@ -12,7 +12,13 @@ find_package(catkin REQUIRED COMPONENTS
         tf_conversions
         custom_point_types
         lane_points_msg
-        lanelet2_core)
+        lanelet2_core
+        lanelet2_io
+        lanelet2_projection
+        lanelet2_routing
+        lanelet2_traffic_rules
+        lanelet2_validation)
+
 
 find_package(OpenCV REQUIRED)
 

@@ -254,7 +254,7 @@ void FeatureExtractor::constructLane(){
       LineString odomLS;
       odomLS.push_back(p1); 
       odomLS.push_back(p2);
-      if(bg::length(odomLS) > 10){
+      if(bg::length(odomLS) > 5){
         ROS_INFO_STREAM(p1.get<0>()<<" "<<p1.get<1>()<<" , "<<p2.get<0>()<<" "<<p2.get<1>());
         std::vector<std::pair<size_t, std::pair<lanelet::BasicPoint3d, lanelet::BasicPoint3d>>> selectedLines;
         
@@ -423,7 +423,18 @@ void FeatureExtractor::constructLane(){
 
   //Creating a laneletmap
   lanelet::LaneletMapUPtr laneletsMap = lanelet::utils::createMap(lanelets);
+  lanelet::projection::UtmProjector projector(lanelet::Origin({49., 8.4}));
+  lanelet::write("/model/map.osm", *laneletsMap, projector);
   ROS_INFO_STREAM("Lanelet map is created: "<< laneletsMap->laneletLayer.exists(lanelets.front().id())); 
+}
+
+std::string FeatureExtractor::tempfile(const std::string& name) {
+  char tmpDir[] = "/tmp/lanelet2_example_XXXXXX";
+  auto* file = mkdtemp(tmpDir);
+  if (file == nullptr) {
+    throw lanelet::IOError("Failed to open a temporary file for writing");
+  }
+  return std::string(file) + '/' + name;
 }
 
 bool FeatureExtractor::isLeft(lanelet::Point3d a, lanelet::Point3d b, lanelet::Point3d c){
