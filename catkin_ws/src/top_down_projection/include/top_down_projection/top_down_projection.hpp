@@ -164,8 +164,6 @@ private:
   
   bool isLeft(lanelet::Point3d, lanelet::Point3d, lanelet::Point3d);
   
-  std::string tempfile(const std::string&);
-  
   // initialise ros stuff
   virtual void onInit();
 

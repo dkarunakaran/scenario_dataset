@@ -239,6 +239,7 @@ void FeatureExtractor::constructLane(){
   bool init = false;
   Point p1; Point p2;
   std::vector<double> xs;std::vector<double> ys;
+  std::vector<std::pair<size_t, lanelet::Segment<lanelet::BasicPoint3d>>> activeLaneletSeg;
   for(size_t i=0; i<vehicle_odom_double.size()-1; i++){
     if(!init){
       xs.push_back(vehicle_odom_double[i].first);
@@ -256,7 +257,7 @@ void FeatureExtractor::constructLane(){
       odomLS.push_back(p2);
       if(bg::length(odomLS) > 5){
         ROS_INFO_STREAM(p1.get<0>()<<" "<<p1.get<1>()<<" , "<<p2.get<0>()<<" "<<p2.get<1>());
-        std::vector<std::pair<size_t, std::pair<lanelet::BasicPoint3d, lanelet::BasicPoint3d>>> selectedLines;
+        std::vector<std::pair<size_t, std::pair<lanelet::Point3d, lanelet::Point3d>>> selectedLines;
         
         //Loop through the lines
         for(size_t j=0; j < allLineStrings.size(); j++){
@@ -288,12 +289,116 @@ void FeatureExtractor::constructLane(){
             projLineDetails = linearRegression(tempXVec, tempYVec);
             M1 = std::get<0>(projLineDetails);
             auto gradDiff2 = std::abs(M2-M1);
-            if(gradDiff1 < 0.5 && gradDiff2 < 0.5){
+            if(gradDiff1 < 0.75 && gradDiff2 < 0.75){
+              //P1 and P2 can be projected on to the same line
               //ROS_INFO_STREAM("j: "<<j<<" size of j: "<<bg::length(line)<<" projection1: "<<pProj1.x()<<" "<<pProj1.y()<<" , "<<pProj2.x()<<" "<<pProj2.y());
-              selectedLines.push_back(std::make_pair(j, std::make_pair(pProj1, pProj2)));
-            }
-          }
-        }
+
+              auto projPoint1 = lanelet::Point3d(lanelet::utils::getId(), pProj1.x(), pProj1.y(), 0);
+              auto projPoint2 = lanelet::Point3d(lanelet::utils::getId(), pProj2.x(), pProj2.y(), 0);
+              selectedLines.push_back(std::make_pair(j, std::make_pair(projPoint1, projPoint2)));
+            }else{
+              // In some cases projections of p1 and p2  cannot be made to same line due to btoken lines or line is completely missing from the part of the odom range. The logic looks for connecting.
+              if(gradDiff1 < 0.75){
+                auto seg = lanelet::geometry::closestSegment(line3d, point3d1);
+                std::vector<double> segXs;std::vector<double> segYs;
+                segXs.push_back(seg.first.x());
+                segXs.push_back(seg.second.x());
+                segYs.push_back(seg.first.y());
+                segYs.push_back(seg.second.y());
+                auto segLineDetails = linearRegression(segXs, segYs);
+                double smallD = 10000.;
+                size_t selectedI = 0;
+                lanelet::Point3d selectedPoint;
+                bool proceed = false;
+                auto projPoint1 = lanelet::Point3d(lanelet::utils::getId(), pProj1.x(), pProj1.y(), 0);
+                for(size_t k=j+1; k < allLineStrings.size(); k++){
+                  auto anotherLine = allLineStrings[k];
+                  //Only consider the line that has a length more than a threshold
+                  if(bg::length(anotherLine) > 5){
+                    auto anotherP1 = anotherLine[0];
+                    auto anotherP2 = anotherLine[1];
+                    segXs.clear();segYs.clear();
+                    segXs.push_back(anotherP1.get<0>());
+                    segXs.push_back(anotherP2.get<0>());
+                    segYs.push_back(anotherP1.get<1>());
+                    segYs.push_back(anotherP2.get<1>());
+                    auto anotherLineDetails = linearRegression(segXs, segYs);
+                    auto slopeDiff = std::abs(std::get<0>(anotherLineDetails) - std::get<0>(segLineDetails));
+                    auto m = std::get<0>(segLineDetails);  
+                    auto c = std::get<1>(segLineDetails);  
+                    auto y =  m*anotherP1.get<0>()+c;
+                    auto y_diff = std::abs(std::abs(y) - std::abs(anotherP1.get<1>()));
+                    auto projPoint2 = lanelet::Point3d(lanelet::utils::getId(), anotherP1.get<0>(), anotherP1.get<1>(), 0);
+                    lanelet::LineString3d checkLineString(lanelet::utils::getId(), {projPoint1, projPoint2});
+                    auto d = lanelet::geometry::length(lanelet::utils::toHybrid(checkLineString));
+                    if(slopeDiff < 0.2 && y_diff < 0.5 && y_diff < smallD&& d < 50)
+                    {
+                      smallD = y_diff;
+                      selectedI = k;
+                      proceed = true;
+                      selectedPoint = projPoint2;
+                      //break;
+                    }
+                  }//length > 5 close 
+                }//for loop close
+                if(proceed){
+                  auto projPoint2 = selectedPoint;
+                  selectedLines.push_back(std::make_pair(j, std::make_pair(projPoint1, projPoint2)));
+                }
+              }//gradDiff1 if close
+              else if(gradDiff2 < 0.75){
+                auto seg = lanelet::geometry::closestSegment(line3d, point3d2);
+                std::vector<double> segXs;std::vector<double> segYs;
+                segXs.push_back(seg.first.x());
+                segXs.push_back(seg.second.x());
+                segYs.push_back(seg.first.y());
+                segYs.push_back(seg.second.y());
+                auto segLineDetails = linearRegression(segXs, segYs);
+                double smallD = 10000.;
+                size_t selectedI = 0;
+                lanelet::Point3d selectedPoint;
+                bool proceed = false;
+                auto projPoint2 = lanelet::Point3d(lanelet::utils::getId(), pProj2.x(), pProj2.y(), 0);
+                for(size_t k=0; k<j; k++){
+                  auto anotherLine = allLineStrings[k];
+                  if(bg::length(anotherLine) > 5){
+                    auto anotherP1 = anotherLine[anotherLine.size()-1];
+                    auto anotherP2 = anotherLine[anotherLine.size()-2];
+                    segXs.clear();segYs.clear();
+                    segXs.push_back(anotherP1.get<0>());
+                    segXs.push_back(anotherP2.get<0>());
+                    segYs.push_back(anotherP1.get<1>());
+                    segYs.push_back(anotherP2.get<1>());
+                    auto anotherLineDetails = linearRegression(segXs, segYs);
+                    auto slopeDiff = std::abs(std::get<0>(anotherLineDetails) - std::get<0>(segLineDetails));
+                    auto m = std::get<0>(segLineDetails);  
+                    auto c = std::get<1>(segLineDetails);  
+                    auto y =  m*anotherP1.get<0>()+c;
+                    auto y_diff = std::abs(std::abs(y) - std::abs(anotherP1.get<1>()));
+                    auto projPoint1 = lanelet::Point3d(lanelet::utils::getId(), anotherP1.get<0>(), anotherP1.get<1>(), 0);
+                    lanelet::LineString3d checkLineString(lanelet::utils::getId(), {projPoint1, projPoint2});
+                    auto d = lanelet::geometry::length(lanelet::utils::toHybrid(checkLineString));
+                    if(slopeDiff < 0.2 && y_diff < 0.5 && y_diff < smallD&& d < 50)
+                    {
+                      smallD = y_diff;
+                      selectedI = k;
+                      proceed = true;
+                      selectedPoint = projPoint1;
+                      //break;
+                    }
+
+                  }// length > 5 close
+                }//for loop close
+                if(proceed){
+                  ROS_INFO_STREAM("HERE diff2: "<<gradDiff1<<" "<<gradDiff2);
+                  auto projPoint1 = selectedPoint;
+                  selectedLines.push_back(std::make_pair(selectedI, std::make_pair(projPoint1, projPoint2)));
+                }
+
+              }//gradDiff2 if close
+            }// gradDiffs else close
+          }// length > 5 close
+        }// for loop j close
         
        if(selectedLines.size() > 0){
           //1.Go through selected lines and see the bounding boxesintersects. If
@@ -328,7 +433,7 @@ void FeatureExtractor::constructLane(){
           }
           
           //Removing the duplicate lines
-          std::vector<std::pair<size_t, std::pair<lanelet::BasicPoint3d, lanelet::BasicPoint3d>>> selectedLineIndexs;
+          std::vector<std::pair<size_t, std::pair<lanelet::Point3d, lanelet::Point3d>>> selectedLineIndexs;
           for(size_t k=0; k<selectedLines.size(); k++){
             if(std::find(eraseVec.begin(), eraseVec.end(), k) != eraseVec.end())
               continue;
@@ -340,7 +445,7 @@ void FeatureExtractor::constructLane(){
 
           ROS_INFO_STREAM("selected lines size: "<<selectedLineIndexs.size()); 
           //2. Creating the right order of the line
-          std::vector<std::pair<size_t, std::tuple<size_t, lanelet::BasicPoint3d, lanelet::BasicPoint3d>>> orderVec;
+          std::vector<std::pair<size_t, std::tuple<size_t, lanelet::Point3d, lanelet::Point3d>>> orderVec;
           for(size_t j=0; j<selectedLineIndexs.size(); j++){
 
             //Get the check line
@@ -372,7 +477,7 @@ void FeatureExtractor::constructLane(){
           } 
 
           //sort the orderVec
-          std::sort(orderVec.begin(), orderVec.end(), [](const std::pair<size_t, std::tuple<size_t, lanelet::BasicPoint3d, lanelet::BasicPoint3d>>& a, const std::pair<size_t, std::tuple<size_t, lanelet::BasicPoint3d, lanelet::BasicPoint3d>>& b) {return a.first < b.first;});
+          std::sort(orderVec.begin(), orderVec.end(), [](const std::pair<size_t, std::tuple<size_t, lanelet::Point3d, lanelet::Point3d>>& a, const std::pair<size_t, std::tuple<size_t, lanelet::Point3d, lanelet::Point3d>>& b) {return a.first < b.first;});
 
           /*for(size_t k=0; k<orderVec.size(); k++){
             auto vec = orderVec[k];
@@ -418,7 +523,7 @@ void FeatureExtractor::constructLane(){
         ys.clear();
         init = false;
       }//threshold if close
-    }//else close
+    }//else close`
   }//odom for loop close  
 
   //Creating a laneletmap
@@ -426,15 +531,6 @@ void FeatureExtractor::constructLane(){
   lanelet::projection::UtmProjector projector(lanelet::Origin({49., 8.4}));
   lanelet::write("/model/map.osm", *laneletsMap, projector);
   ROS_INFO_STREAM("Lanelet map is created: "<< laneletsMap->laneletLayer.exists(lanelets.front().id())); 
-}
-
-std::string FeatureExtractor::tempfile(const std::string& name) {
-  char tmpDir[] = "/tmp/lanelet2_example_XXXXXX";
-  auto* file = mkdtemp(tmpDir);
-  if (file == nullptr) {
-    throw lanelet::IOError("Failed to open a temporary file for writing");
-  }
-  return std::string(file) + '/' + name;
 }
 
 bool FeatureExtractor::isLeft(lanelet::Point3d a, lanelet::Point3d b, lanelet::Point3d c){
