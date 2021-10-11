@@ -164,6 +164,8 @@ private:
   
   bool isLeft(lanelet::Point3d, lanelet::Point3d, lanelet::Point3d);
   
+  void createLaneletMap();
+  
   // initialise ros stuff
   virtual void onInit();
 
