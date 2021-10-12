@@ -242,7 +242,10 @@ void FeatureExtractor::createLaneletMap(){
   bool init = false;
   Point p1; Point p2;
   std::vector<double> xs;std::vector<double> ys;
+  double odomLineLength = 2.;//5. works as well
+  double lineLength = 2.;// 5. works as well
   for(size_t i=0; i<vehicle_odom_double.size()-1; i++){
+
     if(!init){
       xs.push_back(vehicle_odom_double[i].first);
       ys.push_back(vehicle_odom_double[i].second);
@@ -257,8 +260,8 @@ void FeatureExtractor::createLaneletMap(){
       LineString odomLS;
       odomLS.push_back(p1); 
       odomLS.push_back(p2);
-      if(bg::length(odomLS) > 5){
-        ROS_INFO_STREAM(p1.get<0>()<<" "<<p1.get<1>()<<" , "<<p2.get<0>()<<" "<<p2.get<1>());
+      if(bg::length(odomLS) > odomLineLength){
+        ROS_INFO_STREAM("--------"<<p1.get<0>()<<" "<<p1.get<1>()<<" , "<<p2.get<0>()<<" "<<p2.get<1>());
         std::vector<std::pair<size_t, std::pair<lanelet::Point3d, lanelet::Point3d>>> selectedLines;
         
         //Loop through the lines
@@ -266,8 +269,7 @@ void FeatureExtractor::createLaneletMap(){
           auto line = allLineStrings[j];
           
           //Only consider the line that has a length more than a threshold
-          if(bg::length(line) > 5){
-            
+          if(bg::length(line) > lineLength){
             //We are considering slope of the normal line/perpendicular line to
             //the odom line
             auto odomLineDetails = linearRegression(xs, ys);
@@ -296,7 +298,7 @@ void FeatureExtractor::createLaneletMap(){
               auto projPoint1 = lanelet::Point3d(lanelet::utils::getId(), pProj1.x(), pProj1.y(), 0);
               auto projPoint2 = lanelet::Point3d(lanelet::utils::getId(), pProj2.x(), pProj2.y(), 0);
               selectedLines.push_back(std::make_pair(j, std::make_pair(projPoint1, projPoint2)));
-            }else{
+            }else if(gradDiff1 < 0.75 || gradDiff2 < 0.75){
               // In some cases projections of p1 and p2  cannot be made to same line due to btoken lines or line is completely missing from the part of the odom range. The logic looks for connecting.
               if(gradDiff1 < 0.75){
                 auto seg = lanelet::geometry::closestSegment(line3d, point3d1);
@@ -314,7 +316,7 @@ void FeatureExtractor::createLaneletMap(){
                 for(size_t k=j+1; k < allLineStrings.size(); k++){
                   auto anotherLine = allLineStrings[k];
                   //Only consider the line that has a length more than a threshold
-                  if(bg::length(anotherLine) > 5){
+                  if(bg::length(anotherLine) > lineLength){
                     auto anotherP1 = anotherLine[0];
                     auto anotherP2 = anotherLine[1];
                     segXs.clear();segYs.clear();
@@ -361,7 +363,7 @@ void FeatureExtractor::createLaneletMap(){
                 auto projPoint2 = lanelet::Point3d(lanelet::utils::getId(), pProj2.x(), pProj2.y(), 0);
                 for(size_t k=0; k<j; k++){
                   auto anotherLine = allLineStrings[k];
-                  if(bg::length(anotherLine) > 5){
+                  if(bg::length(anotherLine) > lineLength){
                     auto anotherP1 = anotherLine[anotherLine.size()-1];
                     auto anotherP2 = anotherLine[anotherLine.size()-2];
                     segXs.clear();segYs.clear();
@@ -397,6 +399,22 @@ void FeatureExtractor::createLaneletMap(){
 
               }//gradDiff2 if close
             }// gradDiffs else close
+            else{
+              auto odomM = std::get<0>(odomLineDetails);
+              auto odomC = std::get<1>(odomLineDetails);
+              auto newY = odomM*pProj1.x()+odomC;
+              auto y_diff = std::abs(std::abs(newY) - std::abs(pProj1.y()));
+              auto projPoint1 = lanelet::Point3d(lanelet::utils::getId(),p2.get<0>(), p2.get<1>(), 0);
+              auto projPoint2 = lanelet::Point3d(lanelet::utils::getId(), pProj1.x(), pProj1.y(), 0);
+              lanelet::LineString3d checkLineString(lanelet::utils::getId(), {projPoint1, projPoint2});
+              auto d = lanelet::geometry::length(lanelet::utils::toHybrid(checkLineString));
+ 
+              if(y_diff > 0.5 && d < 6.){
+                auto projPoint1 = lanelet::Point3d(lanelet::utils::getId(), pProj1.x(), pProj1.y(), 0);
+                auto projPoint2 = lanelet::Point3d(lanelet::utils::getId(), pProj2.x(), pProj2.y(), 0);
+                selectedLines.push_back(std::make_pair(j, std::make_pair(projPoint1, projPoint2)));
+              }
+            }//else close
           }// length > 5 close
         }// for loop j close
         
@@ -501,8 +519,8 @@ void FeatureExtractor::createLaneletMap(){
 
             auto checkLine2D = lanelet::utils::to2D(checkLine3d);
             auto newLine2D = lanelet::geometry::offsetNoThrow(checkLine2D, dist);
-            ROS_INFO_STREAM("main line: "<<x1<<" "<<y1<<" , "<<x2<<" "<<y2);
-            ROS_INFO_STREAM("new line: "<<newLine2D[0].x()<<" "<<newLine2D[0].y()<<" , "<<newLine2D[1].x()<<" "<<newLine2D[1].y());
+            //ROS_INFO_STREAM("main line: "<<x1<<" "<<y1<<" , "<<x2<<" "<<y2);
+            //ROS_INFO_STREAM("new line: "<<newLine2D[0].x()<<" "<<newLine2D[0].y()<<" , "<<newLine2D[1].x()<<" "<<newLine2D[1].y());
             auto tempP1 = lanelet::Point3d(lanelet::utils::getId(), x1, y1, 0);
             auto tempP2 = lanelet::Point3d(lanelet::utils::getId(), x2, y2, 0);
             lanelet::LineString3d ls3d1(lanelet::utils::getId(), {tempP1, tempP2});
@@ -538,7 +556,7 @@ void FeatureExtractor::createLaneletMap(){
 
   //Creating a laneletmap
   lanelet::LaneletMapUPtr laneletsMap = lanelet::utils::createMap(lanelets);
-  lanelet::projection::UtmProjector projector(lanelet::Origin({49., 8.4}));
+  lanelet::projection::UtmProjector projector(lanelet::Origin({0,0}));
   lanelet::write("/model/map.osm", *laneletsMap, projector);
   ROS_INFO_STREAM("Lanelet map is created: "<< laneletsMap->laneletLayer.exists(lanelets.front().id())); 
 
