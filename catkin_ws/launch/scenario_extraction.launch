@@ -1,0 +1,12 @@
+<launch>
+  <node pkg="extraction" type="extraction" name="extraction" output="screen">
+    <param name="bag_file" value="$(arg bag_file)"/>
+    <!-- just run as fast as it can -->
+    <param name="limit_playback_speed" value="false" />
+    <param name="percentage_start" value="5" />
+    <param name="percentage_end" value="7" />
+    <param name="objects" value="ibeo/objects" />
+    <param name="odometry" value="ibeo/odometry" />
+  </node>
+</launch>
+
