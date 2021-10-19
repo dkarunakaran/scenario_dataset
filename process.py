@@ -32,12 +32,12 @@ from collections import OrderedDict
 #   G. ODOM frame to Baselink for lane detection
 #   H. Baselink to ODOM frame for getting the right position in the world
 #   I. Do the lane detection at the process.py
-# 3. Convert this data to OpenStreet format  
-# 4. Identify content for OpenDrive format for IBEO data
+# 3. Convert this data to lanelet format  
+# 4. Identify content for lanelet format for IBEO data
 #   A. Road data: Number of lane
 #   B. Road structure
 #   C. Anyother static information possible such as building, trees, rad signs etc
-# 4. Compute the OpenScenario fromat from the extracted content.
+# 4. Compute the lanelet format from the extracted content.
 
 class Data:
     def __init__(self, **entries):

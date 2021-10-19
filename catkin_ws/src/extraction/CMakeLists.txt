@@ -16,11 +16,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf_conversions
   tf2_msgs
+  ibeo_object_msg
 )
 
 # package currently needs opencv
 find_package(OpenCV 3 REQUIRED)
-
 
 ###################################
 ## catkin specific configuration ##
