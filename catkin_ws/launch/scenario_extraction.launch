@@ -3,13 +3,14 @@
     <param name="bag_file" value="$(arg bag_file)"/>
     <!-- just run as fast as it can -->
     <param name="limit_playback_speed" value="false" />
-    <param name="percentage_start" value="15" />
-    <param name="percentage_end" value="15.5" />
+    <param name="percentage_start" value="13" />
+    <param name="percentage_end" value="17" />
     <param name="objects" value="ibeo/objects" />
     <param name="odometry" value="ibeo/odometry" />
     <param name="resume" value="true" />
     <param name="odom_json_file" value="/model/odom.json" />
     <param name="objects_json_file" value="/model/objects.json" />
+    <param name="lanelet_file" value="/model/map.osm" />
   </node>
 </launch>
 

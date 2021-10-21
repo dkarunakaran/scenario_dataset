@@ -17,6 +17,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   tf2_msgs
   ibeo_object_msg
+  lanelet2_core
+  lanelet2_io
+  lanelet2_projection
+  lanelet2_routing
+  lanelet2_traffic_rules
+  lanelet2_validation
 )
 
 # package currently needs opencv
