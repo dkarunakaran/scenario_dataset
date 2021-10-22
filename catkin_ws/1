@@ -49,7 +49,6 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::string odom_json_file;std::string objects_json_file;
     std::string lanelet_file; lanelet::LaneletMapPtr map;
     std::vector<uint32_t> egoSec;
-    int prevLaneChangeCount;
 
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
@@ -61,9 +60,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       private_nh.getParam("odom_json_file", odom_json_file);
       private_nh.getParam("objects_json_file", objects_json_file);
       private_nh.getParam("lanelet_file", lanelet_file);
-      lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
+      lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  // we will go into details later
       map = lanelet::load(lanelet_file, projector);
-      prevLaneChangeCount = 0;
       //Below code is an example and do not delete
       /*try {
         geometry_msgs::PointStamped baseLinkPoint;
@@ -166,80 +164,85 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           }
           
           //1. Overtaking scenario
-          overtakingScenario(sec, projectedSec);  
-
-          //2. Cut-in scenario
-          cutInScenario(sec, projectedSec);
+          overtakingScenario(sec, projectedSec);   
           
           egoSec.push_back(sec);
         }
       }//Odometry topic if closes
     }
 
-    void overtakingScenario(uint32_t currentSec, std::vector<uint32_t> projectedSec){
+    void overtakingScenario(uint32_t sec, std::vector<uint32_t> projectedSec){
       
-      auto index = findIndex(odomTimeStamp, currentSec);  
+      //1. Find the number lines where the car is at the current sec
+      auto index = findIndex(odomTimeStamp, sec);  
       auto egoJsonData = odomPos[index];
       double egoPosX = egoJsonData["position_x"];double egoPosY = egoJsonData["position_y"]; 
       auto egoPoint = lanelet::BasicPoint2d(egoPosX, egoPosY);
-      auto numLaneCarLane = findTheNumberOfLanesAndCarLane(map, egoPoint);
-      ROS_INFO_STREAM("________________________________");
-      ROS_INFO_STREAM("Ego car's current pos: "<<numLaneCarLane.first<<" "<<numLaneCarLane.second);
-      int differentLane = 0; 
-      int elseCount = 0;
-      if(numLaneCarLane.first != 0){
-        for(auto& sec: projectedSec){
-          auto index = findIndex(odomTimeStamp, sec);  
-          auto futureEgoJsonData = odomPos[index];
-          double futureEgoPosX = futureEgoJsonData["position_x"];double futureEgoPosY = futureEgoJsonData["position_y"]; 
-          auto futureEgoPoint = lanelet::BasicPoint2d(futureEgoPosX, futureEgoPosY);
-          auto futureNumLaneCarLane = findTheNumberOfLanesAndCarLane(map, futureEgoPoint);
-          ROS_INFO_STREAM("future ego car's pos at "<<sec<<" :"<<futureNumLaneCarLane.first<<" "<<futureNumLaneCarLane.second);
-          //If there is a mismatch in the line pos, need tp do further check:
-          //1. projected ego car lane is different to the ego's current lane in multiple projected sec.
-          //2. the car was towards the lanelet edge in multiple projected sec
-          if(futureNumLaneCarLane.first != 0){
-            if(numLaneCarLane.first == futureNumLaneCarLane.first && numLaneCarLane.second != futureNumLaneCarLane.second){
-              differentLane++;
-            }else{
-              //In some cases number of lanes would be different in current and
-              //projected sec which can contribute to the false detection of
-              //lane change. this may be due to the map is constructed wrong.
-              //We can check this by looking at how many times the number is
-              //going different.
-              if(numLaneCarLane.second != futureNumLaneCarLane.second)
-                elseCount++;
-            }
-          }
+      //identify the lanelet that the search point is in
+      auto nearLanelets = findTheActualLanelet(map, egoPoint);
+      if(std::get<0>(nearLanelets) && lanelet::geometry::length3d(std::get<1>(nearLanelets)) > 0){
+        auto egoLanelet = std::get<1>(nearLanelets);
+        auto currentLanelet = egoLanelet;
+        auto lanelets = std::get<2>(nearLanelets);
+        std::vector<std::pair<int, lanelet::Lanelet>> selectedLanelets;
+        int count = 0;
+
+        //Find all the right lanelets
+        while(true){
+          auto result = findTheRightLanelet(currentLanelet, lanelets);
+          if(result.first){
+            selectedLanelets.push_back(std::make_pair(count, result.second)); 
+            currentLanelet = result.second;
+            lanelet::ConstLineString3d centerline = currentLanelet.centerline();  
+            int midSegNo = centerline.numSegments()/2;
+            auto midSeg = centerline.segment(midSegNo);
+            auto point1 = midSeg.first;auto point2 = midSeg.second;
+            auto midX = (point1.x()+point2.x())/2; auto midY = (point1.y()+point2.y())/2;
+            auto point = lanelet::BasicPoint2d(midX, midY);
+            lanelets = std::get<2>(findTheActualLanelet(map, point));
+            count++;
+          }else
+            break;
         }
-      }
 
-      if(elseCount > 2)
-        differentLane++;
+        std::sort(selectedLanelets.begin(), selectedLanelets.end(), [](const std::pair<int, lanelet::Lanelet>& a, std::pair<int, lanelet::Lanelet>& b) {return a.first > b.first;});
+        std::vector<lanelet::Lanelet> allLanelets;
+        for(auto& pair: selectedLanelets)
+          allLanelets.push_back(pair.second);
+        allLanelets.push_back(egoLanelet);
+
+        //Find all the left lanelets
+        
+        //find the left lanelet of the ego lanelet
+        //find the centre line of the left lanelet
+        //project the ego centreline point to left lanelet's centre line
+        //this process repeats for let right until we find all the left and
+        //right lanelets of the ego lanelets
       
-      if(prevLaneChangeCount > 2 && differentLane > 2){
-        ROS_INFO_STREAM("LANE CHANGE!!!");
+      }//Checking lanelet for the egopoint if closes      
+      else{
+        ROS_INFO_STREAM("No lanelet found: length of the lanelet is zero or simply couldn't find the lanelet that actually has the point");
       }
-      ROS_INFO_STREAM(prevLaneChangeCount<<" "<<differentLane<<" "<<elseCount);
-      //Previous lane change
-      prevLaneChangeCount = differentLane;
 
-    }
+      /*for(auto& sec: projectedSec){
+        auto index = findIndex(odomTimeStamp, sec);  
+        auto egoJsonData = odomPos[index];
+        double egoPosX = egoJsonData["position_x"];double egoPosY = egoJsonData["position_y"]; 
+        auto egoPoint = lanelet::BasicPoint2d(egoPosX, egoPosY);
+        //1. identify the number of lanes in the projected sec
+        //identify the lanelet that the search point is in
+        auto nearLanelets = findTheActualLanelet(map, egoPoint);
+        if(std::get<0>(nearLanelets) && lanelet::geometry::length3d(std::get<1>(nearLanelets)) > 0){
+          auto egoLanelet = std::get<1>(nearLanelets);
+          auto lanelets = std::get<2>(nearLanelets);
+          //find the centerline of the lanelet
+          lanelet::ConstLineString3d centerline = egoLanelet.centerline();  
+        }//Checking lanelet for the egopoint if closes      
+        else{
+          ROS_INFO_STREAM("No lanelet found: length of the lanelet is zero or simply couldn't find the lanelet that actually has the point");
+        } 
 
-    void cutInScenario(uint32_t currentSec, std::vector<uint32_t> projectedSec)
-    {
-     
-      for(auto& sec: projectedSec){
-        //1.Find all the cars at this sec
-        //2.Loop through each car
-        //  a. Loop through ego_s trajectory till 8 second
-        //  b. Check euclidean distance with ego and current car
-        //  c. Check acceleartion change and increment the acceleration change
-        //  count
-        //  d. identify the cut-in scenario happended or not based on above
-        //  information.
-      }
-    
+      }*/
     }
 };
 
