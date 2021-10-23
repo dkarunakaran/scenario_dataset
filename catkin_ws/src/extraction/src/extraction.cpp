@@ -50,7 +50,10 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::string lanelet_file; lanelet::LaneletMapPtr map;
     std::vector<uint32_t> egoSec;
     int prevLaneChangeCount;
-
+    std::vector<int> objectClassVec;
+    std::vector<std::pair<uint32_t, std::vector<json>>> groupBySec;
+    std::vector<std::pair<int, std::vector<json>>> groupByCar;
+    
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
       current_message_number = 0;
@@ -64,6 +67,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
       map = lanelet::load(lanelet_file, projector);
       prevLaneChangeCount = 0;
+      objectClassVec.push_back(5); //car
+      objectClassVec.push_back(6); //truck
+      objectClassVec.push_back(15); //motorbike
       //Below code is an example and do not delete
       /*try {
         geometry_msgs::PointStamped baseLinkPoint;
@@ -83,18 +89,29 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       json j1;i1 >> j1; 
       for (auto& item : j1) {
         odomPos.push_back(item);
-        auto sec = item["sec"].get<int>();
+        auto sec = item["sec"].get<uint32_t>();
         odomTimeStamp.push_back(sec);
       }
       std::ifstream i2(objects_json_file);
       json j2;i2 >> j2;
       for (auto& item : j2) {
         objectsPos.push_back(item);
-        auto sec = item["sec"].get<int>();
+        auto sec = item["sec"].get<uint32_t>();
         objectsTimeStamp.push_back(sec);
       }
       
       ROS_INFO_STREAM("Odometry size: "<<odomPos.size()<<" Objects timestamp: "<<objectsPos.size());
+
+      groupThem();
+    }
+
+    void groupThem(){
+      groupObjects(objectsPos, groupBySec, groupByCar);
+      ROS_INFO_STREAM("groupBySec: "<<groupBySec.size()<<" groupByCar: "<<groupByCar.size());
+      for(auto& pair: groupBySec){
+        objectsTimeStamp.push_back(pair.first);
+      }
+
     }
     
     void storeData(){
@@ -125,11 +142,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         if(message.getTopic() == objects_topic){
           ibeo_object_msg::IbeoObject::ConstPtr objPtr = message.instantiate<ibeo_object_msg::IbeoObject>();
           if(objPtr != nullptr){
-            if(std::find(objectsTimeStamp.begin(), objectsTimeStamp.end(), objPtr->header.stamp.sec) != objectsTimeStamp.end()){
-            }else{
+            if(std::find(objectClassVec.begin(), objectClassVec.end(), objPtr->object_id) != objectClassVec.end()){
               json jData = constructJsonData(objPtr, transformer_);
               objectsPos.push_back(jData);  
-              objectsTimeStamp.push_back(objPtr->header.stamp.sec);  
             }
           }
         }//object topic if close 
@@ -166,7 +181,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           }
           
           //1. Overtaking scenario
-          overtakingScenario(sec, projectedSec);  
+          //overtakingScenario(sec, projectedSec);  
 
           //2. Cut-in scenario
           cutInScenario(sec, projectedSec);
@@ -177,7 +192,6 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     }
 
     void overtakingScenario(uint32_t currentSec, std::vector<uint32_t> projectedSec){
-      
       auto index = findIndex(odomTimeStamp, currentSec);  
       auto egoJsonData = odomPos[index];
       double egoPosX = egoJsonData["position_x"];double egoPosY = egoJsonData["position_y"]; 
@@ -221,6 +235,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         ROS_INFO_STREAM("LANE CHANGE!!!");
       }
       ROS_INFO_STREAM(prevLaneChangeCount<<" "<<differentLane<<" "<<elseCount);
+      
       //Previous lane change
       prevLaneChangeCount = differentLane;
 
@@ -231,13 +246,19 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
      
       for(auto& sec: projectedSec){
         //1.Find all the cars at this sec
+        auto carsVec = getAllTheCarsAtSec(groupBySec, sec);
         //2.Loop through each car
-        //  a. Loop through ego_s trajectory till 8 second
-        //  b. Check euclidean distance with ego and current car
-        //  c. Check acceleartion change and increment the acceleration change
-        //  count
-        //  d. identify the cut-in scenario happended or not based on above
-        //  information.
+        for(auto& jData: carsVec){
+          auto car = jData["object_id"];
+          auto dataAtCar = getAllTheDataAtCar(groupByCar, car);
+          //  a. Loop through ego_s trajectory till 8 second
+           
+          //  b. Check euclidean distance with ego and current car
+          //  c. Check acceleartion change and increment the acceleration change
+          //  count
+          //  d. identify the cut-in scenario happended or not based on above
+          //  information.
+        }
       }
     
     }
@@ -257,6 +278,7 @@ int main(int argc, char **argv) {
   }else{
     ROS_INFO_STREAM("Data is loading from Bag file...");
     extract.storeDataInitially = true;  
+    extract.groupThem();
     extract.ReadFromBag();
     extract.storeData();
   }

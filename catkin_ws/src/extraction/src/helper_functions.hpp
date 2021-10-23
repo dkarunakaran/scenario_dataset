@@ -64,7 +64,7 @@ bool checkSecExist(std::vector<uint32_t> timeStamp, uint32_t sec){
 
 int findIndex(std::vector<uint32_t> v, uint32_t sec){
   int _return = -1;  
-  auto it = find(v.begin(), v.end(), sec);
+  auto it = std::find(v.begin(), v.end(), sec);
  
   // If element was found
   if (it != v.end())
@@ -197,6 +197,88 @@ std::pair<int,int> findTheNumberOfLanesAndCarLane(lanelet::LaneletMapPtr map, la
   }
 
   return _return;
+}
+
+void groupObjDataBySec(json jData, std::vector<std::pair<uint32_t, std::vector<json>>>& objectsPerSec){
+  bool found = false;
+  size_t index = 0;
+  for(size_t i=0; i<objectsPerSec.size(); i++){
+    auto pair = objectsPerSec[i];
+    if(pair.first == jData["sec"].get<uint32_t>()){
+      found = true;
+      index = i;
+    }
+  }
+  if(found){
+    auto pair = objectsPerSec[index]; 
+    auto vec = pair.second;
+    vec.push_back(jData);
+    objectsPerSec[index] = std::make_pair(pair.first, vec);
+  }else{
+    std::vector<json> tempVec; tempVec.push_back(jData);
+    objectsPerSec.push_back(std::make_pair(jData["sec"].get<uint32_t>(), tempVec));
+  }
+}
+
+void groupObjDataByCar(json jData, std::vector<std::pair<int, std::vector<json>>>& groupByCar){
+  bool found = false;
+  size_t index = 0;
+  for(size_t i=0; i<groupByCar.size(); i++){
+    auto pair = groupByCar[i];
+    if(pair.first == jData["object_id"].get<int>()){
+      found = true;
+      index = i;
+    }
+  }
+  if(found){
+    auto pair = groupByCar[index]; 
+    auto vec = pair.second;
+    bool proceed = true;
+    for(size_t i=0; i<vec.size(); i++){
+      auto j = vec[i];
+      if(j["sec"] == jData["sec"]){
+        proceed = false;
+      }
+    }
+    if(proceed){
+      vec.push_back(jData);
+      groupByCar[index] = std::make_pair(pair.first, vec);
+    }
+  }else{
+    std::vector<json> tempVec; tempVec.push_back(jData);
+    groupByCar.push_back(std::make_pair(jData["object_id"].get<int>(), tempVec));
+  }
+}
+
+void groupObjects(std::vector<json> objectsPos, std::vector<std::pair<uint32_t, std::vector<json>>>& groupBySec, std::vector<std::pair<int, std::vector<json>>>& groupByCar){
+  for(auto& item: objectsPos){
+    groupObjDataBySec(item, groupBySec);
+    groupObjDataByCar(item, groupByCar);
+  }
+}
+
+std::vector<json> getAllTheCarsAtSec(std::vector<std::pair<uint32_t, std::vector<json>>> groupBySec, uint32_t sec){
+ 
+  std::vector<json> carsAtSec;
+  for(auto& pair: groupBySec){
+    if(pair.first == sec){
+      carsAtSec = pair.second;
+    }
+  }
+  
+  return carsAtSec;
+}
+
+std::vector<json> getAllTheDataAtCar(std::vector<std::pair<int, std::vector<json>>> groupByCar, int car){
+ 
+  std::vector<json> dataAtCar;
+  for(auto& pair: groupByCar){
+    if(pair.first == car){
+      dataAtCar = pair.second;
+    }
+  }
+  
+  return dataAtCar;
 }
 
 
