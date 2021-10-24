@@ -243,24 +243,40 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
 
     void cutInScenario(uint32_t currentSec, std::vector<uint32_t> projectedSec)
     {
-     
+      auto egoDataTillProj = getEgoDataTillProj(projectedSec, odomPos, odomTimeStamp);
       for(auto& sec: projectedSec){
         //1.Find all the cars at this sec
         auto carsVec = getAllTheCarsAtSec(groupBySec, sec);
+        
         //2.Loop through each car
         for(auto& jData: carsVec){
           auto car = jData["object_id"];
           auto dataAtCar = getAllTheDataAtCar(groupByCar, car);
-          //  a. Loop through ego_s trajectory till 8 second
-           
-          //  b. Check euclidean distance with ego and current car
-          //  c. Check acceleartion change and increment the acceleration change
-          //  count
-          //  d. identify the cut-in scenario happended or not based on above
-          //  information.
+          
+          //a. Loop through the car data
+          int accelChange = 0;
+          for(auto& oData: dataAtCar){
+            auto oOdomDataVec = baseLinkToOdom(oData["position_x"], oData["position_y"], sec, transformer_);
+            if(oOdomDataVec.size() > 0){
+              //Checking accleration is greater than the threshold and occured more than once
+              double linearY = oData["linear_y"].get<double>();
+              if(std::abs(linearY) >= 0.50)
+                accelChange += 1;
+
+              double x2 = oOdomDataVec[0];double y2 = oOdomDataVec[1];
+              //b. Loop through ego_s trajectory till 8 second
+              for(auto& eData: egoDataTillProj){
+                double x1 = eData["position_x"]; double y1 = eData["position_y"];
+                //  c. Check euclidean distance with ego and current car 
+                float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+                if(d < 0.50 && accelChange > 1){
+                  ROS_INFO_STREAM("Cut-in scenario");
+                }
+              }
+            }
+          }
         }
       }
-    
     }
 };
 

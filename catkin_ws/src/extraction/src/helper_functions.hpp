@@ -281,6 +281,34 @@ std::vector<json> getAllTheDataAtCar(std::vector<std::pair<int, std::vector<json
   return dataAtCar;
 }
 
+std::vector<json> getEgoDataTillProj(std::vector<uint32_t> projectedSec, std::vector<json> odomPos, std::vector<uint32_t> odomTimeStamp){
 
+  std::vector<json> returnVec;
+  for(auto& sec: projectedSec){
+      auto index = findIndex(odomTimeStamp, sec);
+      if(index != -1)
+        returnVec.push_back(odomPos[index]);
+  }
+
+  return returnVec;
+}
+
+std::vector<double> baseLinkToOdom(double x1, double y1, uint32_t sec, std::shared_ptr<tf2_ros::Buffer> transformer_){
+  std::vector<double> _returnVec;
+  try {
+    geometry_msgs::PointStamped baseLinkPoint;
+    baseLinkPoint.point.x = x1;baseLinkPoint.point.y = y1;baseLinkPoint.point.z = 0;
+    baseLinkPoint.header.frame_id = "base_link";baseLinkPoint.header.stamp.sec = sec;
+    geometry_msgs::PointStamped odomPoint;
+    transformer_->setUsingDedicatedThread(true);
+    transformer_->transform(baseLinkPoint, odomPoint, "odom");
+    _returnVec.push_back(odomPoint.point.x);
+    _returnVec.push_back(odomPoint.point.y);
+  }catch (const std::exception &e) {
+    ROS_ERROR_STREAM(e.what());
+  }
+  
+  return _returnVec;  
+}
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP
