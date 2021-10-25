@@ -29,25 +29,37 @@ json constructJsonData(nav_msgs::Odometry::ConstPtr dataPtr, std::shared_ptr<tf2
 
 json constructJsonData(ibeo_object_msg::IbeoObject::ConstPtr dataPtr, std::shared_ptr<tf2_ros::Buffer>& transformer_){
   json jData;
-  tf::Quaternion q(
-    dataPtr->pose.pose.orientation.x,
-    dataPtr->pose.pose.orientation.y,
-    dataPtr->pose.pose.orientation.z,
-    dataPtr->pose.pose.orientation.w);
-  tf::Matrix3x3 m(q);
-  double roll, pitch, yaw;
-  m.getRPY(roll, pitch, yaw);
-  jData["object_id"] = dataPtr->object_id;
-  jData["linear_x"] = dataPtr->twist.twist.linear.x;
-  jData["linear_y"] = dataPtr->twist.twist.linear.y;
-  jData["linear_z"] = dataPtr->twist.twist.linear.z;
-  jData["position_x"] = dataPtr->pose.pose.position.x;
-  jData["position_y"] = dataPtr->pose.pose.position.y;
-  jData["position_z"] = dataPtr->pose.pose.position.z;
-  jData["roll"] = roll;
-  jData["pitch"] = pitch;
-  jData["yaw"] = yaw;
-  jData["sec"] = dataPtr->header.stamp.sec;
+  try {
+    tf::Quaternion q(
+      dataPtr->pose.pose.orientation.x,
+      dataPtr->pose.pose.orientation.y,
+      dataPtr->pose.pose.orientation.z,
+      dataPtr->pose.pose.orientation.w);
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    geometry_msgs::PointStamped baseLinkPoint;
+    baseLinkPoint.point.x = dataPtr->pose.pose.position.x;baseLinkPoint.point.y = dataPtr->pose.pose.position.y;baseLinkPoint.point.z = 0;
+    baseLinkPoint.header.frame_id = "base_link";baseLinkPoint.header.stamp= dataPtr->header.stamp;
+    geometry_msgs::PointStamped odomPoint;
+    transformer_->setUsingDedicatedThread(true);
+    transformer_->transform(baseLinkPoint, odomPoint, "odom");
+    jData["object_id"] = dataPtr->object_id;
+    jData["linear_x"] = dataPtr->twist.twist.linear.x;
+    jData["linear_y"] = dataPtr->twist.twist.linear.y;
+    jData["linear_z"] = dataPtr->twist.twist.linear.z;
+    jData["position_x"] = odomPoint.point.x;
+    jData["position_y"] = odomPoint.point.y;
+    jData["pos_baselink_x"] = dataPtr->pose.pose.position.x;
+    jData["pos_baselink_y"] = dataPtr->pose.pose.position.y;
+    jData["pos_baselink_z"] = dataPtr->pose.pose.position.z;
+    jData["roll"] = roll;
+    jData["pitch"] = pitch;
+    jData["yaw"] = yaw;
+    jData["sec"] = dataPtr->header.stamp.sec;
+  }catch (const std::exception &e) {
+    ROS_ERROR_STREAM(e.what());
+  }
 
   return jData;
 }
@@ -293,22 +305,26 @@ std::vector<json> getEgoDataTillProj(std::vector<uint32_t> projectedSec, std::ve
   return returnVec;
 }
 
-std::vector<double> baseLinkToOdom(double x1, double y1, uint32_t sec, std::shared_ptr<tf2_ros::Buffer> transformer_){
-  std::vector<double> _returnVec;
-  try {
-    geometry_msgs::PointStamped baseLinkPoint;
-    baseLinkPoint.point.x = x1;baseLinkPoint.point.y = y1;baseLinkPoint.point.z = 0;
-    baseLinkPoint.header.frame_id = "base_link";baseLinkPoint.header.stamp.sec = sec;
-    geometry_msgs::PointStamped odomPoint;
-    transformer_->setUsingDedicatedThread(true);
-    transformer_->transform(baseLinkPoint, odomPoint, "odom");
-    _returnVec.push_back(odomPoint.point.x);
-    _returnVec.push_back(odomPoint.point.y);
-  }catch (const std::exception &e) {
-    ROS_ERROR_STREAM(e.what());
-  }
+std::vector<double> getObjOdomPos(double x1, double y1){
+  std::vector<double> returnVec;
+  returnVec.push_back(x1);
+  returnVec.push_back(y1);
   
-  return _returnVec;  
+  return returnVec;  
+}
+
+std::pair<bool,json> getCarDataAtSec(std::vector<json> dataAtCar, uint32_t sec){
+
+  json _returnJ;
+  bool found = false;
+  for(auto& j: dataAtCar){
+    if(sec == j["sec"]){
+      found = true;
+      _returnJ = j;
+      break;
+    }
+  }
+  return std::make_pair(found, _returnJ);
 }
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP
