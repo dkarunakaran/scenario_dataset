@@ -105,13 +105,41 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
             carIds.push_back(item["object_id"].get<int>());
         }
       }
-      
       ROS_INFO_STREAM("Odometry size: "<<odomPos.size()<<" Objects timestamp: "<<objectsPos.size());
       ROS_INFO_STREAM("Car ids:");
       for(auto& car: carIds)
         std::cout<<car<<" ";
       std::cout<<"\n";
       groupThem();
+      constructFrenetFrame();
+
+    }
+
+    void constructFrenetFrame(){
+      std::vector<std::vector<std::pair<double, double>>> frenets;
+      for(auto& car :carIds){
+        auto dataAtCar = getAllTheDataAtCar(groupByCar, car);
+        std::vector<uint32_t> secs;
+        for(auto& jData: dataAtCar){
+          secs.push_back(jData["sec"].get<uint32_t>());
+        }
+        
+        //Sort it just in case it is not sorted
+
+        //Go through the secs
+        for(auto& sec: secs){
+          auto carJson =  getCarDataAtSec(dataAtCar, sec); 
+          if(carJson.first){
+            auto egoPoint = findTheCorrespondingEgoPoints(odomPos,  lanelet::BasicPoint2d(carJson.second["position_x"].get<double>(), carJson.second["position_y"].get<double>()));
+            ROS_INFO_STREAM(egoPoint.x()<<" "<<egoPoint.y());
+            auto centerLinePoint = findTheCentralLinePoint(map, egoPoint);
+            if(centerLinePoint.first){
+              auto point3d = centerLinePoint.second;  
+              ROS_INFO_STREAM(point3d.x()<<" "<<point3d.y());
+            }
+          }
+        }
+      }
 
     }
 
@@ -121,7 +149,6 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       for(auto& pair: groupBySec){
         objectsTimeStamp.push_back(pair.first);
       }
-
     }
     
     void storeData(){
@@ -196,7 +223,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           //overtakingScenario(sec, projectedSec);  
 
           //2. Cut-in scenario
-          cutInScenario(sec, projectedSec);
+          //cutInScenario(sec, projectedSec);
           
           egoSec.push_back(sec);
         }

@@ -324,7 +324,115 @@ std::pair<bool,json> getCarDataAtSec(std::vector<json> dataAtCar, uint32_t sec){
       break;
     }
   }
+  
   return std::make_pair(found, _returnJ);
+}
+
+lanelet::BasicPoint2d findTheCorrespondingEgoPoints(std::vector<json> odomPos, lanelet::BasicPoint2d objectPoint){
+  lanelet::BasicPoint2d egoPoint;
+  auto x1 = objectPoint.x(); auto y1 = objectPoint.y(); 
+  double smallD = 1000.;
+  size_t index = 0;
+  bool found = false;
+  for(size_t i=0;i<odomPos.size();i++){
+    auto jData = odomPos[i];
+    auto x2 = jData["position_x"].get<double>(); 
+    auto y2 = jData["position_x"].get<double>();
+    float d = std::sqrt(std::pow((x2-x1),2)+std::pow((y2-y1),2));
+    if(d<smallD){
+      smallD = d;
+      index = i;
+      found = true;
+    }
+  }
+  
+  if(found){
+    auto data = odomPos[index];    
+    double egoPosX = data["position_x"];double egoPosY = data["position_y"];
+    egoPoint = lanelet::BasicPoint2d(egoPosX, egoPosY);
+  }
+
+  return egoPoint;
+}
+
+std::pair<bool,lanelet::Point3d> findTheCentralLinePoint(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
+  lanelet::Point3d point3d;
+  bool found = false;
+  auto nearLanelets = findTheActualLanelet(map, startingPoint);
+  if(std::get<0>(nearLanelets) && lanelet::geometry::length3d(std::get<1>(nearLanelets)) > 0){
+    auto firstLanelet = std::get<1>(nearLanelets);
+    auto currentLanelet = firstLanelet;
+    auto lanelets = std::get<2>(nearLanelets);
+    std::vector<std::pair<int, lanelet::Lanelet>> selectedLanelets;
+    int count = 0;
+    //Find all the left lanelets
+    while(true){
+      auto result = findTheLeftLanelet(currentLanelet, lanelets);
+      if(result.first){
+        selectedLanelets.push_back(std::make_pair(count, result.second));
+        currentLanelet = result.second;
+        lanelet::ConstLineString3d centerline = currentLanelet.centerline();
+        int midSegNo = centerline.numSegments()/2;
+        auto midSeg = centerline.segment(midSegNo);
+        auto point1 = midSeg.first;auto point2 = midSeg.second;
+        auto midX = (point1.x()+point2.x())/2; auto midY = (point1.y()+point2.y())/2;
+        auto point = lanelet::BasicPoint2d(midX, midY);
+        auto otherLanelets = findTheActualLanelet(map, point);
+        lanelets = std::get<2>(otherLanelets);
+        count++;
+      }else
+        break;
+    }
+    std::sort(selectedLanelets.begin(), selectedLanelets.end(), [](const std::pair<int, lanelet::Lanelet>& a, std::pair<int, lanelet::Lanelet>& b) {return a.first < b.first;});
+    std::vector<lanelet::Lanelet> allLanelets;
+    for(auto& pair: selectedLanelets)
+      allLanelets.push_back(pair.second);
+    
+    int carLane = selectedLanelets.size();
+    allLanelets.push_back(firstLanelet);
+    
+    //Find all the right lanelets
+    currentLanelet = firstLanelet;
+    lanelets = std::get<2>(nearLanelets);
+    count = 0;
+    selectedLanelets.clear();
+    while(true){
+      auto result = findTheRightLanelet(currentLanelet, lanelets);
+      if(result.first){
+        allLanelets.push_back(result.second);
+        currentLanelet = result.second;
+        lanelet::ConstLineString3d centerline = currentLanelet.centerline();  
+        int midSegNo = centerline.numSegments()/2;
+        auto midSeg = centerline.segment(midSegNo);
+        auto point1 = midSeg.first;auto point2 = midSeg.second;
+        auto midX = (point1.x()+point2.x())/2; auto midY = (point1.y()+point2.y())/2;
+        auto point = lanelet::BasicPoint2d(midX, midY);
+        auto otherLanelets = findTheActualLanelet(map, point);
+        lanelets = std::get<2>(otherLanelets);
+        count++;
+      }else
+        break;
+    }
+    //Find the point in the left linestring of the left most lanelet
+    auto lsLeft = allLanelets[0].leftBound();
+
+    //Find the points in the right linestring of the rightmost lanelet where we
+    //can project the point
+    auto lsRight = allLanelets[allLanelets.size()-1].rightBound();
+   
+    //Find the distance between the two points that is considered as the width
+    //of the road
+    lanelet::Lanelet lanelet(lanelet::utils::getId(), lsLeft, lsRight);
+    auto centerLine = lanelet.centerline();
+    auto pProj = lanelet::geometry::project(centerLine, lanelet::Point3d{lanelet::utils::getId(), startingPoint.x(), startingPoint.y()});
+    lanelet::Point3d point3d{lanelet::utils::getId(), pProj.x(), pProj.y()};
+    found = true;
+  }//Checking lanelet for the egopoint if closes      
+  else{
+    //ROS_INFO_STREAM("No lanelet found: length of the lanelet is zero or simply couldn't find the lanelet that actually has the point");
+  }
+
+  return std::make_pair(found, point3d);
 }
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP
