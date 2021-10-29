@@ -57,7 +57,7 @@ for car in car_ids:
     print("car_id: {} and len:{}".format(car, len(data["s"])))
     for index in range(len(data["s"])):
         x.append(0)
-    plt.xlim([10, -10])
+    plt.xlim([5, -5])
     y = data["s"]
     r = lambda: random.randint(0,255)
     hex_number = '#%02X%02X%02X' % (r(),r(),r())
@@ -91,6 +91,48 @@ plt.xlabel("x")
 plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()
+
+#--------------------------------Ego vehicle in frenet frame-----------------------
+
+path_to_file = '/model/ego_frent.json'
+path_to_save_dir = '/model/plots/'
+evaluation = {
+    "frenet_data": [],
+    "odom_data": []
+}
+with open(path_to_file) as json_file:
+    data = json.load(json_file)
+    for obj in data:
+        evaluation["frenet_data"].append(obj["frenet_data"])
+        evaluation["odom_data"].append(obj["odom_pos"]) 
+
+name = path_to_save_dir+"ego_frenet_frame"
+plt.figure()
+data = {"s":[], "d":[]}
+for fData in evaluation["frenet_data"]:
+    data["s"].append(fData["s"])
+    data["d"].append(fData["d"])
+x = []
+for index in range(len(data["s"])):
+    x.append(0)
+plt.xlim([3, -3])
+y = data["s"]
+r = lambda: random.randint(0,255)
+hex_number = '#%02X%02X%02X' % (r(),r(),r())
+plt.plot(x, y,'--', color=hex_number)
+
+x = []
+for d in data["d"]:
+    x.append(d)
+y = data["s"]
+plt.plot(x,y,'.',label="ego", color=hex_number)
+
+plt.ylabel("s = longitudinal displacement")
+plt.xlabel("d = lateral displacement")
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+plt.savefig(name)
+plt.close()
+
 
 '''
 name = path_to_save_dir+"radius_theta"

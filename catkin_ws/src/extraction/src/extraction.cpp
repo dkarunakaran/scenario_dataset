@@ -57,7 +57,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     double frenetS;
     std::vector<std::pair<int, std::vector<json>>> frenetJson;
     std::vector<double> prevPosS;
-    
+    lanelet::LineString3d roadCenterLine;
+    std::vector<json> frenetJsonEgo;
+
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
       current_message_number = 0;
@@ -104,7 +106,31 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         std::cout<<car<<" ";
       std::cout<<"\n";
       groupThem();
-      
+      buildCenterLine();
+    }
+
+    void buildCenterLine(){
+      for(auto& jData: odomPos){
+          auto egoPoint2d = lanelet::BasicPoint2d(jData["position_x"].get<double>(), jData["position_y"].get<double>());
+          auto tuple = findTheActualLanelet(map, egoPoint2d);
+          lanelet::BasicPoint2d startingPoint;
+          if(std::get<0>(tuple)){
+            startingPoint = lanelet::geometry::project(lanelet::utils::to2D(std::get<1>(tuple).centerline()), egoPoint2d); 
+          }else{
+            //Just in case map is slightly wrong, we cannot find the lanelet
+            //which the egopoint resides
+            auto startingPointPair = findTheClosestLaneletForObject(map, egoPoint2d);
+            startingPoint = startingPointPair.second;
+          }
+          auto centerLineTuple = findTheCentralLinePoint(map, startingPoint);
+          if(std::get<0>(centerLineTuple)){
+            auto roadCenter = std::get<1>(centerLineTuple).first; 
+            lanelet::Point3d p1{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0};
+            roadCenterLine.push_back(p1);
+          }
+      }
+
+      ROS_INFO_STREAM("Road center linestring size: "<<roadCenterLine.size());
     }
 
     void groupThem(){
@@ -186,11 +212,14 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           //1. Overtaking scenario
           //overtakingScenario(sec, projectedSec);  
 
-          //2. Cut-in scenario
-          //cutInScenario(sec, projectedSec);
+          //2a. Cut-in scenario
+          //cutInScenarioOdomBased(sec, projectedSec);
           
-          constructFrenetFrame(sec);
-          
+          //2b. Cut-in scenario
+          //cutInScenarioFrenetBased(sec, projectedSec);    
+
+          //constructFrenetFrame(sec);
+          constructFrenetFrameEgo(sec);
           egoSec.push_back(sec);
         }
       }//Odometry topic if closes
@@ -245,8 +274,20 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       prevLaneChangeCount = differentLane;
 
     }
+    
+    void cutInScenarioFrenetBased(uint32_t currentSec, std::vector<uint32_t> projectedSec){
+      for(auto& sec: projectedSec){
+        //Find where is the ego vehicle. More specifically, in which lanelet
+        //the vehicle is standing and then find the centerline
 
-    void cutInScenario(uint32_t currentSec, std::vector<uint32_t> projectedSec)
+
+      }
+
+     
+
+    }
+
+    void cutInScenarioOdomBased(uint32_t currentSec, std::vector<uint32_t> projectedSec)
     {
       auto egoDataTillProj = getEgoDataTillProj(projectedSec, odomPos, odomTimeStamp);
      for(auto& sec: projectedSec){
@@ -263,7 +304,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
             if(oDataPair.first){
               double x2 = oData["position_x"].get<double>();double y2 = oData["position_y"].get<double>();
               //Checking accleration is greater than the threshold and occured more than once
-              double linearY = oData["linear_y"].get<double>();
+              //double linearY = oData["linear_y"].get<double>();
               //b. Loop through ego_s trajectory till 8 second
               for(auto& eData: egoDataTillProj){
                 double x1 = eData["position_x"]; double y1 = eData["position_y"];
@@ -288,17 +329,50 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           storeJson.push_back(mainData);
         }
       } 
-      json dataJ(storeJson);
+      json dataJ1(storeJson);
       std::ofstream o1("/model/cars_frent.json");
-      o1 << std::setw(4) << dataJ << std::endl;
-    }
+      o1 << std::setw(4) << dataJ1 << std::endl;
+      
+      storeJson.clear(); 
+      for(auto& jData: frenetJsonEgo){
+        json mainData = jData;
+        storeJson.push_back(mainData);
+      } 
+      json dataJ2(storeJson);
+      std::ofstream o2("/model/ego_frent.json");
+      o2 << std::setw(4) << dataJ2 << std::endl;
 
+    }
+    
+    void constructFrenetFrameEgo(uint32_t sec){
+      json jData; json odomJdata;
+      auto index = findIndex(odomTimeStamp, sec);  
+      auto egoJsonData = odomPos[index];
+      double egoPosX = egoJsonData["position_x"];double egoPosY = egoJsonData["position_y"]; 
+      auto egoPoint = lanelet::BasicPoint2d(egoPosX, egoPosY);
+      auto egoPoint3d = lanelet::Point3d{lanelet::utils::getId(), egoPosX, egoPosY, 0};
+      auto roadCenter = lanelet::geometry::project(roadCenterLine, egoPoint3d);
+      auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
+      if(roadCenterls.size() > 0){
+        frenetS = getFrenetSEgo(frenetJsonEgo, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
+        float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), egoPoint); 
+        jData["s"] = frenetS;
+        jData["d"] = d;
+        jData["sec"] = sec;
+        odomJdata["x"] = egoJsonData["position_x"];
+        odomJdata["y"] = egoJsonData["position_y"];
+        odomJdata["sec"] = sec;
+        frenetJsonVecEgo(frenetJsonEgo,std::make_pair(jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetS);
+      }
+    }
     
     void constructFrenetFrame(uint32_t sec){
       auto carsVec = getAllTheCarsAtSec(groupBySec, sec);
       for(auto& carData: carsVec){
         auto car = carData["object_id"];
-        if(!checkOjectSecAdded(frenetJson, car, sec)){
+        //if(car != 108)
+        //  continue;
+        if(!checkObjectSecAdded(frenetJson, car, sec)){
           ROS_INFO_STREAM(car);
           auto dataAtCar = getAllTheDataAtCar(groupByCar, car);
           json jData; json odomJdata;
@@ -313,6 +387,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
               auto roadCenterls = std::get<1>(centerLineTuple).second; 
               float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point2d);
               //ROS_INFO_STREAM("sec:"<<sec<<" s&d:"<<frenetS<<" "<< d<<" car:"<<car<<" lines: "<< std::get<2>(centerLineTuple).second);  
+              ROS_INFO_STREAM("line: "<<std::get<2>(centerLineTuple).second);
               jData["s"] = frenetS;
               jData["d"] = d;
               jData["sec"] = sec;
@@ -350,68 +425,6 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         }
       */
       
-      /*
-      std::vector<json> storeJson; 
-      for(auto& car :carIds){
-        json mainJData;
-        std::vector<json> frenetDataVec; 
-        std::vector<json> odomDataVec; 
-        ROS_INFO_STREAM("--------------- car: "<<car<<"----------------");
-        auto dataAtCar = getAllTheDataAtCar(groupByCar, car);
-        std::vector<uint32_t> secs;
-        for(auto& jData: dataAtCar){
-          secs.push_back(jData["sec"].get<uint32_t>());
-        }
-        
-        double s = 0;
-        std::vector<double> prevPosS;
-        //Go through the secs
-        for(auto& sec: secs){
-          json jData; json odomJdata;
-          auto carJson =  getCarDataAtSec(dataAtCar, sec); 
-          auto point2d = lanelet::BasicPoint2d(carJson.second["position_x"].get<double>(), carJson.second["position_y"].get<double>());
-          auto startingPointPair = findTheClosestLaneletForObject(map, point2d);
-          if(startingPointPair.first){
-            auto centerLineTuple = findTheCentralLinePoint(map, startingPointPair.second);
-            if(std::get<0>(centerLineTuple)){
-              auto roadCenter = std::get<1>(centerLineTuple).first;  
-              if(prevPosS.size() == 0){
-                s = 0;
-              }else{
-                s += std::sqrt(std::pow((prevPosS[0]-roadCenter.x()),2)+std::pow((prevPosS[1]-roadCenter.y()),2));
-              }
-              auto roadCenterls = std::get<1>(centerLineTuple).second; 
-              float d=lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point2d);
-              ROS_INFO_STREAM("sec:"<<sec<<" s&d:"<<s<<" "<< d<<" "<<roadCenter.x()<<" "<<roadCenter.y()<<" lines: "<< std::get<2>(centerLineTuple).second);  
-              jData["s"] = s;
-              jData["d"] = d;
-              jData["sec"] = sec;
-              odomJdata["x"] = carJson.second["position_x"];
-              odomJdata["y"] = carJson.second["position_y"];
-              odomJdata["sec"] = sec;
-              frenetDataVec.push_back(jData);
-              odomDataVec.push_back(odomJdata);
-              prevPosS.clear();
-              prevPosS.push_back(roadCenter.x());
-              prevPosS.push_back(roadCenter.y());
-            }
-          }
-        }
-        if(frenetDataVec.size() > 0){
-          json dataJson(frenetDataVec);
-          json odomDataJson(odomDataVec);
-          mainJData = {
-            {"car_id", car},
-            {"frenet_data", dataJson},
-            {"odom_pos", odomDataJson}
-          };
-          storeJson.push_back(mainJData);
-        }
-      }
-      json dataJ(storeJson);
-      std::ofstream o1("/model/cars_frent.json");
-      o1 << std::setw(4) << dataJ << std::endl;
-      */
     }
 
 

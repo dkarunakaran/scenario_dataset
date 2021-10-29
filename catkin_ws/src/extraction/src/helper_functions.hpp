@@ -456,6 +456,8 @@ std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pa
       //even then, find the two middle two lanelets and get the commly shared
       //linestring as the center point.
       int rem = allLanelets.size()/2;
+      if(rem == 1)
+        rem = 0; 
       auto firstLL = allLanelets[rem];
       auto centerLine = firstLL.rightBound();
       if(centerLine.size() > 0){
@@ -524,6 +526,19 @@ void frenetJsonVec(std::vector<std::pair<int, std::vector<json>>>& frenetJson, s
   }
 }
 
+void frenetJsonVecEgo(std::vector<json>& frenetJsonEgo, std::pair<json, json> data, lanelet::BasicPoint2d roadCenter, double s){
+ 
+  json mainJData = {
+    {"frenet_data", data.first},
+    {"odom_pos", data.second},
+    {"road_center_x", roadCenter.x()},
+    {"road_center_y", roadCenter.y()},
+    {"s", s}
+  };
+  
+  frenetJsonEgo.push_back(mainJData);
+}
+
 double getFrenetS(std::vector<std::pair<int, std::vector<json>>> frenetJson, int car, lanelet::BasicPoint2d roadCenter){
 
   double s = 0.;
@@ -546,7 +561,20 @@ double getFrenetS(std::vector<std::pair<int, std::vector<json>>> frenetJson, int
   return s;
 }
 
-bool checkOjectSecAdded(std::vector<std::pair<int, std::vector<json>>> frenetJson, int car, uint32_t sec){
+double getFrenetSEgo(std::vector<json>& frenetJsonEgo, lanelet::BasicPoint2d roadCenter){
+
+  double s = 0.;
+  if(frenetJsonEgo.size() > 0){
+    auto jData = frenetJsonEgo.back();
+    s = jData["s"].get<double>()+std::sqrt(std::pow((jData["road_center_x"].get<double>()-roadCenter.x()),2)+std::pow((jData["road_center_y"].get<double>()-roadCenter.y()),2));
+  }
+  
+  return s;
+}
+
+
+
+bool checkObjectSecAdded(std::vector<std::pair<int, std::vector<json>>> frenetJson, int car, uint32_t sec){
   bool found = false;
   for(size_t i=0; i<frenetJson.size(); i++){
     auto pair = frenetJson[i];
@@ -563,5 +591,23 @@ bool checkOjectSecAdded(std::vector<std::pair<int, std::vector<json>>> frenetJso
 
   return found;
 } 
+
+lanelet::LineString3d getTheRoadLineString(lanelet::LineString3d roadCenterLine, lanelet::Point3d point)
+{
+  lanelet::LineString3d _returnls;
+  for(size_t i=0; i<roadCenterLine.numSegments(); i++){
+    auto seg = roadCenterLine.segment(i);
+    lanelet::LineString3d ls(lanelet::utils::getId(), {seg.first, seg.second});
+    auto pointBox = lanelet::geometry::boundingBox3d(point);
+    auto lsBox = lanelet::geometry::boundingBox3d(ls);
+    if(lanelet::geometry::intersects(pointBox, lsBox)){
+      _returnls.push_back(seg.first);
+      _returnls.push_back(seg.second);
+      break;
+    }
+  }
+
+  return _returnls;
+}
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP
