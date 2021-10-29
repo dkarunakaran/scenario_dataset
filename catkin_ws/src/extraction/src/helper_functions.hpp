@@ -23,6 +23,7 @@ json constructJsonData(nav_msgs::Odometry::ConstPtr dataPtr, std::shared_ptr<tf2
   jData["pitch"] = pitch;
   jData["yaw"] = yaw;*/
   jData["sec"] = dataPtr->header.stamp.sec;
+  jData["nsec"] = dataPtr->header.stamp.nsec;
 
   return jData;
 }
@@ -57,6 +58,7 @@ json constructJsonData(ibeo_object_msg::IbeoObject::ConstPtr dataPtr, std::share
     jData["pitch"] = pitch;
     jData["yaw"] = yaw;*/
     jData["sec"] = dataPtr->header.stamp.sec;
+    jData["nsec"] = dataPtr->header.stamp.nsec;
   }catch (const std::exception &e) {
     ROS_ERROR_STREAM(e.what());
   }
@@ -594,7 +596,10 @@ bool checkObjectSecAdded(std::vector<std::pair<int, std::vector<json>>> frenetJs
 
 lanelet::LineString3d getTheRoadLineString(lanelet::LineString3d roadCenterLine, lanelet::Point3d point)
 {
-  lanelet::LineString3d _returnls;
+  auto seg = lanelet::geometry::closestSegment(roadCenterLine, point);
+  lanelet::LineString3d _returnls(lanelet::utils::getId(), {seg.first, seg.second});
+  
+  /*
   for(size_t i=0; i<roadCenterLine.numSegments(); i++){
     auto seg = roadCenterLine.segment(i);
     lanelet::LineString3d ls(lanelet::utils::getId(), {seg.first, seg.second});
@@ -605,7 +610,7 @@ lanelet::LineString3d getTheRoadLineString(lanelet::LineString3d roadCenterLine,
       _returnls.push_back(seg.second);
       break;
     }
-  }
+  }*/
 
   return _returnls;
 }

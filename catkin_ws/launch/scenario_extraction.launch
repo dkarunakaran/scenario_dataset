@@ -8,7 +8,7 @@
     <param name="objects" value="ibeo/objects" />
     <param name="odometry" value="ibeo/odometry" />
     <param name="resume" value="true" />
-    <param name="odom_json_file" value="/model/odom.json" />
+    <param name="centerline_json_file" value="/model/centerline.json" />
     <param name="objects_json_file" value="/model/objects.json" />
     <param name="lanelet_file" value="/model/map.osm" />
   </node>
