@@ -541,8 +541,9 @@ void frenetJsonVecEgo(std::vector<json>& frenetJsonEgo, std::pair<json, json> da
   frenetJsonEgo.push_back(mainJData);
 }
 
-double getFrenetS(std::vector<std::pair<int, std::vector<json>>> frenetJson, int car, lanelet::BasicPoint2d roadCenter){
+double getFrenetS(std::vector<std::pair<int, std::vector<json>>> frenetJson, int car, lanelet::LineString3d roadCenterLine, lanelet::Point3d point, lanelet::BasicPoint2d roadCenter){
 
+  auto closestSeg = lanelet::geometry::closestSegment(roadCenterLine, point);
   double s = 0.;
   bool found = false;
   size_t index = 0;
@@ -557,7 +558,18 @@ double getFrenetS(std::vector<std::pair<int, std::vector<json>>> frenetJson, int
     auto pair = frenetJson[index]; 
     auto vec = pair.second;
     json jData = vec.back();
+    auto prevS = jData["s"];
+
     s = jData["s"].get<double>()+std::sqrt(std::pow((jData["road_center_x"].get<double>()-roadCenter.x()),2)+std::pow((jData["road_center_y"].get<double>()-roadCenter.y()),2));
+  }else{
+    for(size_t i=0; i<roadCenterLine.numSegments(); i++){
+      auto seg = roadCenterLine.segment(i);
+      if(closestSeg.first == seg.first){
+        break;
+      } 
+      lanelet::LineString3d ls(lanelet::utils::getId(),{seg.first, seg.second});
+      s += lanelet::geometry::length(lanelet::utils::toHybrid(ls)); 
+    }
   }
   
   return s;
