@@ -18,7 +18,6 @@ path_to_file = '/model/cars_frent.json'
 path_to_save_dir = '/model/plots/'
 evaluation = {
     "frenet_data": {},
-    "odom_data": {}
 }
 car_ids = []
 with open(path_to_file) as json_file:
@@ -35,13 +34,6 @@ with open(path_to_file) as json_file:
                 evaluation["frenet_data"][car_id] = []
                 evaluation["frenet_data"][car_id].append(subObj["frenet_data"]) 
             
-            if car_id in evaluation["odom_data"].keys():
-                evaluation["odom_data"][car_id].append(subObj["odom_pos"])
-            else:
-                evaluation["odom_data"][car_id] = []
-                evaluation["odom_data"][car_id].append(subObj["odom_pos"]) 
-
-
 print(car_ids)
 
 #-------------------------car in frenet frame-----------------------
@@ -51,6 +43,7 @@ plt.figure()
 for car in car_ids:
     data = {"s":[], "d":[]}
     for fData in evaluation["frenet_data"][car]:
+        print(fData)
         data["s"].append(fData["s"])
         data["d"].append(fData["d"])
     x = []
@@ -71,23 +64,6 @@ for car in car_ids:
 
 plt.ylabel("s = longitudinal displacement")
 plt.xlabel("d = lateral displacement")
-plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
-plt.savefig(name)
-plt.close()
-
-name = path_to_save_dir+"odom_frame"
-plt.figure()
-for car in car_ids:
-    data = {"x":[], "y":[]}
-    for fData in evaluation["odom_data"][car]:
-        data["x"].append(fData["x"])
-        data["y"].append(fData["y"])
-    r = lambda: random.randint(0,255)
-    hex_number = '#%02X%02X%02X' % (r(),r(),r())
-    plt.plot(data["x"], data["y"],'--',label=car, color=hex_number)
-
-plt.ylabel("y")
-plt.xlabel("x")
 plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()

@@ -48,6 +48,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     double frenetS;
     std::vector<std::pair<int, std::vector<json>>> frenetJson;
     lanelet::LineString3d roadCenterLine;
+    lanelet::LineString3d egoCenterLine;
     std::vector<json> frenetJsonEgo;
 
     Extraction() : h264_bag_playback() {
@@ -67,6 +68,13 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       frenetS = 0;
     }
 
+    void LoadAndSaveLaneMapWithLatLong(){
+      lanelet::projection::UtmProjector projector(lanelet::Origin({-33.887362384900044, 151.19899900328662}));
+      auto tempMap = lanelet::load(lanelet_file, projector);
+      lanelet::write("/model/testMap.osm", *tempMap, projector);
+
+    }
+
     void loadData(){
       std::ifstream i1(centerline_json_file);
       json j1;i1 >> j1; 
@@ -74,8 +82,13 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         lanelet::Point3d p1{lanelet::utils::getId(), item["x"], item["y"], 0};
         roadCenterLine.push_back(p1);
       }
+      for (auto& item : j1["ego_center"]) {
+        lanelet::Point3d p1{lanelet::utils::getId(), item["x"], item["y"], 0};
+        egoCenterLine.push_back(p1);
+      }
 
       ROS_INFO_STREAM("Road LineString size: "<<roadCenterLine.size());
+      ROS_INFO_STREAM("Ego LineString size: "<<egoCenterLine.size());
     }
     
     void storeData(){
@@ -87,11 +100,21 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         centerline.push_back(jData);    
       }
       json j1(centerline);
+      std::vector<json> egoline;
+      for(size_t i =0; i<egoCenterLine.size(); i++){
+        auto point = egoCenterLine[i];
+        json jData;jData["x"] = point.x();jData["y"] = point.y();
+        egoline.push_back(jData);    
+      }
+      json j2(egoline);
       json centerLineJson = {
-        {"road_center", j1}
+        {"road_center", j1},
+        {"ego_center", j2}
       }; 
       std::ofstream o1(centerline_json_file);
       o1 << std::setw(4) << centerLineJson << std::endl;
+      centerline.clear();
+      egoline.clear();
     }
          
     void MessagePublisher(ros::Publisher &publisher, const rosbag::MessageInstance &message) {
@@ -100,6 +123,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           nav_msgs::Odometry::ConstPtr odomPtr = message.instantiate<nav_msgs::Odometry>();
           if(odomPtr != nullptr){
             buildCenterLine(odomPtr); 
+            buildEgoPathInLaneletCenterline(odomPtr);
             ROS_INFO_STREAM("Storing... Time in sec: "<<odomPtr->header.stamp.sec);
           }
         }//odometry topic if close
@@ -154,18 +178,37 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       }
       ROS_INFO_STREAM("Road center linestring size: "<<roadCenterLine.size());
     }
-   
+
+    void buildEgoPathInLaneletCenterline(nav_msgs::Odometry::ConstPtr odomPtr){
+      auto egoPoint2d = lanelet::BasicPoint2d(odomPtr->pose.pose.position.x, odomPtr->pose.pose.position.y);
+      lanelet::Lanelet lanelet;
+      auto tuple = findTheActualLanelet(map, egoPoint2d);
+      if(std::get<0>(tuple)){
+        lanelet = std::get<1>(tuple);
+      }else{
+        //Just in case map is slightly wrong, we cannot find the lanelet
+        //which the egopoint resides
+        auto pair = findTheClosestLaneletEgo(map, egoPoint2d);
+        lanelet = pair.second;
+      }
+      
+      for(auto& p: lanelet.centerline()){
+        lanelet::Point3d point3d(lanelet::utils::getId(), {p.x(), p.y(), 0});
+        egoCenterLine.push_back(point3d);
+      }
+      ROS_INFO_STREAM("Ego center linestring size: "<<egoCenterLine.size());
+    }
     
     void laneChangeDetection(const rosbag::MessageInstance &msg){
       if(msg.getTopic() == odometry_topic){
         nav_msgs::Odometry::ConstPtr odomPtr = msg.instantiate<nav_msgs::Odometry>();
-        constructFrenetFrameEgo(odomPtr);
+        //constructFrenetFrameEgo(odomPtr);
       }//Odometry topic if closes
 
       if(msg.getTopic() == objects_topic){
         ibeo_object_msg::IbeoObject::ConstPtr objPtr = msg.instantiate<ibeo_object_msg::IbeoObject>();
         if(std::find(objectClassVec.begin(), objectClassVec.end(), objPtr->object_class) != objectClassVec.end()){
-          constructFrenetFrameOtherCars(objPtr);
+          //constructFrenetFrameOtherCars(objPtr);
         }
       }
     }
@@ -216,24 +259,28 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       json jData; json odomJdata;
       int car = objPtr->object_id;
       ROS_INFO_STREAM("car: "<<car);
-      double posX = objPtr->pose.pose.position.x;double posY = objPtr->pose.pose.position.y; 
-      auto point = lanelet::BasicPoint2d(posX, posY);
-      auto point3d = lanelet::Point3d{lanelet::utils::getId(), posX, posY, 0};
-      auto roadCenter = lanelet::geometry::project(roadCenterLine, point3d);
-      auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
-      if(roadCenterls.size() > 0){
-        auto frenetSO = getFrenetS(frenetJson, car, roadCenterLine, point3d, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
-        float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point); 
-        jData["s"] = frenetSO;
-        jData["d"] = d;
-        jData["sec"] = objPtr->header.stamp.sec;
-        odomJdata["x"] = posX;
-        odomJdata["y"] = posY;
-        odomJdata["sec"] = objPtr->header.stamp.sec;
-        frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO);
+      auto pointPair = baselinkToOdom(objPtr, transformer_);
+      if(pointPair.first){
+        auto point = pointPair.second;  
+        double posX = point.x();double posY = point.y(); 
+        ROS_INFO_STREAM("posX: "<<posX<<" posY:"<<posY);
+        auto point3d = lanelet::Point3d{lanelet::utils::getId(), posX, posY, 0};
+        auto roadCenter = lanelet::geometry::project(roadCenterLine, point3d);
+        auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
+        if(roadCenterls.size() > 0){
+          auto frenetSO = getFrenetS(frenetJson, car, roadCenterLine, point3d, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
+          float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point); 
+          jData["s"] = frenetSO;
+          jData["d"] = d;
+          jData["sec"] = objPtr->header.stamp.sec;
+          odomJdata["x"] = posX;
+          odomJdata["y"] = posY;
+          odomJdata["sec"] = objPtr->header.stamp.sec;
+          frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO);
+        }
       }
     }
-
+    
 
 };
 
@@ -244,6 +291,7 @@ int main(int argc, char **argv) {
 
   Extraction extract;
   extract.init_playback();
+  //extract.LoadAndSaveLaneMapWithLatLong();
   ROS_INFO_STREAM("Resume: "<<extract.resume);
   if(extract.resume){
     ROS_INFO_STREAM("Data is loading from JSON files...");

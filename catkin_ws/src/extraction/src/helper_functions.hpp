@@ -66,6 +66,24 @@ json constructJsonData(ibeo_object_msg::IbeoObject::ConstPtr dataPtr, std::share
   return jData;
 }
 
+std::pair<bool,lanelet::BasicPoint2d> baselinkToOdom(ibeo_object_msg::IbeoObject::ConstPtr dataPtr, std::shared_ptr<tf2_ros::Buffer>& transformer_){
+  lanelet::BasicPoint2d point;
+  std::pair<bool, lanelet::BasicPoint2d> _return = std::make_pair(false, point);  
+  try {
+    geometry_msgs::PointStamped baseLinkPoint;
+    baseLinkPoint.point.x = dataPtr->pose.pose.position.x;baseLinkPoint.point.y = dataPtr->pose.pose.position.y;baseLinkPoint.point.z = 0;
+    baseLinkPoint.header.frame_id = "base_link";baseLinkPoint.header.stamp= dataPtr->header.stamp;
+    geometry_msgs::PointStamped odomPoint;
+    transformer_->setUsingDedicatedThread(true);
+    transformer_->transform(baseLinkPoint, odomPoint, "odom");
+    lanelet::BasicPoint2d point(odomPoint.point.x, odomPoint.point.y);
+    _return = std::make_pair(true, point);
+  }catch (const std::exception &e) {
+    ROS_ERROR_STREAM(e.what());
+  }
+
+  return _return;
+}
 
 bool checkSecExist(std::vector<uint32_t> timeStamp, uint32_t sec){
   bool _return = false;
@@ -626,5 +644,28 @@ lanelet::LineString3d getTheRoadLineString(lanelet::LineString3d roadCenterLine,
 
   return _returnls;
 }
+
+std::pair<bool, lanelet::Lanelet> findTheClosestLaneletEgo(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
+  std::vector<std::pair<double, lanelet::Lanelet>> nearLanelets = lanelet::geometry::findNearest(map->laneletLayer, startingPoint, 10);
+  std::vector<lanelet::Lanelet> lanelets;
+  lanelet::Lanelet lanelet;
+  double smallD = 1000.; size_t selectedIndex = 0; bool found = false;
+  for(size_t i=0; i<nearLanelets.size(); i++){
+    if(nearLanelets[i].first < smallD && nearLanelets[i].first < 10){
+      smallD = nearLanelets[i].first;
+      selectedIndex = i;
+      found = true;
+    }
+    lanelets.push_back(nearLanelets[i].second);
+  }
+  if(found){
+    lanelet = lanelets[selectedIndex];
+  }
+
+  return std::make_pair(found, lanelet);
+}
+
+
+
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP
