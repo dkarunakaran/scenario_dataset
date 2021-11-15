@@ -131,7 +131,7 @@ std::tuple<bool, lanelet::Lanelet, std::vector<lanelet::Lanelet>> findTheActualL
     return std::make_tuple(true, nearLanelets[selected].second, lanelets);
   else{
     lanelet::Lanelet tempLL;
-    return std::make_tuple(true, tempLL, lanelets);
+    return std::make_tuple(false, tempLL, lanelets);
   }
 }
 
@@ -471,7 +471,6 @@ std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pa
     //Find the distance between the two points that is considered as the width
     //of the road
     lanelet::Lanelet boundaryLanelet(lanelet::utils::getId(), lsLeft, lsRight);
-    
     if(allLanelets.size()%2 == 0){
       //even then, find the two middle two lanelets and get the commly shared
       //linestring as the center point.
@@ -580,14 +579,12 @@ double getFrenetS(std::vector<std::pair<int, std::vector<json>>> frenetJson, int
 
     s = jData["s"].get<double>()+std::sqrt(std::pow((jData["road_center_x"].get<double>()-roadCenter.x()),2)+std::pow((jData["road_center_y"].get<double>()-roadCenter.y()),2));
   }else{
-    for(size_t i=0; i<roadCenterLine.numSegments(); i++){
-      auto seg = roadCenterLine.segment(i);
-      if(closestSeg.first == seg.first){
-        break;
-      } 
-      lanelet::LineString3d ls(lanelet::utils::getId(),{seg.first, seg.second});
-      s += lanelet::geometry::length(lanelet::utils::toHybrid(ls)); 
-    }
+    
+    auto pProj = lanelet::geometry::project(roadCenterLine, point);
+    lanelet::Point3d p1{lanelet::utils::getId(), roadCenterLine.front().x(), roadCenterLine.front().y(), 0};
+    lanelet::Point3d p2{lanelet::utils::getId(), pProj.x(), pProj.y(), 0};
+    lanelet::LineString3d ls(lanelet::utils::getId(),{p1, p2});
+    s = lanelet::geometry::length(lanelet::utils::toHybrid(ls)); 
   }
   
   return s;
@@ -665,7 +662,43 @@ std::pair<bool, lanelet::Lanelet> findTheClosestLaneletEgo(lanelet::LaneletMapPt
   return std::make_pair(found, lanelet);
 }
 
+bool checkPointExistInLineString(lanelet::LineString3d roadCenterLine, lanelet::Point3d checkPoint){
+  bool found = false;
+  for(auto& point: roadCenterLine){
+    if(point.x() == checkPoint.x() && point.y() == checkPoint.y()){
+      found = true;
+      break;
+    }
+  }
 
+  return found;
+}
+
+//https://www.geeksforgeeks.org/direction-point-line-segment/
+const int RIGHT = 1, LEFT = -1, ZERO = 0;
+int directionOfPoint(lanelet::Point3d A, lanelet::Point3d B, lanelet::BasicPoint2d P)
+{
+    // subtracting co-ordinates of point A from
+    // B and P, to make A as origin
+    B.x() -= A.x();
+    B.y() -= A.y();
+    P.x() -= A.x();
+    P.y() -= A.y();
+ 
+    // Determining cross Product
+    int cross_product = B.x() * P.y() - B.y() * P.x();
+ 
+    // return RIGHT if cross product is positive
+    if (cross_product > 0)
+        return RIGHT;
+ 
+    // return LEFT if cross product is negative
+    if (cross_product < 0)
+        return LEFT;
+ 
+    // return ZERO if cross product is zero.
+    return ZERO;
+}
 
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP

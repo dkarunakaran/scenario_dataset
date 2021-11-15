@@ -62,6 +62,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       private_nh.getParam("lanelet_file", lanelet_file);
       lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
       map = lanelet::load(lanelet_file, projector);
+      ROS_INFO_STREAM("Map loaded");
       objectClassVec.push_back(5); //car
       objectClassVec.push_back(6); //truck
       objectClassVec.push_back(15); //motorbike
@@ -89,6 +90,12 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
 
       ROS_INFO_STREAM("Road LineString size: "<<roadCenterLine.size());
       ROS_INFO_STREAM("Ego LineString size: "<<egoCenterLine.size());
+
+      for(auto& p: roadCenterLine){
+        if(p.x() > 422)
+          break;
+        //ROS_INFO_STREAM(p.x()<<" "<<p.y());
+      }
     }
     
     void storeData(){
@@ -127,15 +134,6 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
             ROS_INFO_STREAM("Storing... Time in sec: "<<odomPtr->header.stamp.sec);
           }
         }//odometry topic if close
-        if(message.getTopic() == objects_topic){
-          ibeo_object_msg::IbeoObject::ConstPtr objPtr = message.instantiate<ibeo_object_msg::IbeoObject>();
-          if(objPtr != nullptr){
-            if(std::find(objectClassVec.begin(), objectClassVec.end(), objPtr->object_class) != objectClassVec.end()){
-              //json jData = constructJsonData(objPtr, transformer_);
-              //objectsPos.push_back(jData);  
-            }
-          }
-        }//object topic if close 
       }else{
         current_message_number++;
         int current_percentage = 100.0 * ((float) current_message_number / (float) total_message_count);
@@ -173,10 +171,13 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       auto centerLineTuple = findTheCentralLinePoint(map, startingPoint);
       if(std::get<0>(centerLineTuple)){
         auto roadCenter = std::get<1>(centerLineTuple).first; 
-        lanelet::Point3d p1{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0};
-        roadCenterLine.push_back(p1);
+        for(auto& p: std::get<1>(centerLineTuple).second){
+            roadCenterLine.push_back(p);
+        }
+        //lanelet::Point3d p1{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0};
+        //roadCenterLine.push_back(p1);
       }
-      ROS_INFO_STREAM("Road center linestring size: "<<roadCenterLine.size());
+      //ROS_INFO_STREAM("Road center linestring size: "<<roadCenterLine.size());
     }
 
     void buildEgoPathInLaneletCenterline(nav_msgs::Odometry::ConstPtr odomPtr){
@@ -196,23 +197,93 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         lanelet::Point3d point3d(lanelet::utils::getId(), {p.x(), p.y(), 0});
         egoCenterLine.push_back(point3d);
       }
-      ROS_INFO_STREAM("Ego center linestring size: "<<egoCenterLine.size());
+      //ROS_INFO_STREAM("Ego center linestring size: "<<egoCenterLine.size());
     }
     
     void laneChangeDetection(const rosbag::MessageInstance &msg){
       if(msg.getTopic() == odometry_topic){
         nav_msgs::Odometry::ConstPtr odomPtr = msg.instantiate<nav_msgs::Odometry>();
-        //constructFrenetFrameEgo(odomPtr);
+        constructFrenetFrameEgo(odomPtr);
       }//Odometry topic if closes
 
       if(msg.getTopic() == objects_topic){
         ibeo_object_msg::IbeoObject::ConstPtr objPtr = msg.instantiate<ibeo_object_msg::IbeoObject>();
         if(std::find(objectClassVec.begin(), objectClassVec.end(), objPtr->object_class) != objectClassVec.end()){
-          //constructFrenetFrameOtherCars(objPtr);
+          constructFrenetFrameOtherCars(objPtr);
+          cutinScenario(objPtr);
         }
       }
     }
 
+    void cutinScenario(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
+      auto pointPair = baselinkToOdom(objPtr, transformer_);
+      if(pointPair.first &&(objPtr->pose.pose.position.x > -10 && objPtr->pose.pose.position.x < 100)){
+        auto point = pointPair.second;  
+        double posX = point.x();double posY = point.y(); 
+        auto point3d = lanelet::Point3d{lanelet::utils::getId(), posX, posY, 0};
+        auto egoCenter = lanelet::geometry::project(egoCenterLine, point3d);
+        auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
+        if(egoCenterls.size() > 0){
+          float d = std::abs(lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point));
+         // ROS_INFO_STREAM("d: "<<d);
+          if(d<0.5){
+            //ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id);
+          }
+        } 
+      }
+    }
+        
+    void constructFrenetFrameEgo(nav_msgs::Odometry::ConstPtr odomPtr){
+      json jData; json odomJdata;
+      double egoPosX = odomPtr->pose.pose.position.x;double egoPosY = odomPtr->pose.pose.position.y; 
+      auto egoPoint = lanelet::BasicPoint2d(egoPosX, egoPosY);
+      auto egoPoint3d = lanelet::Point3d{lanelet::utils::getId(), egoPosX, egoPosY, 0};
+      auto roadCenter = lanelet::geometry::project(roadCenterLine, egoPoint3d);
+      auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
+      frenetS = getFrenetSEgo(frenetJsonEgo, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
+      float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), egoPoint);
+      //int dir = directionOfPoint(roadCenterls.front(), roadCenterls.back(), egoPoint);
+      //if(dir != 0){
+      //  d *= dir; 
+        ROS_INFO_STREAM("roadCenterLs: "<<roadCenterls.front().x()<<" "<<roadCenterls.front().y()<<" "<<roadCenterls.back().x()<<" "<<roadCenterls.back().y()<<" roadCenter: "<<roadCenter.x()<<" "<<roadCenter.y()<<" , egoPoint: "<<egoPoint.x()<<" "<<egoPoint.y()<<" d:"<<d);
+        jData["s"] = frenetS;
+        jData["d"] = d;
+        jData["sec"] = odomPtr->header.stamp.sec;
+        odomJdata["x"] = egoPosX;
+        odomJdata["y"] = egoPosY;
+        odomJdata["sec"] = odomPtr->header.stamp.sec;
+        frenetJsonVecEgo(frenetJsonEgo,std::make_pair(jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetS);
+      //}
+    }
+
+    void constructFrenetFrameOtherCars(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
+      json jData; json odomJdata;
+      int car = objPtr->object_id;
+      //ROS_INFO_STREAM("car: "<<car);
+      auto pointPair = baselinkToOdom(objPtr, transformer_);
+      if(pointPair.first){
+        auto point = pointPair.second;  
+        double posX = point.x();double posY = point.y(); 
+        //ROS_INFO_STREAM("posX: "<<posX<<" posY:"<<posY);
+        auto point3d = lanelet::Point3d{lanelet::utils::getId(), posX, posY, 0};
+        auto roadCenter = lanelet::geometry::project(roadCenterLine, point3d);
+        auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
+        auto frenetSO = getFrenetS(frenetJson, car, roadCenterLine, point3d, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
+        float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point); 
+        //int dir = directionOfPoint(roadCenterls.front(), roadCenterls.back(), point);
+        //if(dir != 0){
+        //  d *= dir; 
+          jData["s"] = frenetSO;
+          jData["d"] = d;
+          jData["sec"] = objPtr->header.stamp.sec;
+          odomJdata["x"] = posX;
+          odomJdata["y"] = posY;
+          odomJdata["sec"] = objPtr->header.stamp.sec;
+          frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO);
+        //}
+      }
+    }
+    
     void savePlotData(){
       ROS_INFO_STREAM("Car frenet frame plot data size: "<<frenetJson.size()); 
       std::vector<json> storeJson; 
@@ -234,54 +305,6 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       std::ofstream o2("/model/ego_frent.json");
       o2 << std::setw(4) << dataJ2 << std::endl;
     }
-    
-    void constructFrenetFrameEgo(nav_msgs::Odometry::ConstPtr odomPtr){
-      json jData; json odomJdata;
-      double egoPosX = odomPtr->pose.pose.position.x;double egoPosY = odomPtr->pose.pose.position.y; 
-      auto egoPoint = lanelet::BasicPoint2d(egoPosX, egoPosY);
-      auto egoPoint3d = lanelet::Point3d{lanelet::utils::getId(), egoPosX, egoPosY, 0};
-      auto roadCenter = lanelet::geometry::project(roadCenterLine, egoPoint3d);
-      auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
-      if(roadCenterls.size() > 0){
-        frenetS = getFrenetSEgo(frenetJsonEgo, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
-        float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), egoPoint); 
-        jData["s"] = frenetS;
-        jData["d"] = d;
-        jData["sec"] = odomPtr->header.stamp.sec;
-        odomJdata["x"] = egoPosX;
-        odomJdata["y"] = egoPosY;
-        odomJdata["sec"] = odomPtr->header.stamp.sec;
-        frenetJsonVecEgo(frenetJsonEgo,std::make_pair(jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetS);
-      }
-    }
-
-    void constructFrenetFrameOtherCars(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
-      json jData; json odomJdata;
-      int car = objPtr->object_id;
-      ROS_INFO_STREAM("car: "<<car);
-      auto pointPair = baselinkToOdom(objPtr, transformer_);
-      if(pointPair.first){
-        auto point = pointPair.second;  
-        double posX = point.x();double posY = point.y(); 
-        ROS_INFO_STREAM("posX: "<<posX<<" posY:"<<posY);
-        auto point3d = lanelet::Point3d{lanelet::utils::getId(), posX, posY, 0};
-        auto roadCenter = lanelet::geometry::project(roadCenterLine, point3d);
-        auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
-        if(roadCenterls.size() > 0){
-          auto frenetSO = getFrenetS(frenetJson, car, roadCenterLine, point3d, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
-          float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point); 
-          jData["s"] = frenetSO;
-          jData["d"] = d;
-          jData["sec"] = objPtr->header.stamp.sec;
-          odomJdata["x"] = posX;
-          odomJdata["y"] = posY;
-          odomJdata["sec"] = objPtr->header.stamp.sec;
-          frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO);
-        }
-      }
-    }
-    
-
 };
 
 

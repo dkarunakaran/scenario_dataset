@@ -34,23 +34,22 @@ with open(path_to_file) as json_file:
                 evaluation["frenet_data"][car_id] = []
                 evaluation["frenet_data"][car_id].append(subObj["frenet_data"]) 
             
-print(car_ids)
 
 #-------------------------car in frenet frame-----------------------
+print(car_ids)
 
 name = path_to_save_dir+"frenet_frame"
 plt.figure()
+car_ids = [114]
 for car in car_ids:
     data = {"s":[], "d":[]}
     for fData in evaluation["frenet_data"][car]:
-        print(fData)
         data["s"].append(fData["s"])
         data["d"].append(fData["d"])
     x = []
-    print("car_id: {} and len:{}".format(car, len(data["s"])))
     for index in range(len(data["s"])):
         x.append(0)
-    plt.xlim([5, -5])
+    plt.xlim([8, -8])
     y = data["s"]
     r = lambda: random.randint(0,255)
     hex_number = '#%02X%02X%02X' % (r(),r(),r())
@@ -72,26 +71,26 @@ plt.close()
 
 path_to_file = '/model/ego_frent.json'
 path_to_save_dir = '/model/plots/'
-evaluation = {
+evaluation_ego = {
     "frenet_data": [],
     "odom_data": []
 }
 with open(path_to_file) as json_file:
     data = json.load(json_file)
     for obj in data:
-        evaluation["frenet_data"].append(obj["frenet_data"])
-        evaluation["odom_data"].append(obj["odom_pos"]) 
+        evaluation_ego["frenet_data"].append(obj["frenet_data"])
+        evaluation_ego["odom_data"].append(obj["odom_pos"]) 
 
 name = path_to_save_dir+"ego_frenet_frame"
 plt.figure()
 data = {"s":[], "d":[]}
-for fData in evaluation["frenet_data"]:
+for fData in evaluation_ego["frenet_data"]:
     data["s"].append(fData["s"])
     data["d"].append(fData["d"])
 x = []
 for index in range(len(data["s"])):
     x.append(0)
-plt.xlim([3, -3])
+plt.xlim([8, -8])
 y = data["s"]
 r = lambda: random.randint(0,255)
 hex_number = '#%02X%02X%02X' % (r(),r(),r())
@@ -110,49 +109,79 @@ plt.savefig(name)
 plt.close()
 
 
-'''
-name = path_to_save_dir+"radius_theta"
+#--------------------------------Ego vehicle with other vehicle frene frame-----------------------
+
+path_to_file = '/model/ego_frent.json'
+path_to_save_dir = '/model/plots/'
+evaluation_ego = {
+    "frenet_data": [],
+    "odom_data": []
+}
+with open(path_to_file) as json_file:
+    data = json.load(json_file)
+    for obj in data:
+        evaluation_ego["frenet_data"].append(obj["frenet_data"])
+        evaluation_ego["odom_data"].append(obj["odom_pos"]) 
+name = path_to_save_dir+"frenet_frame_all"
 plt.figure()
-plt.xlabel("theta")
-plt.ylabel("radius")
-plt.scatter(theta, evaluation['radius'], s=0.50, color='r')
-#plt.plot(evaluation['theta'], evaluation['radius'])
+data = {"s":[], "d":[]}
+for fData in evaluation_ego["frenet_data"]:
+    data["s"].append(fData["s"])
+    data["d"].append(fData["d"])
+
+x = data["d"]
+y = data["s"]
+r = lambda: random.randint(0,255)
+hex_number = '#%02X%02X%02X' % (r(),r(),r())
+plt.plot(x,y,'.',label="ego", color=hex_number)
+plt.xlim([8, -8])
+print(car_ids)
+car_ids = [114]
+for car in car_ids:
+    car_data = {"s":[], "d":[]}
+    for fData in evaluation["frenet_data"][car]:
+        car_data["d"].append(fData["d"])
+        car_data["s"].append(fData["s"])
+    x = car_data["d"]
+    y = car_data["s"]
+    r = lambda: random.randint(0,255)
+    hex_number = '#%02X%02X%02X' % (r(),r(),r())
+    plt.plot(x,y,'.',label=car, color=hex_number)
+
+plt.ylabel("s = longitudinal displacement")
+plt.xlabel("d = lateral displacement")
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()
 
-name = path_to_save_dir+"radius_theta_phi"
-fig2 = plt.figure(figsize=(10, 10))
-ax = fig2.add_subplot(111, projection='3d')
-ax.scatter(
-        xs=theta,
-        ys=evaluation['phi'],
-        zs=evaluation['radius'],
-        marker='o')
-ax.set_xlabel('Theta (rad)')
-ax.set_ylabel('Phi (rad)')
-ax.set_zlabel('R  (m)')
-plt.savefig(name)
-plt.close()
 '''
-'''
-car = '144'
-name = path_to_save_dir+"trajectory_projection_"+str(car)
-plt.figure()
-plt.xlabel("x(m)")
-plt.ylabel("y(m)")
-plt.plot(evaluation['other_odom']['144']['x'], evaluation['other_odom']['144']['y'])
-plt.savefig(name)
-plt.close()
+#--------------------------------Ego centerline in odom frame-----------------------
 
-name = path_to_save_dir+"combined_trajectory"
+path_to_file = '/model/centerline.json'
+path_to_save_dir = '/model/plots/'
+evaluation = {
+    "ego": []
+}
+with open(path_to_file) as json_file:
+    data = json.load(json_file)
+    for obj in data["ego_center"]:
+        evaluation["ego"].append(obj)
+
+name = path_to_save_dir+"centerline"
 plt.figure()
-fig, ax = plt.subplots()
-ax.plot(evaluation['other_odom']['144']['x'], evaluation['other_odom']['144']['y'])
-ax.plot(evaluation['other_odom']['123']['x'], evaluation['other_odom']['123']['y'])
-ax.plot(evaluation['ego_odom']['x'], evaluation['ego_odom']['y'])
-plt.xlabel("x(m)")
-plt.ylabel("y(m)")
+data = {"x":[], "y":[]}
+for fData in evaluation["ego"]:
+    data["x"].append(fData["x"])
+    data["y"].append(fData["y"])
+x = data["x"]
+y = data["y"]
+r = lambda: random.randint(0,255)
+hex_number = '#%02X%02X%02X' % (r(),r(),r())
+plt.plot(x, y,'--', color=hex_number)
+plt.ylabel("y")
+plt.xlabel("x")
 plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()
 '''
+
