@@ -41,6 +41,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::string odometry_topic; std::string objects_topic;
     std::string bag_file;
     std::string centerline_json_file;
+    std::string scenario_json_file;
     bool resume;
     bool storeDataInitially;
     std::string lanelet_file; lanelet::LaneletMapPtr map;
@@ -50,6 +51,12 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     lanelet::LineString3d roadCenterLine;
     lanelet::LineString3d egoCenterLine;
     std::vector<json> frenetJsonEgo;
+    long int egoDataCount;
+    long int positiveDir;
+    long int negativeDir;
+    std::vector<int> cutInScenarioNoDetect;
+    std::vector<std::tuple<uint32_t, uint32_t, int>> cutInScenarios;
+    std::vector<int> cutInScenarioCar;
 
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
@@ -60,6 +67,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       private_nh.getParam("resume", resume);
       private_nh.getParam("centerline_json_file", centerline_json_file);
       private_nh.getParam("lanelet_file", lanelet_file);
+      private_nh.getParam("scenario_json_file", scenario_json_file);
       lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
       map = lanelet::load(lanelet_file, projector);
       ROS_INFO_STREAM("Map loaded");
@@ -67,6 +75,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       objectClassVec.push_back(6); //truck
       objectClassVec.push_back(15); //motorbike
       frenetS = 0;
+      egoDataCount = 0;
+      positiveDir = 0;
+      negativeDir = 0;
     }
 
     void LoadAndSaveLaneMapWithLatLong(){
@@ -122,6 +133,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       o1 << std::setw(4) << centerLineJson << std::endl;
       centerline.clear();
       egoline.clear();
+      
     }
          
     void MessagePublisher(ros::Publisher &publisher, const rosbag::MessageInstance &message) {
@@ -180,7 +192,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       //ROS_INFO_STREAM("Road center linestring size: "<<roadCenterLine.size());
     }
 
-    void buildEgoPathInLaneletCenterline(nav_msgs::Odometry::ConstPtr odomPtr){
+    void buildEgoPathInLaneletCenterline(nav_msgs::Odometry::ConstPtr odomPtr)
+    {
       auto egoPoint2d = lanelet::BasicPoint2d(odomPtr->pose.pose.position.x, odomPtr->pose.pose.position.y);
       lanelet::Lanelet lanelet;
       auto tuple = findTheActualLanelet(map, egoPoint2d);
@@ -225,9 +238,23 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
         if(egoCenterls.size() > 0){
           float d = std::abs(lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point));
-         // ROS_INFO_STREAM("d: "<<d);
-          if(d<0.5){
-            //ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id);
+          if(d < 0.5 && std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
+            if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), objPtr->object_id) != cutInScenarioCar.end()){
+
+            }else{
+              ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id);
+              uint32_t end =  objPtr->header.stamp.sec+5;
+              uint32_t start = objPtr->header.stamp.sec-15;
+              cutInScenarios.push_back(std::make_tuple(start, end, objPtr->object_id));
+              cutInScenarioCar.push_back(objPtr->object_id);
+            }
+          }
+
+          if(d > 2){
+            if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
+              
+            }else
+              cutInScenarioNoDetect.push_back(objPtr->object_id);
           }
         } 
       }
@@ -242,18 +269,23 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
       frenetS = getFrenetSEgo(frenetJsonEgo, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
       float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), egoPoint);
-      //int dir = directionOfPoint(roadCenterls.front(), roadCenterls.back(), egoPoint);
-      //if(dir != 0){
-      //  d *= dir; 
-        ROS_INFO_STREAM("roadCenterLs: "<<roadCenterls.front().x()<<" "<<roadCenterls.front().y()<<" "<<roadCenterls.back().x()<<" "<<roadCenterls.back().y()<<" roadCenter: "<<roadCenter.x()<<" "<<roadCenter.y()<<" , egoPoint: "<<egoPoint.x()<<" "<<egoPoint.y()<<" d:"<<d);
-        jData["s"] = frenetS;
-        jData["d"] = d;
-        jData["sec"] = odomPtr->header.stamp.sec;
-        odomJdata["x"] = egoPosX;
-        odomJdata["y"] = egoPosY;
-        odomJdata["sec"] = odomPtr->header.stamp.sec;
-        frenetJsonVecEgo(frenetJsonEgo,std::make_pair(jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetS);
-      //}
+      
+      if(d >= 0)
+        positiveDir++;
+      else
+        negativeDir++;
+
+      if(egoDataCount > 10 && positiveDir > negativeDir && d < 0)
+          d *= -1;
+      //ROS_INFO_STREAM("roadCenterLs: "<<roadCenterls.front().x()<<" "<<roadCenterls.front().y()<<" "<<roadCenterls.back().x()<<" "<<roadCenterls.back().y()<<" egoDataCount: "<<egoDataCount<<" positiveDir: "<<positiveDir<<" negativeDir: "<<negativeDir<<" , egoPoint: "<<egoPoint.x()<<" "<<egoPoint.y()<<" d:"<<d);
+      jData["s"] = frenetS;
+      jData["d"] = d;
+      jData["sec"] = odomPtr->header.stamp.sec;
+      odomJdata["x"] = egoPosX;
+      odomJdata["y"] = egoPosY;
+      odomJdata["sec"] = odomPtr->header.stamp.sec;
+      frenetJsonVecEgo(frenetJsonEgo,std::make_pair(jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetS);
+      egoDataCount++;
     }
 
     void constructFrenetFrameOtherCars(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
@@ -270,17 +302,15 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
         auto frenetSO = getFrenetS(frenetJson, car, roadCenterLine, point3d, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
         float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point); 
-        //int dir = directionOfPoint(roadCenterls.front(), roadCenterls.back(), point);
-        //if(dir != 0){
-        //  d *= dir; 
-          jData["s"] = frenetSO;
-          jData["d"] = d;
-          jData["sec"] = objPtr->header.stamp.sec;
-          odomJdata["x"] = posX;
-          odomJdata["y"] = posY;
-          odomJdata["sec"] = objPtr->header.stamp.sec;
-          frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO);
-        //}
+        if(egoDataCount > 10 && positiveDir > negativeDir && d < 0)
+          d *= -1;
+        jData["s"] = frenetSO;
+        jData["d"] = d;
+        jData["sec"] = objPtr->header.stamp.sec;
+        odomJdata["x"] = posX;
+        odomJdata["y"] = posY;
+        odomJdata["sec"] = objPtr->header.stamp.sec;
+        frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO);
       }
     }
     
@@ -304,6 +334,21 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       json dataJ2(storeJson);
       std::ofstream o2("/model/ego_frent.json");
       o2 << std::setw(4) << dataJ2 << std::endl;
+
+      //Storing the scenario data
+      std::vector<json> scenario;
+      for(size_t i =0; i<cutInScenarios.size(); i++){
+        auto tuple = cutInScenarios[i]; 
+        json jData;jData["start"] = std::get<0>(tuple);jData["end"] = std::get<1>(tuple);jData["car"] = std::get<2>(tuple);
+        scenario.push_back(jData);    
+      }
+      json j3(scenario);
+      json scenarioJson = {
+        {"cut-in scenario", j3}
+      };
+      std::ofstream o3(scenario_json_file);
+      o3 << std::setw(4) << scenarioJson << std::endl;
+
     }
 };
 
