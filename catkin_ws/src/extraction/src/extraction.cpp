@@ -11,6 +11,7 @@
 #include <rosbag/view.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
+#include "std_msgs/String.h"
 #include "json.hpp"
 #include <tf/tf.h>
 #include <ibeo_object_msg/IbeoObject.h> 
@@ -42,6 +43,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::string bag_file;
     std::string centerline_json_file;
     std::string scenario_json_file;
+    std::string cars_frenet_json_file;
+    std::string ego_frenet_json_file;
     bool resume;
     bool storeDataInitially;
     std::string lanelet_file; lanelet::LaneletMapPtr map;
@@ -57,6 +60,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::vector<int> cutInScenarioNoDetect;
     std::vector<std::tuple<uint32_t, uint32_t, int>> cutInScenarios;
     std::vector<int> cutInScenarioCar;
+    ros::Publisher finishPub;
+    ros::NodeHandle nh;
 
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
@@ -68,6 +73,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       private_nh.getParam("centerline_json_file", centerline_json_file);
       private_nh.getParam("lanelet_file", lanelet_file);
       private_nh.getParam("scenario_json_file", scenario_json_file);
+      private_nh.getParam("cars_frenet_json_file", cars_frenet_json_file);
+      private_nh.getParam("ego_frenet_json_file", ego_frenet_json_file);
       lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
       map = lanelet::load(lanelet_file, projector);
       ROS_INFO_STREAM("Map loaded");
@@ -78,6 +85,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       egoDataCount = 0;
       positiveDir = 0;
       negativeDir = 0;
+      finishPub = nh.advertise<std_msgs::String>("finish_extraction", 1000);
     }
 
     void LoadAndSaveLaneMapWithLatLong(){
@@ -322,7 +330,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         storeJson.push_back(mainData);
       } 
       json dataJ1(storeJson);
-      std::ofstream o1("/model/cars_frent.json");
+      std::ofstream o1(cars_frenet_json_file);
       o1 << std::setw(4) << dataJ1 << std::endl;
       
       ROS_INFO_STREAM("Ego frenet frame plot data size: "<<frenetJsonEgo.size()); 
@@ -332,7 +340,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         storeJson.push_back(mainData);
       } 
       json dataJ2(storeJson);
-      std::ofstream o2("/model/ego_frent.json");
+      std::ofstream o2(ego_frenet_json_file);
       o2 << std::setw(4) << dataJ2 << std::endl;
 
       //Storing the scenario data
@@ -359,7 +367,6 @@ int main(int argc, char **argv) {
 
   Extraction extract;
   extract.init_playback();
-  //extract.LoadAndSaveLaneMapWithLatLong();
   ROS_INFO_STREAM("Resume: "<<extract.resume);
   if(extract.resume){
     ROS_INFO_STREAM("Data is loading from JSON files...");
@@ -373,7 +380,12 @@ int main(int argc, char **argv) {
   extract.storeDataInitially = false;
   extract.ReadFromBag();
   extract.savePlotData();
-  
+  //Oublishing the msg to inform the end of this process
+  std_msgs::String msg;
+  msg.data = "true";
+  extract.finishPub.publish(msg);
+  ros::spin();
+
   return 0;
 }
 

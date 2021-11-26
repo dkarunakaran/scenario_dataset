@@ -44,8 +44,10 @@ class FeatureModel:
                 start = scenario["start"]
                 end = scenario["end"]
                 laneChangeCar = scenario["car"]
-                cars = self.getAllCars(start=start, end=end, laneChangeCar=laneChangeCar); 
+                cars = self.getAllCars(start=start, end=end, laneChangeCar=laneChangeCar) 
                 group_by_car = self.groupByCar(cars)
+                ego = self.getEgo(start, end)
+
 
     def getGroupBySec(self, carsData):
         for eachData in carsData:
@@ -63,6 +65,15 @@ class FeatureModel:
             else:
                 self.group_ego_by_sec[data["frenet_data"]["sec"]] = []
                 self.group_ego_by_sec[data["frenet_data"]["sec"]].append(data)
+
+    def getEgo(self, start, end):
+        data = []
+        for sec in self.group_ego_by_sec:
+            if sec >= start and sec <= end:
+                data.append(self.group_ego_by_sec[sec]);
+        
+        return data
+
 
     def getAllCars(self, start = None, end = None, laneChangeCar = None):
         data = []

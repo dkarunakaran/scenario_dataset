@@ -12,7 +12,14 @@
     <param name="objects_json_file" value="/model/objects.json" />
     <param name="centerline_json_file" value="/model/centerline.json" />
     <param name="scenario_json_file" value="/model/scenario.json" />
+    <param name="cars_frenet_json_file" value="/model/cars_frenet.json" />
+    <param name="ego_frenet_json_file" value="/model/ego_frenet.json" />
     <param name="lanelet_file" value="/model/map.osm" />
+  </node>
+	<node pkg="feature_model" type="feature_model.py" name="feature_model" output="screen">
+    <param name="scenario_json_file" value="/model/scenario.json" />
+    <param name="cars_frenet_json_file" value="/model/cars_frenet.json" />
+    <param name="ego_frenet_json_file" value="/model/ego_frenet.json" />
   </node>
 </launch>
 
