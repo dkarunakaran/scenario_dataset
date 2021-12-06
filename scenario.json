@@ -1,9 +1,3 @@
 {
-    "cut-in scenario": [
-        {
-            "car": 114,
-            "end": 1622438634,
-            "start": 1622438614
-        }
-    ]
+    "cut-in scenario": []
 }

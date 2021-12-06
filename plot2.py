@@ -4,6 +4,7 @@ from __future__ import division
 import os
 import json
 import matplotlib
+import carla
 
 # For the error: Exception ignored in: <bound method Image.del of <tkinter.PhotoImage object at 0x7f1b5f86a710>> Traceback (most recent call last):
 matplotlib.use('Agg')

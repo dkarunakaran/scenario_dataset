@@ -1,1 +1,0 @@
-/model/catkin_ws/devel/.private/ibeo_object_msg/lib/python2.7/dist-packages/ibeo_object_msg/__init__.py

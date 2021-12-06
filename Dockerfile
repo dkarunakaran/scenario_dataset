@@ -66,18 +66,37 @@ RUN apt-get install  -y ros-melodic-lanelet2
 # Numpy like c++ library
 #RUN apt-get install -y xtensor-dev
 
+# Install Carla 0.9.12
+RUN cd /opt && wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.12.tar.gz && mkdir carla-simulator && tar -xvf CARLA_0.9.12.tar.gz -C carla-simulator && rm -f CARLA_0.9.12.tar.gz
+RUN echo "export PYTHONPATH=$PYTHONPATH:/opt/carla-simulator/PythonAPI/carla/dist/carla-0.9.12-py2.7-linux-x86_64.egg" >> ~/.bashrc
+
 # Install carla-ros-bridge
 RUN apt-get update
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 81061A1A042F527D
-RUN add-apt-repository "deb [arch=amd64 trusted=yes] http://dist.carla.org/carla-ros-bridge-melodic/ bionic main"
-RUN apt update && sudo apt install -y carla-ros-bridge-melodic
-
-RUN echo "source /opt/carla-ros-bridge/melodic/setup.bash" >> ~/.bash_profile
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1AF1527DE64CB8D9
+RUN add-apt-repository "deb [arch=amd64] http://dist.carla.org/carla $(lsb_release -sc) main"
+RUN apt-get update
+RUN apt-get install -y carla-ros-bridge
 RUN echo "source /opt/carla-ros-bridge/melodic/setup.bash" >> ~/.bashrc
+RUN source /opt/carla-ros-bridge/melodic/setup.bash
+
+#RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 81061A1A042F527D
+#RUN add-apt-repository "deb [arch=amd64 trusted=yes] http://dist.carla.org/carla-ros-bridge-melodic/ bionic main"
+#RUN apt update && sudo apt install -y carla-ros-bridge-melodic
+
+#RUN echo "source /opt/carla-ros-bridge/melodic/setup.bash" >> ~/.bash_profile
+#RUN echo "source /opt/carla-ros-bridge/melodic/setup.bash" >> ~/.bashrc
 
 RUN pip install networkx
 RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 RUN apt-get update
+
+RUN apt-get install -y ros-melodic-jsk-recognition-msgs 
+RUN apt-get install -y ros-melodic-jsk-rviz-plugins
+RUN apt-get install -y ros-melodic-grid-map
+RUN apt-get install -y ros-melodic-audio-common
+RUN apt-get install -y libglew-dev
+RUN apt-get install -y ros-melodic-geodesy
+RUN apt-get install -y freeglut3-dev
 
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bash_profile
 
