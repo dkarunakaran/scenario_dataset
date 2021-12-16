@@ -1,0 +1,179 @@
+<?xml version="1.0" ?>
+<OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
+    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2021-12-16T23:16:37.948043"/>
+    <ParameterDeclarations>
+        <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
+        <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="20"/>
+        <ParameterDeclaration name="$egoStartPos" parameterType="double" value="20"/>
+        <ParameterDeclaration name="$egoStartLane" parameterType="double" value="1"/>
+        <ParameterDeclaration name="$adversaryVehicle" parameterType="string" value="adversary"/>
+        <ParameterDeclaration name="$adversaryVelocityInit" parameterType="double" value="30"/>
+        <ParameterDeclaration name="$adversaryPos" parameterType="integer" value="1"/>
+        <ParameterDeclaration name="$adversaryLane" parameterType="double" value="2"/>
+        <ParameterDeclaration name="$adversaryCutinSpeed" parameterType="double" value="40"/>
+        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="5"/>
+        <ParameterDeclaration name="$adversaryCutinTime" parameterType="double" value="3"/>
+    </ParameterDeclarations>
+    <CatalogLocations>
+        <VehicleCatalog>
+            <Directory path="../xosc/Catalogs/Vehicles"/>
+        </VehicleCatalog>
+    </CatalogLocations>
+    <RoadNetwork>
+        <LogicFile filepath="road1.xodr"/>
+    </RoadNetwork>
+    <Entities>
+        <ScenarioObject name="$egoVehicle">
+            <Vehicle name="$egoVehicle" vehicleCategory="car">
+                <ParameterDeclarations/>
+                <BoundingBox>
+                    <Center x="1.5" y="0" z="0.9"/>
+                    <Dimensions width="2.1" length="4.5" height="1.8"/>
+                </BoundingBox>
+                <Performance maxSpeed="100" maxDeceleration="10" maxAcceleration="10"/>
+                <Axles>
+                    <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+                    <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+                </Axles>
+                <Properties>
+                    <Property name="model_id" value="0"/>
+                    <Property name="type" value="ego_vehicle"/>
+                </Properties>
+            </Vehicle>
+            <ObjectController>
+                <Controller name="carlaControler">
+                    <ParameterDeclarations/>
+                    <Properties>
+                        <Property name="module" value="external_control"/>
+                    </Properties>
+                </Controller>
+            </ObjectController>
+        </ScenarioObject>
+        <ScenarioObject name="$adversaryVehicle">
+            <Vehicle name="$adversaryVehicle" vehicleCategory="car">
+                <ParameterDeclarations/>
+                <BoundingBox>
+                    <Center x="1.4" y="0.0" z="0.9"/>
+                    <Dimensions width="2.0" length="5.0" height="1.8"/>
+                </BoundingBox>
+                <Performance maxSpeed="100" maxDeceleration="10" maxAcceleration="10"/>
+                <Axles>
+                    <FrontAxle maxSteering="0.5" wheelDiameter="0.8" trackWidth="1.68" positionX="2.98" positionZ="0.4"/>
+                    <RearAxle maxSteering="0.0" wheelDiameter="0.8" trackWidth="1.68" positionX="0.0" positionZ="0.4"/>
+                </Axles>
+                <Properties>
+                    <Property name="model_id" value="1"/>
+                </Properties>
+            </Vehicle>
+        </ScenarioObject>
+    </Entities>
+    <Storyboard>
+        <Init>
+            <Actions>
+                <Private entityRef="$egoVehicle">
+                    <PrivateAction>
+                        <LongitudinalAction>
+                            <SpeedAction>
+                                <SpeedActionDynamics dynamicsShape="step" value="1" dynamicsDimension="time"/>
+                                <SpeedActionTarget>
+                                    <AbsoluteTargetSpeed value="$egoVelocityInit"/>
+                                </SpeedActionTarget>
+                            </SpeedAction>
+                        </LongitudinalAction>
+                    </PrivateAction>
+                    <PrivateAction>
+                        <TeleportAction>
+                            <Position>
+                                <LanePosition roadId="0" laneId="$egoStartLane" s="$egoStartPos" offset="0"/>
+                            </Position>
+                        </TeleportAction>
+                    </PrivateAction>
+                </Private>
+                <Private entityRef="$adversaryVehicle">
+                    <PrivateAction>
+                        <LongitudinalAction>
+                            <SpeedAction>
+                                <SpeedActionDynamics dynamicsShape="step" value="1" dynamicsDimension="time"/>
+                                <SpeedActionTarget>
+                                    <AbsoluteTargetSpeed value="$adversaryVelocityInit"/>
+                                </SpeedActionTarget>
+                            </SpeedAction>
+                        </LongitudinalAction>
+                    </PrivateAction>
+                    <PrivateAction>
+                        <TeleportAction>
+                            <Position>
+                                <LanePosition roadId="0" laneId="$adversaryLane" s="$adversaryPos" offset="0"/>
+                            </Position>
+                        </TeleportAction>
+                    </PrivateAction>
+                </Private>
+            </Actions>
+        </Init>
+        <Story name="cutInStory">
+            <ParameterDeclarations>
+                <ParameterDeclaration name="$owner" parameterType="string" value="$adversaryVehicle"/>
+            </ParameterDeclarations>
+            <Act name="cutInct">
+                <ManeuverGroup name="cutInMangroup" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$owner"/>
+                    </Actors>
+                    <Maneuver name="cutInManeuver">
+                        <Event name="cutInevent" priority="overwrite" maximumExecutionCount="1">
+                            <Action name="cutInLaneAction">
+                                <PrivateAction>
+                                    <LateralAction>
+                                        <LaneChangeAction>
+                                            <LaneChangeActionDynamics dynamicsShape="sinusoidal" value="$adversaryCutinTime" dynamicsDimension="time"/>
+                                            <LaneChangeTarget>
+                                                <AbsoluteTargetLane value="$egoStartLane"/>
+                                            </LaneChangeTarget>
+                                        </LaneChangeAction>
+                                    </LateralAction>
+                                </PrivateAction>
+                            </Action>
+                            <Action name="cutInSpeedAction">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="$adversaryCutinTime" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="$adversaryCutinSpeed"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutinTrigger" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$egoVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <RelativeDistanceCondition value="$adversaryCutinTriggerDist" freespace="true" entityRef="$adversaryVehicle" rule="greaterThan" relativeDistanceType="longitudinal" coordinateSystem="entity"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutinStartTrigger" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+        </Story>
+        <StopTrigger/>
+    </Storyboard>
+</OpenSCENARIO>

@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
-    <FileHeader description="trajectory_example" author="Mandolin" revMajor="1" revMinor="1" date="2021-12-05T23:34:58.906566"/>
+    <FileHeader description="trajectory_example" author="Mandolin" revMajor="1" revMinor="1" date="2021-12-12T11:21:16.680241"/>
     <ParameterDeclarations>
         <ParameterDeclaration name="$HostVehicle" parameterType="string" value="car_white"/>
         <ParameterDeclaration name="$TargetVehicle" parameterType="string" value="car_red"/>
@@ -10,6 +10,9 @@
             <Directory path="../xosc/Catalogs/Vehicles"/>
         </VehicleCatalog>
     </CatalogLocations>
+    <RoadNetwork>
+        <LogicFile filepath="road.xodr"/>
+    </RoadNetwork>
     <Entities>
         <ScenarioObject name="Ego">
             <Vehicle name="car_white" vehicleCategory="car">
@@ -25,7 +28,7 @@
                 </Axles>
                 <Properties>
                     <Property name="model_id" value="0"/>
-                    <File filepath="../models/car_white.osgb"/>
+                    <Property name="type" value="ego_vehicle"/>
                 </Properties>
             </Vehicle>
         </ScenarioObject>
@@ -43,7 +46,6 @@
                 </Axles>
                 <Properties>
                     <Property name="model_id" value="2"/>
-                    <File filepath="../models/car_red.osgb"/>
                 </Properties>
             </Vehicle>
         </ScenarioObject>
@@ -65,7 +67,7 @@
                     <PrivateAction>
                         <TeleportAction>
                             <Position>
-                                <LanePosition roadId="0" laneId="-3" s="25" offset="0"/>
+                                <LanePosition roadId="0" laneId="-4" s="25" offset="0"/>
                             </Position>
                         </TeleportAction>
                     </PrivateAction>
@@ -84,7 +86,7 @@
                     <PrivateAction>
                         <TeleportAction>
                             <Position>
-                                <LanePosition roadId="0" laneId="-2" s="15" offset="0"/>
+                                <LanePosition roadId="0" laneId="-3" s="15" offset="0"/>
                             </Position>
                         </TeleportAction>
                     </PrivateAction>
@@ -113,22 +115,34 @@
                                                         <Polyline>
                                                             <Vertex time="0">
                                                                 <Position>
-                                                                    <RelativeLanePosition entityRef="Target" ds="0" offset="0" dLane="0"/>
+                                                                    <RelativeRoadPosition entityRef="Target" ds="0" dt="0"/>
+                                                                </Position>
+                                                            </Vertex>
+                                                            <Vertex time="0.25">
+                                                                <Position>
+                                                                    <RelativeRoadPosition entityRef="Target" ds="10" dt="-1.0"/>
                                                                 </Position>
                                                             </Vertex>
                                                             <Vertex time="0.5">
                                                                 <Position>
-                                                                    <RelativeLanePosition entityRef="Target" ds="20" offset="0.5" dLane="0"/>
+                                                                    <RelativeRoadPosition entityRef="Target" ds="20" dt="-2.0"/>
+                                                                </Position>
+                                                            </Vertex>
+                                                            <Vertex time="0.75">
+                                                                <Position>
+                                                                    <RelativeRoadPosition entityRef="Target" ds="30" dt="-3.5"/>
                                                                 </Position>
                                                             </Vertex>
                                                             <Vertex time="1">
                                                                 <Position>
-                                                                    <RelativeLanePosition entityRef="Target" ds="40" offset="-0.5" dLane="0"/>
+                                                                    <RelativeRoadPosition entityRef="Target" ds="40" dt="-5.5"/>
                                                                 </Position>
                                                             </Vertex>
-                                                            <Vertex time="1.5">
+                                                            <Vertex time="1.25">
                                                                 <Position>
-                                                                    <RelativeLanePosition entityRef="Target" ds="60" offset="-1" dLane="0"/>
+                                                                    <RelativeRoadPosition entityRef="Target" ds="50" dt="-7.0">
+                                                                        <Orientation h="0.0" p="0.0" r="0.0" type="absolute"/>
+                                                                    </RelativeRoadPosition>
                                                                 </Position>
                                                             </Vertex>
                                                         </Polyline>

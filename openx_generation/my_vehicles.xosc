@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../OpenScenario.xsd">
+    <FileHeader description="My vehicle catalog" author="Mandolin" revMajor="1" revMinor="1" date="2021-12-16T11:34:38.062017"/>
+    <Catalog name="VehicleCatalog">
+        <Vehicle name="car_pink" vehicleCategory="car">
+            <ParameterDeclarations/>
+            <BoundingBox>
+                <Center x="2.0" y="0" z="0.9"/>
+                <Dimensions width="2" length="5" height="1.8"/>
+            </BoundingBox>
+            <Performance maxSpeed="69" maxDeceleration="10" maxAcceleration="10"/>
+            <Axles>
+                <FrontAxle maxSteering="0.523598775598" wheelDiameter="0.8" trackWidth="1.68" positionX="2.98" positionZ="0.4"/>
+                <RearAxle maxSteering="0.523598775598" wheelDiameter="0.8" trackWidth="1.68" positionX="0" positionZ="0.4"/>
+            </Axles>
+            <Properties>
+                <Property name="control" value="internal"/>
+                <Property name="model_id" value="0"/>
+            </Properties>
+        </Vehicle>
+        <Vehicle name="car_pink" vehicleCategory="car">
+            <ParameterDeclarations/>
+            <BoundingBox>
+                <Center x="2.0" y="0" z="0.9"/>
+                <Dimensions width="2" length="5" height="1.8"/>
+            </BoundingBox>
+            <Performance maxSpeed="69" maxDeceleration="10" maxAcceleration="10"/>
+            <Axles>
+                <FrontAxle maxSteering="0.523598775598" wheelDiameter="0.8" trackWidth="1.68" positionX="2.98" positionZ="0.4"/>
+                <RearAxle maxSteering="0.523598775598" wheelDiameter="0.8" trackWidth="1.68" positionX="0" positionZ="0.4"/>
+            </Axles>
+            <Properties/>
+        </Vehicle>
+    </Catalog>
+</OpenSCENARIO>
