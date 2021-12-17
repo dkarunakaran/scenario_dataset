@@ -269,12 +269,13 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     }
         
     void constructFrenetFrameEgo(nav_msgs::Odometry::ConstPtr odomPtr){
-      json jData; json odomJdata;
+      json jData; json odomJdata; json otherJdata;
       double egoPosX = odomPtr->pose.pose.position.x;double egoPosY = odomPtr->pose.pose.position.y; 
       auto egoPoint = lanelet::BasicPoint2d(egoPosX, egoPosY);
       auto egoPoint3d = lanelet::Point3d{lanelet::utils::getId(), egoPosX, egoPosY, 0};
       auto roadCenter = lanelet::geometry::project(roadCenterLine, egoPoint3d);
       auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
+      auto laneLaneletPair = getTheLaneNo(map, egoPoint);
       frenetS = getFrenetSEgo(frenetJsonEgo, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
       float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), egoPoint);
       
@@ -292,12 +293,14 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       odomJdata["x"] = egoPosX;
       odomJdata["y"] = egoPosY;
       odomJdata["sec"] = odomPtr->header.stamp.sec;
-      frenetJsonVecEgo(frenetJsonEgo,std::make_pair(jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetS);
+      otherJdata["long_speed"] = odomPtr->twist.twist.linear.x;
+      otherJdata["lane_no"] = laneLaneletPair.first;
+      frenetJsonVecEgo(frenetJsonEgo,std::make_pair(jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetS, otherJdata);
       egoDataCount++;
     }
 
     void constructFrenetFrameOtherCars(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
-      json jData; json odomJdata;
+      json jData; json odomJdata; json otherJdata;
       int car = objPtr->object_id;
       //ROS_INFO_STREAM("car: "<<car);
       auto pointPair = baselinkToOdom(objPtr, transformer_);
@@ -318,7 +321,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         odomJdata["x"] = posX;
         odomJdata["y"] = posY;
         odomJdata["sec"] = objPtr->header.stamp.sec;
-        frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO);
+        otherJdata["long_speed"] = objPtr->twist.twist.linear.x;
+        frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO, otherJdata);
       }
     }
     

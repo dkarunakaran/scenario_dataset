@@ -398,6 +398,113 @@ std::pair<bool, lanelet::BasicPoint2d> findTheClosestLaneletForObject(lanelet::L
   return std::make_pair(found, point2d);
 }
 
+std::pair<int,std::vector<std::pair<int,lanelet::Lanelet>>> getTheLaneNo(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
+  auto nearLanelets = findTheActualLanelet(map, startingPoint);
+  std::vector<std::pair<int,lanelet::Lanelet>> lanelanelet;
+  int laneNo = 0; 
+  if(std::get<0>(nearLanelets) && lanelet::geometry::length3d(std::get<1>(nearLanelets)) > 0){
+    auto firstLanelet = std::get<1>(nearLanelets);
+    auto currentLanelet = firstLanelet;
+    auto lanelets = std::get<2>(nearLanelets);
+    std::vector<std::pair<int, lanelet::Lanelet>> selectedLanelets;
+    int count = 0;
+
+    //Find all the left lanelets
+    while(true){
+      auto result = findTheLeftLanelet(currentLanelet, lanelets);
+      if(result.first){
+        selectedLanelets.push_back(std::make_pair(count, result.second));
+        currentLanelet = result.second;
+        lanelet::ConstLineString3d centerline = currentLanelet.centerline();
+        int midSegNo = centerline.numSegments()/2;
+        auto midSeg = centerline.segment(midSegNo);
+        auto point1 = midSeg.first;auto point2 = midSeg.second;
+        auto midX = (point1.x()+point2.x())/2; auto midY = (point1.y()+point2.y())/2;
+        auto point = lanelet::BasicPoint2d(midX, midY);
+        auto otherLanelets = findTheActualLanelet(map, point);
+        lanelets = std::get<2>(otherLanelets);
+        count++;
+      }else
+        break;
+    }
+    
+    std::sort(selectedLanelets.begin(), selectedLanelets.end(), [](const std::pair<int, lanelet::Lanelet>& a, std::pair<int, lanelet::Lanelet>& b) {return a.first < b.first;});
+    std::vector<lanelet::Lanelet> allLanelets;
+    for(auto& pair: selectedLanelets)
+      allLanelets.push_back(pair.second);
+    
+    allLanelets.push_back(firstLanelet);
+    
+    //Find all the right lanelets
+    currentLanelet = firstLanelet;
+    lanelets = std::get<2>(nearLanelets);
+    count = 0;
+    selectedLanelets.clear();
+    while(true){
+      auto result = findTheRightLanelet(currentLanelet, lanelets);
+      if(result.first){
+        allLanelets.push_back(result.second);
+        currentLanelet = result.second;
+        lanelet::ConstLineString3d centerline = currentLanelet.centerline();  
+        int midSegNo = centerline.numSegments()/2;
+        auto midSeg = centerline.segment(midSegNo);
+        auto point1 = midSeg.first;auto point2 = midSeg.second;
+        auto midX = (point1.x()+point2.x())/2; auto midY = (point1.y()+point2.y())/2;
+        auto point = lanelet::BasicPoint2d(midX, midY);
+        auto otherLanelets = findTheActualLanelet(map, point);
+        lanelets = std::get<2>(otherLanelets);
+        count++;
+      }else
+        break;
+    }
+    
+    if(allLanelets.size()%2 == 0){
+      //even then, find the two middle two lanelets and get the commly shared
+      //linestring as the center point.
+      int rem = allLanelets.size()/2;
+      rem -=1;
+      count = 1;
+      for(size_t i=rem; i>=0; i--){
+        lanelanelet.push_back(std::make_pair(count, allLanelets[i]));
+        count++;
+        if(i==0)
+          break;
+      }
+      count = -1;
+      for(size_t i=rem+1; i<allLanelets.size(); i++){
+        lanelanelet.push_back(std::make_pair(count, allLanelets[i]));
+        count--;
+      }
+
+    }else{
+      //For odd number
+      int rem = allLanelets.size()/2;
+      count = 1;
+      for(size_t i=rem; i>=0; i--){
+        lanelanelet.push_back(std::make_pair(count, allLanelets[i]));
+        count++;
+        if(i==0)
+          break;
+      }
+      count = -1;
+      for(size_t i=rem+1; i<allLanelets.size(); i++){
+        lanelanelet.push_back(std::make_pair(count, allLanelets[i]));
+        count--;
+      }
+    }
+    
+    for(size_t i=0; i<lanelanelet.size();i++){
+      if(lanelanelet[i].second == firstLanelet)
+        laneNo = lanelanelet[i].first;
+    }
+
+
+
+  }//main if closes
+
+  return std::make_pair(laneNo,lanelanelet);
+}
+
 std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pair<lanelet::Lanelet, int>> findTheCentralLinePoint(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
   lanelet::BasicPoint2d basicPoint3d;
   lanelet::Lanelet sampleL;
@@ -475,8 +582,9 @@ std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pa
       //even then, find the two middle two lanelets and get the commly shared
       //linestring as the center point.
       int rem = allLanelets.size()/2;
-      if(rem == 1)
-        rem = 0; 
+      //if(rem == 1)
+      //  rem = 0; 
+      rem -=1;
       auto firstLL = allLanelets[rem];
       auto centerLine = firstLL.rightBound();
       if(centerLine.size() > 0){
@@ -496,7 +604,8 @@ std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pa
         _return = std::make_tuple(true, std::make_pair(lanelet::BasicPoint2d(pProj.x(), pProj.y()),ls3d), std::make_pair(boundaryLanelet,allLanelets.size()));
 
       }else{
-        auto lanelet = allLanelets[rem+1];
+        //auto lanelet = allLanelets[rem+1];
+        auto lanelet = allLanelets[rem];
         auto centerLine = lanelet.centerline();
         auto pProj = lanelet::geometry::project(centerLine, lanelet::Point3d{lanelet::utils::getId(), startingPoint.x(), startingPoint.y()});
         lanelet::Point3d p1{lanelet::utils::getId(), centerLine.front().x(), centerLine.front().y(), 0};
@@ -514,7 +623,7 @@ std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pa
   return _return;
 }
 
-void frenetJsonVec(std::vector<std::pair<int, std::vector<json>>>& frenetJson, std::tuple<int, json, json> data, lanelet::BasicPoint2d roadCenter, double s){
+void frenetJsonVec(std::vector<std::pair<int, std::vector<json>>>& frenetJson, std::tuple<int, json, json> data, lanelet::BasicPoint2d roadCenter, double s, json otherJdata){
  
   auto car = std::get<0>(data);
   json mainJData = {
@@ -523,7 +632,8 @@ void frenetJsonVec(std::vector<std::pair<int, std::vector<json>>>& frenetJson, s
     {"odom_pos", std::get<2>(data)},
     {"road_center_x", roadCenter.x()},
     {"road_center_y", roadCenter.y()},
-    {"s", s}
+    {"s", s},
+    {"other", otherJdata}
   };
   bool found = false;
   size_t index = 0;
@@ -545,14 +655,15 @@ void frenetJsonVec(std::vector<std::pair<int, std::vector<json>>>& frenetJson, s
   }
 }
 
-void frenetJsonVecEgo(std::vector<json>& frenetJsonEgo, std::pair<json, json> data, lanelet::BasicPoint2d roadCenter, double s){
+void frenetJsonVecEgo(std::vector<json>& frenetJsonEgo, std::pair<json, json> data, lanelet::BasicPoint2d roadCenter, double s, json otherJdata){
  
   json mainJData = {
     {"frenet_data", data.first},
     {"odom_pos", data.second},
     {"road_center_x", roadCenter.x()},
     {"road_center_y", roadCenter.y()},
-    {"s", s}
+    {"s", s},
+    {"other", otherJdata}
   };
   
   frenetJsonEgo.push_back(mainJData);

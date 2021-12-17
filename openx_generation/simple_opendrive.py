@@ -25,7 +25,7 @@ else:
     pv.add_geometry(geometry)
     raw_length += geometry.length
 
-lanes = xodr.create_lanes_merge_split(2,2,raw_length,xodr.STD_ROADMARK_BROKEN,3.0)
+lanes = xodr.create_lanes_merge_split(2,1,raw_length,xodr.STD_ROADMARK_BROKEN,3.0)
 road = xodr.Road(0,pv,lanes,road_type=-1, rule=xodr.TrafficRule.LHT)
 
 
