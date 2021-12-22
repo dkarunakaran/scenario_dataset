@@ -496,6 +496,7 @@ std::pair<int,std::vector<std::pair<int,lanelet::Lanelet>>> getTheLaneNo(lanelet
     for(size_t i=0; i<lanelanelet.size();i++){
       if(lanelanelet[i].second == firstLanelet)
         laneNo = lanelanelet[i].first;
+      //ROS_INFO_STREAM("Lanes: "<<lanelanelet[i].first);
     }
 
 
@@ -506,6 +507,111 @@ std::pair<int,std::vector<std::pair<int,lanelet::Lanelet>>> getTheLaneNo(lanelet
 }
 
 std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pair<lanelet::Lanelet, int>> findTheCentralLinePoint(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
+  lanelet::BasicPoint2d basicPoint3d;
+  lanelet::Lanelet sampleL;
+  lanelet::LineString3d sampleLs;
+  bool found = false;
+  std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pair<lanelet::Lanelet, int>> _return = std::make_tuple(found, std::make_pair(basicPoint3d, sampleLs), std::make_pair(sampleL,0));
+  auto nearLanelets = findTheActualLanelet(map, startingPoint);
+  if(std::get<0>(nearLanelets) && lanelet::geometry::length3d(std::get<1>(nearLanelets)) > 0){
+    auto firstLanelet = std::get<1>(nearLanelets);
+    auto currentLanelet = firstLanelet;
+    auto lanelets = std::get<2>(nearLanelets);
+    std::vector<std::pair<int, lanelet::Lanelet>> selectedLanelets;
+    int count = 0;
+
+    //Find all the left lanelets
+    while(true){
+      auto result = findTheLeftLanelet(currentLanelet, lanelets);
+      if(result.first){
+        selectedLanelets.push_back(std::make_pair(count, result.second));
+        currentLanelet = result.second;
+        lanelet::ConstLineString3d centerline = currentLanelet.centerline();
+        int midSegNo = centerline.numSegments()/2;
+        auto midSeg = centerline.segment(midSegNo);
+        auto point1 = midSeg.first;auto point2 = midSeg.second;
+        auto midX = (point1.x()+point2.x())/2; auto midY = (point1.y()+point2.y())/2;
+        auto point = lanelet::BasicPoint2d(midX, midY);
+        auto otherLanelets = findTheActualLanelet(map, point);
+        lanelets = std::get<2>(otherLanelets);
+        count++;
+      }else
+        break;
+    }
+    
+    std::sort(selectedLanelets.begin(), selectedLanelets.end(), [](const std::pair<int, lanelet::Lanelet>& a, std::pair<int, lanelet::Lanelet>& b) {return a.first < b.first;});
+    std::vector<lanelet::Lanelet> allLanelets;
+    for(auto& pair: selectedLanelets)
+      allLanelets.push_back(pair.second);
+    
+    allLanelets.push_back(firstLanelet);
+    
+    //Find all the right lanelets
+    currentLanelet = firstLanelet;
+    lanelets = std::get<2>(nearLanelets);
+    count = 0;
+    selectedLanelets.clear();
+    while(true){
+      auto result = findTheRightLanelet(currentLanelet, lanelets);
+      if(result.first){
+        allLanelets.push_back(result.second);
+        currentLanelet = result.second;
+        lanelet::ConstLineString3d centerline = currentLanelet.centerline();  
+        int midSegNo = centerline.numSegments()/2;
+        auto midSeg = centerline.segment(midSegNo);
+        auto point1 = midSeg.first;auto point2 = midSeg.second;
+        auto midX = (point1.x()+point2.x())/2; auto midY = (point1.y()+point2.y())/2;
+        auto point = lanelet::BasicPoint2d(midX, midY);
+        auto otherLanelets = findTheActualLanelet(map, point);
+        lanelets = std::get<2>(otherLanelets);
+        count++;
+      }else
+        break;
+    }
+
+    //Find the point in the left linestring of the left most lanelet
+    auto lsLeft = allLanelets[0].leftBound();
+
+    //Find the points in the right linestring of the rightmost lanelet where we
+    //can project the point
+    auto lsRight = allLanelets[allLanelets.size()-1].rightBound();
+   
+    //Find the distance between the two points that is considered as the width
+    //of the road
+    lanelet::Lanelet boundaryLanelet(lanelet::utils::getId(), lsLeft, lsRight);
+    if(allLanelets.size()%2 == 0){
+      //even then, find the two middle two lanelets and get the commly shared
+      //linestring as the center point.
+      int rem = allLanelets.size()/2;
+      //if(rem == 1)
+      //  rem = 0; 
+      rem -=1;
+      auto firstLL = allLanelets[rem];
+      auto centerLine = firstLL.rightBound();
+      if(centerLine.size() > 0){
+        auto pProj = lanelet::geometry::project(centerLine, lanelet::Point3d{lanelet::utils::getId(), startingPoint.x(), startingPoint.y()});
+        _return = std::make_tuple(true, std::make_pair(lanelet::BasicPoint2d(pProj.x(), pProj.y()),centerLine), std::make_pair(boundaryLanelet, allLanelets.size()));
+      }
+    }else{
+      //For odd number
+      int rem = allLanelets.size()/2;
+      auto lanelet = allLanelets[rem];
+      auto centerLine = lanelet.rightBound();
+      auto pProj = lanelet::geometry::project(centerLine, lanelet::Point3d{lanelet::utils::getId(), startingPoint.x(), startingPoint.y()});
+      _return = std::make_tuple(true, std::make_pair(lanelet::BasicPoint2d(pProj.x(), pProj.y()),centerLine), std::make_pair(boundaryLanelet,allLanelets.size()));
+    }
+     
+  }//Checking lanelet for the egopoint if closes      
+  else{
+    //ROS_INFO_STREAM("No lanelet found: length of the lanelet is zero or simply couldn't find the lanelet that actually has the point");
+  }
+
+  return _return;
+}
+
+
+
+/*std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pair<lanelet::Lanelet, int>> findTheCentralLinePoint(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
   lanelet::BasicPoint2d basicPoint3d;
   lanelet::Lanelet sampleL;
   lanelet::LineString3d sampleLs;
@@ -623,6 +729,8 @@ std::tuple<bool,std::pair<lanelet::BasicPoint2d, lanelet::LineString3d>, std::pa
   return _return;
 }
 
+*/
+
 void frenetJsonVec(std::vector<std::pair<int, std::vector<json>>>& frenetJson, std::tuple<int, json, json> data, lanelet::BasicPoint2d roadCenter, double s, json otherJdata){
  
   auto car = std::get<0>(data);
@@ -690,23 +798,26 @@ double getFrenetS(std::vector<std::pair<int, std::vector<json>>> frenetJson, int
 
     s = jData["s"].get<double>()+std::sqrt(std::pow((jData["road_center_x"].get<double>()-roadCenter.x()),2)+std::pow((jData["road_center_y"].get<double>()-roadCenter.y()),2));
   }else{
-    
-    auto pProj = lanelet::geometry::project(roadCenterLine, point);
     lanelet::Point3d p1{lanelet::utils::getId(), roadCenterLine.front().x(), roadCenterLine.front().y(), 0};
-    lanelet::Point3d p2{lanelet::utils::getId(), pProj.x(), pProj.y(), 0};
+    lanelet::Point3d p2{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0};
     lanelet::LineString3d ls(lanelet::utils::getId(),{p1, p2});
-    s = lanelet::geometry::length(lanelet::utils::toHybrid(ls)); 
+    s = lanelet::geometry::length(lanelet::utils::toHybrid(ls));
   }
   
   return s;
 }
 
-double getFrenetSEgo(std::vector<json>& frenetJsonEgo, lanelet::BasicPoint2d roadCenter){
+double getFrenetSEgo(std::vector<json>& frenetJsonEgo, lanelet::LineString3d roadCenterLine, lanelet::BasicPoint2d roadCenter){
 
   double s = 0.;
   if(frenetJsonEgo.size() > 0){
     auto jData = frenetJsonEgo.back();
     s = jData["s"].get<double>()+std::sqrt(std::pow((jData["road_center_x"].get<double>()-roadCenter.x()),2)+std::pow((jData["road_center_y"].get<double>()-roadCenter.y()),2));
+  }else{
+    lanelet::Point3d p1{lanelet::utils::getId(), roadCenterLine.front().x(), roadCenterLine.front().y(), 0};
+    lanelet::Point3d p2{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0};
+    lanelet::LineString3d ls(lanelet::utils::getId(),{p1, p2});
+    s = lanelet::geometry::length(lanelet::utils::toHybrid(ls));
   }
   
   return s;

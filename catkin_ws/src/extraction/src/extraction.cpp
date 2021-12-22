@@ -58,7 +58,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     long int positiveDir;
     long int negativeDir;
     std::vector<int> cutInScenarioNoDetect;
-    std::vector<std::tuple<uint32_t, uint32_t, int>> cutInScenarios;
+    std::vector<json> cutInScenarios;
     std::vector<int> cutInScenarioCar;
     ros::Publisher finishPub;
     ros::NodeHandle nh;
@@ -190,7 +190,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       }
       auto centerLineTuple = findTheCentralLinePoint(map, startingPoint);
       if(std::get<0>(centerLineTuple)){
-        auto roadCenter = std::get<1>(centerLineTuple).first; 
+        //auto roadCenter = std::get<1>(centerLineTuple).first; 
         for(auto& p: std::get<1>(centerLineTuple).second){
             roadCenterLine.push_back(p);
         }
@@ -251,9 +251,13 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
 
             }else{
               ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id);
-              uint32_t end =  objPtr->header.stamp.sec+5;
-              uint32_t start = objPtr->header.stamp.sec-15;
-              cutInScenarios.push_back(std::make_tuple(start, end, objPtr->object_id));
+              json jData;
+              jData["scenario_start"] = objPtr->header.stamp.sec-15;
+              jData["scenario_end"] = objPtr->header.stamp.sec+5;
+              jData["cutin_start"] = objPtr->header.stamp.sec-10;
+              jData["cutin_end"] = objPtr->header.stamp.sec+5;
+              jData["cutin_car"] = objPtr->object_id;
+              cutInScenarios.push_back(jData);
               cutInScenarioCar.push_back(objPtr->object_id);
             }
           }
@@ -276,7 +280,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       auto roadCenter = lanelet::geometry::project(roadCenterLine, egoPoint3d);
       auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
       auto laneLaneletPair = getTheLaneNo(map, egoPoint);
-      frenetS = getFrenetSEgo(frenetJsonEgo, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
+      frenetS = getFrenetSEgo(frenetJsonEgo, roadCenterLine, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
       float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), egoPoint);
       
       if(d >= 0)
@@ -311,6 +315,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         auto point3d = lanelet::Point3d{lanelet::utils::getId(), posX, posY, 0};
         auto roadCenter = lanelet::geometry::project(roadCenterLine, point3d);
         auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
+        auto laneLaneletPair = getTheLaneNo(map, point);
         auto frenetSO = getFrenetS(frenetJson, car, roadCenterLine, point3d, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
         float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point); 
         if(egoDataCount > 10 && positiveDir > negativeDir && d < 0)
@@ -322,6 +327,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         odomJdata["y"] = posY;
         odomJdata["sec"] = objPtr->header.stamp.sec;
         otherJdata["long_speed"] = objPtr->twist.twist.linear.x;
+        otherJdata["lane_no"] = laneLaneletPair.first;
+        //ROS_INFO_STREAM("car: "<<car<<" Lane: "<<laneLaneletPair.first);
         frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO, otherJdata);
       }
     }
@@ -350,8 +357,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       //Storing the scenario data
       std::vector<json> scenario;
       for(size_t i =0; i<cutInScenarios.size(); i++){
-        auto tuple = cutInScenarios[i]; 
-        json jData;jData["start"] = std::get<0>(tuple);jData["end"] = std::get<1>(tuple);jData["car"] = std::get<2>(tuple);
+        auto jData = cutInScenarios[i]; 
+        //json jData;jData["start"] = std::get<0>(tuple);jData["end"] = std::get<1>(tuple);jData["car"] = std::get<2>(tuple);
         scenario.push_back(jData);    
       }
       json j3(scenario);

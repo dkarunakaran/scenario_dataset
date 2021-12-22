@@ -26,10 +26,9 @@ for param in data['parameter']:
     # Target location is ahead of ego vehicle
     adversary_pos = param['param_adv_start_pos'] # param 4 - front=0 or back=1
     adversary_start_diff = param['param_start_diff'] # param 5  - difference in s coordinate of road frame
-    adversary_start_pos = param['param_adv_start_pos']
     adversary_lane = param['param_adv_lane_no_init'] # param 6 - lane number
     adversary_cutin_speed = 40 # param 7 
-    adversary_cutin_trigger_dist = param['param_cutin_start_dist']-3 # param 8 - distance in s from target to ego
+    adversary_cutin_trigger_dist = param['param_cutin_start_dist'] # param 8 - distance in s from target to ego
     adversary_vehicle_model = 0  # param 9 - car=0, van=1, motorbike=2
 
     adversary_cutin_time = param['param_cutin_time'] # Param 10 time taken to complete the lane change
@@ -96,7 +95,11 @@ for param in data['parameter']:
     init.add_init_action('$adversaryVehicle',targetstart)
 
     # create event and act1 - cutin
-    trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.lessThan,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
+    trig_cond1 = None
+    if adversary_start_diff > adversary_cutin_trigger_dist:
+        trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.lessThan,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
+    else:
+        trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.greaterThan,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
     trigger = xosc.EntityTrigger('cutinTrigger',0,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
     event = xosc.Event('cutInevent',xosc.Priority.overwrite)
     event.add_trigger(trigger)
@@ -110,7 +113,7 @@ for param in data['parameter']:
     mangr.add_actor('$adversaryVehicle')
     mangr.add_maneuver(man)
     starttrigger = xosc.ValueTrigger('cutinStartTrigger',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-    act = xosc.Act('cutInct',starttrigger)
+    act = xosc.Act('cutInAct',starttrigger)
     act.add_maneuver_group(mangr)
 
     event_list = []
@@ -132,7 +135,7 @@ for param in data['parameter']:
     mangr.add_actor('$adversaryVehicle')
     mangr.add_maneuver(man)
     starttrigger = xosc.ValueTrigger('cutinStartTriggerAdv',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-    actAdv = xosc.Act('cutInctAdv',starttrigger)
+    actAdv = xosc.Act('cutInActAdv',starttrigger)
     actAdv.add_maneuver_group(mangr)
     
     # create event and act 3 - ego vehicle
@@ -154,14 +157,15 @@ for param in data['parameter']:
     mangr.add_actor('$egoVehicle')
     mangr.add_maneuver(man)
     starttrigger = xosc.ValueTrigger('cutinStartTriggerEgo',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-    actEgo = xosc.Act('cutInctEgo',starttrigger)
+    actEgo = xosc.Act('cutInActEgo',starttrigger)
     actEgo.add_maneuver_group(mangr)
 
 
     ## create the story
-    storyparam = xosc.ParameterDeclarations()
-    storyparam.add_parameter(xosc.Parameter('$owner',xosc.ParameterType.string,'$adversaryVehicle'))
-    story = xosc.Story('cutInStory',storyparam)
+    #storyparam = xosc.ParameterDeclarations()
+    #storyparam.add_parameter(xosc.Parameter('$owner',xosc.ParameterType.string,'$adversaryVehicle'))
+    #story = xosc.Story('cutInStory',storyparam)
+    story = xosc.Story('cutInStory')
     story.add_act(act)
     story.add_act(actAdv)
     story.add_act(actEgo)

@@ -4,7 +4,6 @@ from __future__ import division
 import os
 import json
 import matplotlib
-import carla
 
 # For the error: Exception ignored in: <bound method Image.del of <tkinter.PhotoImage object at 0x7f1b5f86a710>> Traceback (most recent call last):
 matplotlib.use('Agg')
@@ -15,7 +14,7 @@ import random
 plt.rcParams.update({'figure.max_open_warning': 0})
 import numpy as np
 
-path_to_file = '/model/cars_frent.json'
+path_to_file = '/model/cars_frenet.json'
 path_to_save_dir = '/model/plots/'
 evaluation = {
     "frenet_data": {},
@@ -41,7 +40,7 @@ print(car_ids)
 
 name = path_to_save_dir+"frenet_frame"
 plt.figure()
-car_ids = [114]
+car_ids = [38]
 for car in car_ids:
     data = {"s":[], "d":[]}
     for fData in evaluation["frenet_data"][car]:
@@ -70,7 +69,7 @@ plt.close()
 
 #--------------------------------Ego vehicle in frenet frame-----------------------
 
-path_to_file = '/model/ego_frent.json'
+path_to_file = '/model/ego_frenet.json'
 path_to_save_dir = '/model/plots/'
 evaluation_ego = {
     "frenet_data": [],
@@ -112,7 +111,7 @@ plt.close()
 
 #--------------------------------Ego vehicle with other vehicle frene frame-----------------------
 
-path_to_file = '/model/ego_frent.json'
+path_to_file = '/model/ego_frenet.json'
 path_to_save_dir = '/model/plots/'
 evaluation_ego = {
     "frenet_data": [],
@@ -137,7 +136,7 @@ hex_number = '#%02X%02X%02X' % (r(),r(),r())
 plt.plot(x,y,'.',label="ego", color=hex_number)
 plt.xlim([8, -8])
 print(car_ids)
-car_ids = [114]
+#car_ids = [114]
 for car in car_ids:
     car_data = {"s":[], "d":[]}
     for fData in evaluation["frenet_data"][car]:
