@@ -40,7 +40,7 @@ print(car_ids)
 
 name = path_to_save_dir+"frenet_frame"
 plt.figure()
-car_ids = [38]
+car_ids = [221]
 for car in car_ids:
     data = {"s":[], "d":[]}
     for fData in evaluation["frenet_data"][car]:

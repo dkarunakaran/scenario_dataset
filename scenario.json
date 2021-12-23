@@ -1,11 +1,11 @@
 {
     "cut-in scenario": [
         {
-            "cutin_car": 38,
-            "cutin_end": 1622614812,
-            "cutin_start": 1622614800,
-            "scenario_end": 1622614815,
-            "scenario_start": 1622614795
+            "cutin_car": 221,
+            "cutin_end": 1622535139,
+            "cutin_start": 1622535130,
+            "scenario_end": 1622535143,
+            "scenario_start": 1622535123
         }
     ]
 }

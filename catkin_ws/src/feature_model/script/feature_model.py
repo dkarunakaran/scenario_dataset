@@ -45,8 +45,8 @@ class FeatureModel:
             self.getGroupEgoBySec(egoData);
             cutInScenarios = allScenarios["cut-in scenario"]
             for scenario in cutInScenarios:
-                start = scenario["cutin_start"]
-                end = scenario["cutin_end"]
+                start = scenario["scenario_start"]
+                end = scenario["scenario_end"]
                 laneChangeCar = scenario["cutin_car"]
                 cars = self.getAllCars(start=start, end=end, laneChangeCar=laneChangeCar) 
                 group_by_car = self.groupByCar(cars)
@@ -69,104 +69,111 @@ class FeatureModel:
     
     def getParameters(self, ego, group_by_car, laneChangeCar, lane_change_car_data_by_sec, scenario):
         lane_change_start_time = scenario['cutin_start']
+        while True:
+            if lane_change_start_time in lane_change_car_data_by_sec.keys():
+                break
+            lane_change_start_time += 1
         lane_change_end_time = scenario['cutin_end']
+        ego_cutin_start = self.group_ego_by_sec[lane_change_start_time][0]['frenet_data']['s']
         param_ego_speed_init = ego[0][0]['other']['long_speed']
         param_ego_lane_no_init = ego[0][0]['other']['lane_no']
         param_ego_start_pos = ego[0][0]['frenet_data']['s']
-        print("Ego initial speed: {}, lane number init: {}".format(param_ego_speed_init, param_ego_lane_no_init))
-        param_ego_speed_interval = {}
-        param_ego_speed_interval[0] = param_ego_speed_init
-        current_dist = param_ego_start_pos;
-        '''index = 0
-        s = 0
-        for each in ego:
-            dist = each[0]['frenet_data']['s']
-            dist_diff = dist -current_dist;
-            if dist_diff >= 1:
-                s += dist_diff
-                current_dist = dist
-                param_ego_speed_interval[int(s)] = ego[index][0]['other']['long_speed']
-            index += 1
-        '''
-        s = 0
+        speed = 0
+        count = 0
         for sec in self.group_ego_by_sec.keys():
-            dist = self.group_ego_by_sec[sec][0]['frenet_data']['s']
-            dist_diff = dist-current_dist;
-            s += dist_diff
-            current_dist = dist
-            param_ego_speed_interval[int(s)] = self.group_ego_by_sec[sec][0]['other']['long_speed']
+            if sec >=lane_change_start_time and sec <= lane_change_end_time:
+                speed += self.group_ego_by_sec[sec][0]['other']['long_speed']
+                count += 1
+        param_ego_avg_cutin_speed = speed/count
+        print("param_ego_avg_cutin_speed: {}".format(param_ego_avg_cutin_speed))
 
-        print(param_ego_speed_interval)
+        param_ego_to_cutin_dist = ego_cutin_start-param_ego_start_pos
+        print("param_ego_to_cutin_dist: {}".format(param_ego_to_cutin_dist))
 
-        laneChangeCarData = group_by_car[laneChangeCar]
-        param_adv_speed_init = laneChangeCarData[0]['other']['long_speed']
-        param_adv_lane_no_init = laneChangeCarData[0]['other']['lane_no']
-        print("Adversary initial speed: {}, lane number init: {}".format(param_adv_speed_init, param_adv_lane_no_init))
-        param_start_diff = (laneChangeCarData[0]['frenet_data']['s']-ego[0][0]['frenet_data']['s'])+2
-        param_adv_start_pos = ego[0][0]['frenet_data']['s']+param_start_diff
-        print("Start diff: {}, adversary start pos: {}, ego start pos: {}".format(param_start_diff, param_adv_start_pos, param_ego_start_pos))
-        param_adv_speed_interval = {}
-        param_adv_speed_interval[0] = param_adv_speed_init
-        current_dist = param_adv_start_pos;
-        s = 0
-        for sec in lane_change_car_data_by_sec.keys():
-            dist = lane_change_car_data_by_sec[sec][0]['frenet_data']['s']
-            dist_diff = dist-current_dist;
-            s += dist_diff
-            current_dist = dist
-            param_adv_speed_interval[int(s)] = lane_change_car_data_by_sec[sec][0]['other']['long_speed']
-        print(param_adv_speed_interval) 
+
+        param_ego_to_cutin_time = self.group_ego_by_sec[lane_change_start_time][0]['frenet_data']['sec'] - ego[0][0]['frenet_data']['sec'] 
+        print("param_ego_to_cutin_time: {}".format(param_ego_to_cutin_time))
+
+        if param_ego_speed_init < 0.5:
+            speed = 0
+            count = 0
+            for sec in self.group_ego_by_sec.keys():
+                speed += self.group_ego_by_sec[sec][0]['other']['long_speed']
+                count += 1
+            param_ego_speed_init = speed/count
+
+        print("Ego initial speed: {}, lane number init: {}".format(param_ego_speed_init, param_ego_lane_no_init))
         
-        param_adv_speed_interval_time = {}
-        '''
-        param_adv_speed_interval_time[0] = laneChangeCarData[0]['other']['long_speed']
-        t = 0 
-        index = 0
-        current_sec = laneChangeCarData[0]['frenet_data']['sec']
-        for sec in lane_change_car_data_by_sec.keys():
-            print(sec)
-            sec_diff = sec - current_sec
-            if sec_diff >= 1.0:
-                t += sec_diff
-                current_sec = sec
-                param_adv_speed_interval_time[t] = lane_change_car_data_by_sec[sec][0]['other']['long_speed']
-
-        print(param_adv_speed_interval_time)
-        '''
-
+        laneChangeCarData = group_by_car[laneChangeCar]
+        #param_adv_speed_init = laneChangeCarData[0]['other']['long_speed']
+        param_adv_speed_init = param_ego_speed_init
+        param_adv_lane_no_init = laneChangeCarData[0]['other']['lane_no']
+        
+        param_start_diff=(laneChangeCarData[0]['frenet_data']['s']-ego[0][0]['frenet_data']['s'])
+        param_adv_start_pos = laneChangeCarData[0]['frenet_data']['s']
+        print("Start diff: {}, adversary start pos: {}, ego start pos: {}".format(param_start_diff, param_adv_start_pos, param_ego_start_pos))
+       
+        # Find cut-in time
         found = False
         param_cutin_time = lane_change_end_time-lane_change_start_time
-        cutin_start_sec = None
+        cutin_start_sec = lane_change_start_time
+        cutin_end_sec = None
         for sec in lane_change_car_data_by_sec.keys():
-            next_lane_no = lane_change_car_data_by_sec[sec+1][0]['other']['lane_no']
-            if next_lane_no != param_adv_lane_no_init:
-                cutin_start_sec = sec
-                found = True
-                break
-        
+            if sec in lane_change_car_data_by_sec.keys():
+                size = len(lane_change_car_data_by_sec[sec])-1
+                lane_no = lane_change_car_data_by_sec[sec][size]['other']['lane_no']
+                if lane_no != param_adv_lane_no_init:
+                    cutin_end_sec = sec
+                    found = True
+                    break
         if found == True:
-            param_cutin_time = (lane_change_end_time-cutin_start_sec)+1
+            param_cutin_time = (cutin_end_sec-cutin_start_sec)-1
+        print("param_cutin_time: {}".format(param_cutin_time))
 
         # Find cut-in distance:
-        adv_start = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['s']
-        ego_start = self.group_ego_by_sec[lane_change_start_time][0]['frenet_data']['s']
-        param_cutin_start_dist = adv_start - ego_start
+        adv_cutin_start = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['s']
+        param_cutin_start_dist = adv_cutin_start - ego_cutin_start
         print("init_diff: {} and param_cutin_start_dist: {}".format(param_start_diff, param_cutin_start_dist))
-        param_ego_dist_travelled = ego_start - param_ego_start_pos
+        
+        if param_cutin_start_dist > param_start_diff:
+            param_adv_speed_init = param_ego_avg_cutin_speed+1
+        print("Adversary initial speed: {}, lane number init: {}".format(param_adv_speed_init, param_adv_lane_no_init))
+        
+        # Find average cut-in speed
+        speed = 0
+        count = 0
+        for sec in lane_change_car_data_by_sec.keys():
+            if lane_change_car_data_by_sec[sec][0]['other']['long_speed'] < 0:
+                continue
+            if sec >=lane_change_start_time and sec <= lane_change_end_time:
+                speed += lane_change_car_data_by_sec[sec][0]['other']['long_speed']
+                count += 1
+        param_adv_avg_cutin_speed = speed/count
+        print("param_adv_avg_cutin_speed: {}".format(param_adv_avg_cutin_speed))
+        
+        param_adv_to_cutin_dist = adv_cutin_start-param_adv_start_pos
+        print("param_adv_to_cutin_dist: {}".format(param_adv_to_cutin_dist))
+        
+        param_adv_to_cutin_time = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec'] - laneChangeCarData[0]['frenet_data']['sec'] 
+        print("param_adv_to_cutin_time: {}".format(param_adv_to_cutin_time))
+
+        
         param = {
                 'param_ego_speed_init': param_ego_speed_init,
                 'param_ego_lane_no_init': param_ego_lane_no_init,
                 'param_ego_start_pos': param_ego_start_pos,
-                'param_ego_speed_interval': param_ego_speed_interval,
                 'param_adv_speed_init': param_adv_speed_init,
                 'param_adv_lane_no_init': param_adv_lane_no_init,
                 'param_start_diff': param_start_diff,
                 'param_adv_start_pos': param_adv_start_pos,
-                'param_adv_speed_interval': param_adv_speed_interval,
-                'param_adv_speed_interval_time': param_adv_speed_interval_time,
                 'param_cutin_start_dist': param_cutin_start_dist,
-                'param_ego_dist_travelled': param_ego_dist_travelled,
-                'param_cutin_time': param_cutin_time
+                'param_cutin_time': param_cutin_time,
+                'param_adv_avg_cutin_speed': param_adv_avg_cutin_speed,
+                'param_ego_avg_cutin_speed': param_ego_avg_cutin_speed,
+                'param_adv_to_cutin_dist': param_adv_to_cutin_dist,
+                'param_adv_to_cutin_time': param_adv_to_cutin_time,
+                'param_ego_to_cutin_dist': param_ego_to_cutin_dist,
+                'param_ego_to_cutin_time': param_ego_to_cutin_time
         }
         self.parameter.append(param)
         
