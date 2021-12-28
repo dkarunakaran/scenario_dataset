@@ -7,12 +7,17 @@ param_adv_percentage_dist_to_cutin_dist = 100
 param_ego_percentage_dist_to_cutin_dist = 100
 
 
-file1='/home/beastan/Documents/phd/scenario_extraction/parameters/gate_south-end_north-end_20210601_080738.json'
+file_loc='/home/beastan/Documents/phd/scenario_extraction/parameters/gate_south-end_north-end_20210608_054523.json'
 
-with open(file1) as f:
+save_loc = '/home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/'
+
+with open(file_loc) as f:
     data = json.loads(f.read())
-print("Processing the file: {}".format(file1))
+print("Processing the file: {}".format(file_loc))
+count = 1
+filename = os.path.basename(file_loc).split('.', 1)[0]
 for param in data['parameter']:
+    name = save_loc+filename+"_"+str(count)+".xosc"
     print(param)
 
     ### create catalogs
@@ -44,6 +49,7 @@ for param in data['parameter']:
     ego_to_cutin_dist = param['param_ego_to_cutin_dist']
     ego_to_cutin_time = param['param_ego_to_cutin_time']
     ego_avg_cutin_speed = param['param_ego_avg_cutin_speed']
+    trigger_cond = param['param_trigger_cond']
    
     paramdec = xosc.ParameterDeclarations()
     paramdec.add_parameter(xosc.Parameter('$egoVehicle',xosc.ParameterType.string, ego_vehicle))
@@ -55,6 +61,7 @@ for param in data['parameter']:
     paramdec.add_parameter(xosc.Parameter('$adversaryPos',xosc.ParameterType.integer, adversary_pos))
     paramdec.add_parameter(xosc.Parameter('$adversaryLane',xosc.ParameterType.double,adversary_lane))
     paramdec.add_parameter(xosc.Parameter('$adversaryCutinSpeed',xosc.ParameterType.double,adversary_cutin_speed))
+    paramdec.add_parameter(xosc.Parameter('$adversaryStartDiff',xosc.ParameterType.double,adversary_start_diff))
     paramdec.add_parameter(xosc.Parameter('$adversaryCutinTriggerDist',xosc.ParameterType.double,adversary_cutin_trigger_dist))
     paramdec.add_parameter(xosc.Parameter('$adversaryCutinTime',xosc.ParameterType.double,adversary_cutin_time))
     paramdec.add_parameter(xosc.Parameter('$adversaryToCutinDist',xosc.ParameterType.double,adversary_to_cutin_dist))
@@ -64,6 +71,7 @@ for param in data['parameter']:
     paramdec.add_parameter(xosc.Parameter('$egoToCutinTime',xosc.ParameterType.double, ego_to_cutin_time))
     paramdec.add_parameter(xosc.Parameter('$egoAvgCutinSpeed',xosc.ParameterType.double, ego_avg_cutin_speed))
 
+    
     # vehicle.tesla.model3
     bb = xosc.BoundingBox(2.1,4.5,1.8,1.5,0,0.9)
     fa = xosc.Axle(0.5,0.6,1.8,3.1,0.3)
@@ -115,7 +123,7 @@ for param in data['parameter']:
 
     # create event and act1 - cutin
     trig_cond1 = None
-    if adversary_start_diff > adversary_cutin_trigger_dist:
+    if trigger_cond == 0:
         trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.lessThan,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
     else:
         trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.greaterThan,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
@@ -155,7 +163,10 @@ for param in data['parameter']:
     actAdv.add_maneuver_group(mangr)
 
     # create event and act 3 - ego vehicle
-    ego_start_to_cutin_dist = (ego_to_cutin_dist*param_ego_percentage_dist_to_cutin_dist)/100
+    if ego_to_cutin_dist > 20:
+        ego_start_to_cutin_dist = 20
+    else:
+        ego_start_to_cutin_dist = (ego_to_cutin_dist*param_ego_percentage_dist_to_cutin_dist)/100
     trig_cond1 = xosc.TraveledDistanceCondition(ego_start_to_cutin_dist)
     trigger = xosc.EntityTrigger('cutinTriggerEgo',0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
     event = xosc.Event('cutIneventEgo',xosc.Priority.parallel)
@@ -182,7 +193,7 @@ for param in data['parameter']:
     story.add_act(actEgo)
 
     ## create the storyboard
-    sb = xosc.StoryBoard(init, xosc.ValueTrigger('stop_simulation',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(20,xosc.Rule.greaterThan),'stop'))
+    sb = xosc.StoryBoard(init, xosc.ValueTrigger('stop_simulation',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(30,xosc.Rule.greaterThan),'stop'))
     sb.add_story(story)
 
     ## create the scenario
@@ -193,7 +204,8 @@ for param in data['parameter']:
 
     # write the OpenSCENARIO file as xosc using current script name
     #sce.write_xml(os.path.basename(__file__).replace('.py','.xosc'))
-    sce.write_xml('example1.xosc')
+    sce.write_xml(name)
+    count += 1
 
 # uncomment the following lines to display the scenario using esmini
 # from scenariogeneration import esmini

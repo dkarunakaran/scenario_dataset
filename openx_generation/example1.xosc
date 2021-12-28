@@ -1,24 +1,25 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
-    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2021-12-23T23:25:18.397499"/>
+    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2021-12-28T23:45:01.484300"/>
     <ParameterDeclarations>
         <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
-        <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="5.7166666984558105"/>
-        <ParameterDeclaration name="$egoStartPos" parameterType="double" value="0.0"/>
-        <ParameterDeclaration name="$egoStartLane" parameterType="double" value="0"/>
+        <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="1.0583332777023315"/>
+        <ParameterDeclaration name="$egoStartPos" parameterType="double" value="585.4462795051048"/>
+        <ParameterDeclaration name="$egoStartLane" parameterType="double" value="1"/>
         <ParameterDeclaration name="$adversaryVehicle" parameterType="string" value="adversary"/>
-        <ParameterDeclaration name="$adversaryVelocityInit" parameterType="double" value="5.7166666984558105"/>
-        <ParameterDeclaration name="$adversaryPos" parameterType="integer" value="20.504713101247336"/>
+        <ParameterDeclaration name="$adversaryVelocityInit" parameterType="double" value="1.0583332777023315"/>
+        <ParameterDeclaration name="$adversaryPos" parameterType="integer" value="704.4499801279713"/>
         <ParameterDeclaration name="$adversaryLane" parameterType="double" value="2"/>
         <ParameterDeclaration name="$adversaryCutinSpeed" parameterType="double" value="40"/>
-        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="20.504713101247336"/>
-        <ParameterDeclaration name="$adversaryCutinTime" parameterType="double" value="4"/>
+        <ParameterDeclaration name="$adversaryStartDiff" parameterType="double" value="119.00370062286652"/>
+        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="34.01964023757114"/>
+        <ParameterDeclaration name="$adversaryCutinTime" parameterType="double" value="3"/>
         <ParameterDeclaration name="$adversaryToCutinDist" parameterType="double" value="0.0"/>
         <ParameterDeclaration name="$adversaryToCutinTime" parameterType="double" value="0"/>
-        <ParameterDeclaration name="$adversaryAvgCutinSpeed" parameterType="double" value="1.2666666507720947"/>
-        <ParameterDeclaration name="$egoToCutinDist" parameterType="double" value="0.0"/>
-        <ParameterDeclaration name="$egoToCutinTime" parameterType="double" value="0"/>
-        <ParameterDeclaration name="$egoAvgCutinSpeed" parameterType="double" value="3.486507943698338"/>
+        <ParameterDeclaration name="$adversaryAvgCutinSpeed" parameterType="double" value="0.8749999602635702"/>
+        <ParameterDeclaration name="$egoToCutinDist" parameterType="double" value="6.906153831886563"/>
+        <ParameterDeclaration name="$egoToCutinTime" parameterType="double" value="11"/>
+        <ParameterDeclaration name="$egoAvgCutinSpeed" parameterType="double" value="12.305555661519369"/>
     </ParameterDeclarations>
     <CatalogLocations>
         <VehicleCatalog>
@@ -145,7 +146,7 @@
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <RelativeDistanceCondition value="$adversaryCutinTriggerDist" freespace="true" entityRef="$adversaryVehicle" rule="greaterThan" relativeDistanceType="longitudinal" coordinateSystem="entity"/>
+                                                <RelativeDistanceCondition value="$adversaryCutinTriggerDist" freespace="true" entityRef="$adversaryVehicle" rule="lessThan" relativeDistanceType="longitudinal" coordinateSystem="entity"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -239,7 +240,7 @@
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="0.0"/>
+                                                <TraveledDistanceCondition value="6.906153831886563"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -264,7 +265,7 @@
             <ConditionGroup>
                 <Condition name="stop_simulation" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                        <SimulationTimeCondition value="20" rule="greaterThan"/>
+                        <SimulationTimeCondition value="30" rule="greaterThan"/>
                     </ByValueCondition>
                 </Condition>
             </ConditionGroup>

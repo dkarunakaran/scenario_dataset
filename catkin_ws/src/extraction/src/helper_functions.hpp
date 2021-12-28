@@ -398,7 +398,7 @@ std::pair<bool, lanelet::BasicPoint2d> findTheClosestLaneletForObject(lanelet::L
   return std::make_pair(found, point2d);
 }
 
-std::pair<int,std::vector<std::pair<int,lanelet::Lanelet>>> getTheLaneNo(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
+std::pair<int,std::vector<std::pair<int,lanelet::Lanelet>>> getTheLaneNo(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint, std::string type="other"){
   auto nearLanelets = findTheActualLanelet(map, startingPoint);
   std::vector<std::pair<int,lanelet::Lanelet>> lanelanelet;
   int laneNo = 0; 

@@ -19,7 +19,7 @@ class FeatureModel:
         self.cars_frenet_file = rospy.get_param('~cars_frenet_json_file')
         self.ego_frenet_file = rospy.get_param('~ego_frenet_json_file')
         self.parameter_dir = rospy.get_param('~parameter_json_dir')
-        self.bag_file = rospy.get_param('~bag_file')
+        self.bag_file = None
         #rospy.Subscriber('/finish_extraction', String, self.process)
         #self.scenario_file = "/model/scenario.json"
         #self.cars_frenet_file = "/model/cars_frenet.json"
@@ -34,6 +34,8 @@ class FeatureModel:
         allScenarios = None;
         with open(self.scenario_file) as json_file1:
             allScenarios = json.load(json_file1)
+
+        self.bag_file = allScenarios['file'] 
         if "cut-in scenario" in allScenarios.keys():
             carsData = None
             with open(self.cars_frenet_file) as json_file2:
@@ -45,6 +47,7 @@ class FeatureModel:
             self.getGroupEgoBySec(egoData);
             cutInScenarios = allScenarios["cut-in scenario"]
             for scenario in cutInScenarios:
+                print("_______________________")
                 start = scenario["scenario_start"]
                 end = scenario["scenario_end"]
                 laneChangeCar = scenario["cutin_car"]
@@ -88,6 +91,9 @@ class FeatureModel:
         print("param_ego_avg_cutin_speed: {}".format(param_ego_avg_cutin_speed))
 
         param_ego_to_cutin_dist = ego_cutin_start-param_ego_start_pos
+        
+        # Some modification
+        param_ego_to_cutin_dist = param_ego_to_cutin_dist/param_ego_avg_cutin_speed
         print("param_ego_to_cutin_dist: {}".format(param_ego_to_cutin_dist))
 
 
@@ -103,6 +109,13 @@ class FeatureModel:
             param_ego_speed_init = speed/count
 
         print("Ego initial speed: {}, lane number init: {}".format(param_ego_speed_init, param_ego_lane_no_init))
+        
+        end = scenario["scenario_end"]
+        while end not in self.group_ego_by_sec.keys():
+            end -= 1
+
+        param_ego_speed_final = self.group_ego_by_sec[end][0]['other']['long_speed']
+        print("param_ego_speed_final: {}".format(param_ego_speed_final))
         
         laneChangeCarData = group_by_car[laneChangeCar]
         #param_adv_speed_init = laneChangeCarData[0]['other']['long_speed']
@@ -128,6 +141,9 @@ class FeatureModel:
                     break
         if found == True:
             param_cutin_time = (cutin_end_sec-cutin_start_sec)-1
+        
+        param_cutin_time = 3
+
         print("param_cutin_time: {}".format(param_cutin_time))
 
         # Find cut-in distance:
@@ -136,7 +152,7 @@ class FeatureModel:
         print("init_diff: {} and param_cutin_start_dist: {}".format(param_start_diff, param_cutin_start_dist))
         
         if param_cutin_start_dist > param_start_diff:
-            param_adv_speed_init = param_ego_avg_cutin_speed+1
+            param_adv_speed_init = param_ego_avg_cutin_speed
         print("Adversary initial speed: {}, lane number init: {}".format(param_adv_speed_init, param_adv_lane_no_init))
         
         # Find average cut-in speed
@@ -152,11 +168,36 @@ class FeatureModel:
         print("param_adv_avg_cutin_speed: {}".format(param_adv_avg_cutin_speed))
         
         param_adv_to_cutin_dist = adv_cutin_start-param_adv_start_pos
+        # Some modification
+        param_adv_to_cutin_dist = param_adv_to_cutin_dist/param_adv_avg_cutin_speed
         print("param_adv_to_cutin_dist: {}".format(param_adv_to_cutin_dist))
         
         param_adv_to_cutin_time = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec'] - laneChangeCarData[0]['frenet_data']['sec'] 
         print("param_adv_to_cutin_time: {}".format(param_adv_to_cutin_time))
+        
+        end = scenario["scenario_end"]
+        while end not in lane_change_car_data_by_sec.keys():
+            end -= 1
 
+        param_adv_speed_final = lane_change_car_data_by_sec[end][0]['other']['long_speed']
+        print("param_adv_speed_final: {}".format(param_adv_speed_final))
+        
+        # some modification
+        if param_cutin_time == 0:
+            param_cutin_time = 4
+
+        trigger_cond = 0
+        if param_start_diff > param_cutin_start_dist:
+            trigger_cond = 0
+        elif param_start_diff == param_cutin_start_dist:
+            trigger_cond = 0
+            param_cutin_start_dist -= 5
+            param_ego_speed_init += 0.5
+        else:
+            trigger_cond = 1
+            ratio = param_cutin_start_dist/param_start_diff
+            param_adv_speed_init += ratio
+        
         
         param = {
                 'param_ego_speed_init': param_ego_speed_init,
@@ -173,10 +214,10 @@ class FeatureModel:
                 'param_adv_to_cutin_dist': param_adv_to_cutin_dist,
                 'param_adv_to_cutin_time': param_adv_to_cutin_time,
                 'param_ego_to_cutin_dist': param_ego_to_cutin_dist,
-                'param_ego_to_cutin_time': param_ego_to_cutin_time
+                'param_ego_to_cutin_time': param_ego_to_cutin_time,
+                'param_trigger_cond': trigger_cond
         }
         self.parameter.append(param)
-        
 
     def saveData(self):
         data = {
