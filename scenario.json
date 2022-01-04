@@ -1,19 +1,68 @@
 {
     "cut-in scenario": [
         {
-            "cutin_car": 120,
-            "cutin_end": 1623131450,
-            "cutin_start": 1623131441,
-            "scenario_end": 1623131454,
-            "scenario_start": 1623131434
+            "cutin_car": 182,
+            "cutin_end": 1622614729,
+            "cutin_start": 1622614720,
+            "scenario_end": 1622614733,
+            "scenario_start": 1622614713
         },
         {
-            "cutin_car": 248,
-            "cutin_end": 1623131453,
-            "cutin_start": 1623131444,
-            "scenario_end": 1623131457,
-            "scenario_start": 1623131437
+            "cutin_car": 214,
+            "cutin_end": 1622614732,
+            "cutin_start": 1622614723,
+            "scenario_end": 1622614736,
+            "scenario_start": 1622614716
+        },
+        {
+            "cutin_car": 234,
+            "cutin_end": 1622614758,
+            "cutin_start": 1622614749,
+            "scenario_end": 1622614762,
+            "scenario_start": 1622614742
+        },
+        {
+            "cutin_car": 38,
+            "cutin_end": 1622614811,
+            "cutin_start": 1622614802,
+            "scenario_end": 1622614815,
+            "scenario_start": 1622614795
+        },
+        {
+            "cutin_car": 58,
+            "cutin_end": 1622614818,
+            "cutin_start": 1622614809,
+            "scenario_end": 1622614822,
+            "scenario_start": 1622614802
+        },
+        {
+            "cutin_car": 99,
+            "cutin_end": 1622614819,
+            "cutin_start": 1622614810,
+            "scenario_end": 1622614823,
+            "scenario_start": 1622614803
+        },
+        {
+            "cutin_car": 219,
+            "cutin_end": 1622614824,
+            "cutin_start": 1622614815,
+            "scenario_end": 1622614828,
+            "scenario_start": 1622614808
+        },
+        {
+            "cutin_car": 23,
+            "cutin_end": 1622614825,
+            "cutin_start": 1622614816,
+            "scenario_end": 1622614829,
+            "scenario_start": 1622614809
+        },
+        {
+            "cutin_car": 108,
+            "cutin_end": 1622614829,
+            "cutin_start": 1622614820,
+            "scenario_end": 1622614833,
+            "scenario_start": 1622614813
         }
     ],
-    "file": "/data/ibeo/others/gate_south-end_north-end_20210608_054523.0.bag"
+    "file": "/data/ibeo/others/gate_south-end_north-end_20210602_060842.0.bag"
 }

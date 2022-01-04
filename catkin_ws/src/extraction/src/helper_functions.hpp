@@ -922,5 +922,33 @@ int directionOfPoint(lanelet::Point3d A, lanelet::Point3d B, lanelet::BasicPoint
     return ZERO;
 }
 
+bool checkSecObjExist(int object_id, uint32_t sec, uint32_t nsec, std::vector<std::tuple<int, uint32_t, int>>& objSecVec){
+  bool proceed = false;
+  bool found = false;
+  for(size_t i=0; i<objSecVec.size(); i++){
+    auto tuple = objSecVec[i];
+    auto id = std::get<0>(tuple);
+    auto s = std::get<1>(tuple);
+    if(id == object_id && s == sec){
+      found = true;
+      auto count = std::get<2>(tuple);
+      count += 1;
+      objSecVec[i] = std::make_tuple(id, s, count);
+      if(count%2 == 0){
+        proceed = true;
+      }
+      break;
+    }
+  }
+
+  if(!found){
+      objSecVec.push_back(std::make_tuple(object_id, sec, 1));
+      proceed = true;
+  }
+ 
+
+  return proceed;
+}
+
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP

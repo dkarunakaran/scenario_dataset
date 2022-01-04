@@ -28,6 +28,7 @@
 #include <lanelet2_projection/UTM.h>
 #include <tf2_ros/transform_listener.h>
 #include "helper_functions.hpp"
+#include <unistd.h>
 
 namespace bg = boost::geometry;
 using json = nlohmann::json;
@@ -64,6 +65,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     ros::NodeHandle nh;
     ros::Subscriber sub;
     std_msgs::String pubMsg;
+    std::vector<uint32_t> egoSecVec;
+    //std::vector<std::pair<int, uint32_t>> objSecVec;
+    std::vector<std::tuple<int, uint32_t, int>> objSecVec; 
 
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
@@ -77,9 +81,6 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       private_nh.getParam("scenario_json_file", scenario_json_file);
       private_nh.getParam("cars_frenet_json_file", cars_frenet_json_file);
       private_nh.getParam("ego_frenet_json_file", ego_frenet_json_file);
-      lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
-      map = lanelet::load(lanelet_file, projector);
-      ROS_INFO_STREAM("Map loaded");
       objectClassVec.push_back(5); //car
       objectClassVec.push_back(6); //truck
       objectClassVec.push_back(15); //motorbike
@@ -89,26 +90,34 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       negativeDir = 0;
       finishPub = nh.advertise<std_msgs::String>("finish_extraction", 1000);
       sub = nh.subscribe<std_msgs::String> ("finish_map_generation", 1, &Extraction::begin, this);
+      lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
+      map = lanelet::load(lanelet_file, projector);
     }
 
-    void begin(const std_msgs::String::ConstPtr& msg){
+    void begin(const std_msgs::String::ConstPtr& message){
       ROS_INFO_STREAM("Resume: "<<resume);
+      ROS_INFO_STREAM("Map is loading");
+      lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
+      map = lanelet::load(lanelet_file, projector);
+      sleep(2);
+      ROS_INFO_STREAM("Map loaded");
       if(resume){
         ROS_INFO_STREAM("Data is loading from JSON files...");
+        loadData();
       }else{
         ROS_INFO_STREAM("Data is loading from Bag file...");
-        storeDataInitially = true;  
+        storeDataInitially = true;
         ReadFromBag();
         storeData();
       }
       storeDataInitially = false;
-      loadData();
+      egoSecVec.clear();
       ReadFromBag();
       savePlotData();
-
-      //Publishing the msg to inform the end of this process
-      pubMsg.data = "true";
-      finishPub.publish(pubMsg);
+      //Oublishing the msg to inform the end of this process
+      std_msgs::String msg;
+      msg.data = "true";
+      finishPub.publish(msg);
     }
 
     void LoadAndSaveLaneMapWithLatLong(){
@@ -162,6 +171,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       }; 
       std::ofstream o1(centerline_json_file);
       o1 << std::setw(4) << centerLineJson << std::endl;
+      ROS_INFO_STREAM("Road LineString size: "<<roadCenterLine.size());
+      ROS_INFO_STREAM("Ego LineString size: "<<egoCenterLine.size());
       centerline.clear();
       egoline.clear();
       
@@ -213,8 +224,14 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       auto centerLineTuple = findTheCentralLinePoint(map, startingPoint);
       if(std::get<0>(centerLineTuple)){
         //auto roadCenter = std::get<1>(centerLineTuple).first; 
-        for(auto& p: std::get<1>(centerLineTuple).second){
-            roadCenterLine.push_back(p);
+        for(auto& cp: std::get<1>(centerLineTuple).second){
+          bool found = false;
+          for(auto& rp: roadCenterLine){
+            if(cp == rp)
+              found = true;
+          }  
+          if(!found)
+            roadCenterLine.push_back(cp);
         }
         //lanelet::Point3d p1{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0};
         //roadCenterLine.push_back(p1);
@@ -224,35 +241,52 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
 
     void buildEgoPathInLaneletCenterline(nav_msgs::Odometry::ConstPtr odomPtr)
     {
-      auto egoPoint2d = lanelet::BasicPoint2d(odomPtr->pose.pose.position.x, odomPtr->pose.pose.position.y);
-      lanelet::Lanelet lanelet;
-      auto tuple = findTheActualLanelet(map, egoPoint2d);
-      if(std::get<0>(tuple)){
-        lanelet = std::get<1>(tuple);
+      if(std::find(egoSecVec.begin(), egoSecVec.end(), odomPtr->header.stamp.sec) != egoSecVec.end()){
       }else{
-        //Just in case map is slightly wrong, we cannot find the lanelet
-        //which the egopoint resides
-        auto pair = findTheClosestLaneletEgo(map, egoPoint2d);
-        lanelet = pair.second;
-      }
-      
-      for(auto& p: lanelet.centerline()){
-        lanelet::Point3d point3d(lanelet::utils::getId(), {p.x(), p.y(), 0});
-        egoCenterLine.push_back(point3d);
+        auto egoPoint2d = lanelet::BasicPoint2d(odomPtr->pose.pose.position.x, odomPtr->pose.pose.position.y);
+        lanelet::Lanelet lanelet;
+        auto tuple = findTheActualLanelet(map, egoPoint2d);
+        if(std::get<0>(tuple)){
+          lanelet = std::get<1>(tuple);
+        }else{
+          //Just in case map is slightly wrong, we cannot find the lanelet
+          //which the egopoint resides
+          auto pair = findTheClosestLaneletEgo(map, egoPoint2d);
+          lanelet = pair.second;
+        }
+        
+        for(auto& p: lanelet.centerline()){
+          lanelet::Point3d point3d(lanelet::utils::getId(), {p.x(), p.y(), 0});
+          bool found = false;
+          for(auto& rp: egoCenterLine){
+            if(point3d == rp)
+              found = true;
+          }  
+          if(!found)
+            egoCenterLine.push_back(point3d);
+        }
+        
+        egoSecVec.push_back(odomPtr->header.stamp.sec);
       }
     }
     
     void laneChangeDetection(const rosbag::MessageInstance &msg){
       if(msg.getTopic() == odometry_topic){
         nav_msgs::Odometry::ConstPtr odomPtr = msg.instantiate<nav_msgs::Odometry>();
-        constructFrenetFrameEgo(odomPtr);
+        //if(std::find(egoSecVec.begin(), egoSecVec.end(), odomPtr->header.stamp.sec) != egoSecVec.end()){
+        //}else{
+          constructFrenetFrameEgo(odomPtr);
+          egoSecVec.push_back(odomPtr->header.stamp.sec);
+        //}
       }//Odometry topic if closes
 
       if(msg.getTopic() == objects_topic){
         ibeo_object_msg::IbeoObject::ConstPtr objPtr = msg.instantiate<ibeo_object_msg::IbeoObject>();
-        if(std::find(objectClassVec.begin(), objectClassVec.end(), objPtr->object_class) != objectClassVec.end()){
+        bool proceed = checkSecObjExist(objPtr->object_id, objPtr->header.stamp.sec, objPtr->header.stamp.nsec, objSecVec);
+        if(std::find(objectClassVec.begin(), objectClassVec.end(), objPtr->object_class) != objectClassVec.end() && proceed){
           constructFrenetFrameOtherCars(objPtr);
           cutinScenario(objPtr);
+          //objSecVec.push_back(std::make_pair(objPtr->object_id, objPtr->header.stamp.sec));
         }
       }
     }
@@ -267,7 +301,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
         if(egoCenterls.size() > 0){
           float d = std::abs(lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point));
-          if(d < 0.5 && std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
+          if(d < 0.6 && std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
             if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), objPtr->object_id) != cutInScenarioCar.end()){
 
             }else{
@@ -282,12 +316,16 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
               cutInScenarioCar.push_back(objPtr->object_id);
             }
           }
-
+          //if(objPtr->object_id == 214){
+          //  ROS_INFO_STREAM(d);
+          //}
+          
           if(d > 2){
             if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
               
-            }else
+            }else{
               cutInScenarioNoDetect.push_back(objPtr->object_id);
+            }
           }
         } 
       }
@@ -407,7 +445,7 @@ int main(int argc, char **argv) {
   Extraction extract;
   extract.init_playback();
   ROS_INFO_STREAM("Resume: "<<extract.resume);
-  if(extract.resume){
+  /*if(extract.resume){
     ROS_INFO_STREAM("Data is loading from JSON files...");
     extract.loadData();
   }else{
@@ -417,12 +455,13 @@ int main(int argc, char **argv) {
     extract.storeData();
   }
   extract.storeDataInitially = false;
+  extract.egoSecVec.clear();
   extract.ReadFromBag();
   extract.savePlotData();
   //Oublishing the msg to inform the end of this process
   std_msgs::String msg;
   msg.data = "true";
-  extract.finishPub.publish(msg);
+  extract.finishPub.publish(msg);*/
   ros::spin();
 
   return 0;
