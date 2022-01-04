@@ -458,6 +458,13 @@ std::pair<int,std::vector<std::pair<int,lanelet::Lanelet>>> getTheLaneNo(lanelet
         break;
     }
     
+    count = -1; 
+    for(size_t i=0; i<allLanelets.size(); i++){
+      lanelanelet.push_back(std::make_pair(count, allLanelets[i]));
+      count--;
+    } 
+    
+    /*
     if(allLanelets.size()%2 == 0){
       //even then, find the two middle two lanelets and get the commly shared
       //linestring as the center point.
@@ -491,16 +498,13 @@ std::pair<int,std::vector<std::pair<int,lanelet::Lanelet>>> getTheLaneNo(lanelet
         lanelanelet.push_back(std::make_pair(count, allLanelets[i]));
         count--;
       }
-    }
+    }*/
     
     for(size_t i=0; i<lanelanelet.size();i++){
       if(lanelanelet[i].second == firstLanelet)
         laneNo = lanelanelet[i].first;
       //ROS_INFO_STREAM("Lanes: "<<lanelanelet[i].first);
     }
-
-
-
   }//main if closes
 
   return std::make_pair(laneNo,lanelanelet);

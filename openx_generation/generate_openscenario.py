@@ -7,7 +7,7 @@ param_adv_percentage_dist_to_cutin_dist = 100
 param_ego_percentage_dist_to_cutin_dist = 100
 
 
-file_loc='/home/beastan/Documents/phd/scenario_extraction/parameters/gate_south-end_north-end_20210608_054523.json'
+file_loc='/home/beastan/Documents/phd/scenario_extraction/parameters/gate_south-end_north-end_20210601_080738.json'
 
 save_loc = '/home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/'
 
@@ -24,7 +24,7 @@ for param in data['parameter']:
     catalog = xosc.Catalog()
     catalog.add_catalog('VehicleCatalog','../xosc/Catalogs/Vehicles')
 
-    road = xosc.RoadNetwork(roadfile='road1.xodr')
+    road = xosc.RoadNetwork(roadfile='road2.xodr')
 
     ### create parameters
     ego_vehicle = 'hero'

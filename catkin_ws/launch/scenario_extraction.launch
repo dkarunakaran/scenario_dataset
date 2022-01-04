@@ -4,7 +4,7 @@
     <!-- just run as fast as it can -->
     <param name="limit_playback_speed" value="false" />
     <param name="percentage_start" value="0" />
-    <param name="percentage_end" value="100" />
+    <param name="percentage_end" value="20" />
     <param name="objects" value="ibeo/objects" />
     <param name="odometry" value="ibeo/odometry" />
     <param name="resume" value="true" />
@@ -16,10 +16,11 @@
     <param name="ego_frenet_json_file" value="/model/ego_frenet.json" />
     <param name="lanelet_file" value="/model/map.osm" />
   </node>
-	<!--<node pkg="feature_model" type="feature_model.py" name="feature_model" output="screen">
+	<node pkg="feature_model" type="feature_model.py" name="feature_model" output="screen">
     <param name="scenario_json_file" value="/model/scenario.json" />
     <param name="cars_frenet_json_file" value="/model/cars_frenet.json" />
     <param name="ego_frenet_json_file" value="/model/ego_frenet.json" />
-  </node>-->
+    <param name="parameter_json_dir" value="/model/parameters/" />    
+  </node>
 </launch>
 

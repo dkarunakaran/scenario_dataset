@@ -441,11 +441,10 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
 int main(int argc, char **argv) {
 
   ros::init(argc, argv, "Extraction");
-
   Extraction extract;
   extract.init_playback();
-  ROS_INFO_STREAM("Resume: "<<extract.resume);
-  /*if(extract.resume){
+  /*ROS_INFO_STREAM("Resume: "<<extract.resume);
+  if(extract.resume){
     ROS_INFO_STREAM("Data is loading from JSON files...");
     extract.loadData();
   }else{
