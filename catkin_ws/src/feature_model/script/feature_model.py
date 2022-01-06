@@ -237,7 +237,8 @@ class FeatureModel:
         data = {
             'parameter': self.parameter 
         }
-        filename = os.path.basename(self.bag_file).split('.', 1)[0]
+        base = os.path.basename(self.bag_file)
+        filename = os.path.splitext(base)[0]
         with open(self.parameter_dir+filename+".json", 'w') as outfile:
             json.dump(data, outfile)
 

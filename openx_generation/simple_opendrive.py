@@ -3,7 +3,9 @@ import os
 
 # create the planview and the geometry
 planview = xodr.PlanView()
-planview.add_geometry(xodr.Line(1000)) # Total length of all lanelets is specified here
+planview.add_geometry(xodr.Spiral(0.004,0.00001,400)) # Total length of all lanelets is specified here
+planview.add_geometry(xodr.Spiral(-0.004,0.00001,200)) # Total length of all lanelets is specified here
+planview.add_geometry(xodr.Spiral(-0.004,0.00001,400)) # Total length of all lanelets is specified here
 
 # create two different roadmarkings
 rm_solid = xodr.RoadMark(xodr.RoadMarkType.solid,0.2)
