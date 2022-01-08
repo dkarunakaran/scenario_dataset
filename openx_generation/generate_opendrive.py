@@ -3,7 +3,7 @@ import os
 import json
 from collections import OrderedDict
 
-file_loc='/home/beastan/Documents/phd/scenario_extraction/laneletOpenDrive.json'
+file_loc='/home/beastan/Documents/phd/scenario_extraction/parameters/20210719_203414.0.laneletToOD'
 
 save_loc = '/home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/'
 
@@ -28,8 +28,9 @@ count = 0
 laneSecList = []
 lanelinker = xodr.LaneLinker()
 prevNoLanes = 0 # this has to be replaced with param data
+noOfLanesStart = data['noOfLanesStart']
 for param in data['data']:
-    noOfLanes = param['noLanes']
+    noOfLanes = noOfLanesStart #param['noLanes']
     
     # create the lanesections
     lanesec = xodr.LaneSection(param['sStart'],centerlane) 

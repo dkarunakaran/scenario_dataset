@@ -66,8 +66,10 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     ros::Subscriber sub;
     std_msgs::String pubMsg;
     std::vector<uint32_t> egoSecVec;
-    //std::vector<std::pair<int, uint32_t>> objSecVec;
     std::vector<std::tuple<int, uint32_t, int>> objSecVec; 
+    std::vector<int> cutOutScenarioNoDetect;
+    std::vector<json> cutOutScenarios;
+    std::vector<int> cutOutScenarioCar;
 
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
@@ -285,13 +287,13 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         bool proceed = checkSecObjExist(objPtr->object_id, objPtr->header.stamp.sec, objPtr->header.stamp.nsec, objSecVec);
         if(std::find(objectClassVec.begin(), objectClassVec.end(), objPtr->object_class) != objectClassVec.end() && proceed){
           constructFrenetFrameOtherCars(objPtr);
-          cutinScenario(objPtr);
+          scenarioDetection(objPtr);
           //objSecVec.push_back(std::make_pair(objPtr->object_id, objPtr->header.stamp.sec));
         }
       }
     }
 
-    void cutinScenario(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
+    void scenarioDetection(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
       auto pointPair = baselinkToOdom(objPtr, transformer_);
       if(pointPair.first &&(objPtr->pose.pose.position.x > -10 && objPtr->pose.pose.position.x < 100)){
         auto point = pointPair.second;  
@@ -301,11 +303,11 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
         if(egoCenterls.size() > 0){
           float d = std::abs(lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point));
-          if(d < 0.6 && std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
+          if(d < 0.5 && std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
             if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), objPtr->object_id) != cutInScenarioCar.end()){
 
             }else{
-              ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id);
+              ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id<<" "<<d);
               json jData;
               jData["scenario_start"] = objPtr->header.stamp.sec-15;
               jData["scenario_end"] = objPtr->header.stamp.sec+5;
@@ -316,15 +318,46 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
               cutInScenarioCar.push_back(objPtr->object_id);
             }
           }
-          //if(objPtr->object_id == 214){
-          //  ROS_INFO_STREAM(d);
-          //}
+
+          //Cut-out scenario detection
+          //If the d >2 for the car that was on the same line as ego, then we
+          //can identify it as the cut-out scenario
+          else if(d > 2 && std::find(cutOutScenarioNoDetect.begin(), cutOutScenarioNoDetect.end(), objPtr->object_id) != cutOutScenarioNoDetect.end()){
+            if(std::find(cutOutScenarioCar.begin(), cutOutScenarioCar.end(), objPtr->object_id) != cutOutScenarioCar.end()){
+
+            }else{
+              ROS_INFO_STREAM("Cut-out Scenario detected!!! car: "<<objPtr->object_id<<" "<<d);
+              json jData;
+              jData["scenario_start"] = objPtr->header.stamp.sec-15;
+              jData["scenario_end"] = objPtr->header.stamp.sec+5;
+              jData["cutout_start"] = objPtr->header.stamp.sec-8;
+              jData["cutout_end"] = objPtr->header.stamp.sec+1;
+              jData["cutout_car"] = objPtr->object_id;
+              cutOutScenarios.push_back(jData);
+              cutOutScenarioCar.push_back(objPtr->object_id);
+            }
+          }
+
           
           if(d > 2){
             if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
               
             }else{
               cutInScenarioNoDetect.push_back(objPtr->object_id);
+            }
+          }
+          
+          // For cut-out scenario, we need to identify the car infront of the
+          // vehicle on the same lane
+          else if(d < 0.5){
+            if(std::find(cutOutScenarioNoDetect.begin(), cutOutScenarioNoDetect.end(), objPtr->object_id) != cutOutScenarioNoDetect.end()){
+              
+            }else{
+              //Only consider the object that are not in cut-in scenario
+              if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
+              }else{
+                cutOutScenarioNoDetect.push_back(objPtr->object_id);
+              }
             }
           }
         } 
@@ -420,15 +453,21 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       o2 << std::setw(4) << dataJ2 << std::endl;
 
       //Storing the scenario data
-      std::vector<json> scenario;
+      std::vector<json> cutinScenarioJdata;
       for(size_t i =0; i<cutInScenarios.size(); i++){
         auto jData = cutInScenarios[i]; 
-        //json jData;jData["start"] = std::get<0>(tuple);jData["end"] = std::get<1>(tuple);jData["car"] = std::get<2>(tuple);
-        scenario.push_back(jData);    
+        cutinScenarioJdata.push_back(jData);    
       }
-      json j3(scenario);
+      json j3(cutinScenarioJdata);
+      std::vector<json> cutoutScenarioJdata;
+      for(size_t i =0; i<cutOutScenarios.size(); i++){
+        auto jData = cutOutScenarios[i]; 
+        cutoutScenarioJdata.push_back(jData);    
+      }
+      json j4(cutoutScenarioJdata);
       json scenarioJson = {
         {"cut-in scenario", j3},
+        {"cut-out scenario", j4},
         {"file", bag_file}
       };
       std::ofstream o3(scenario_json_file);
@@ -443,7 +482,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "Extraction");
   Extraction extract;
   extract.init_playback();
-  /*ROS_INFO_STREAM("Resume: "<<extract.resume);
+  ROS_INFO_STREAM("Resume: "<<extract.resume);
   if(extract.resume){
     ROS_INFO_STREAM("Data is loading from JSON files...");
     extract.loadData();
@@ -460,7 +499,7 @@ int main(int argc, char **argv) {
   //Oublishing the msg to inform the end of this process
   std_msgs::String msg;
   msg.data = "true";
-  extract.finishPub.publish(msg);*/
+  extract.finishPub.publish(msg);
   ros::spin();
 
   return 0;
