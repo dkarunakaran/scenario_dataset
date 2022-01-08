@@ -70,7 +70,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::vector<int> cutOutScenarioNoDetect;
     std::vector<json> cutOutScenarios;
     std::vector<int> cutOutScenarioCar;
-
+    std::vector<json> laneFollowingScenarios;
+    std::vector<int> laneFollowingCar;
+    
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
       current_message_number = 0;
@@ -357,6 +359,14 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
               if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
               }else{
                 cutOutScenarioNoDetect.push_back(objPtr->object_id);
+
+                //Consider lane following scenario as well
+                json jData;
+                jData["scenario_start"] = objPtr->header.stamp.sec;
+                jData["scenario_end"] = objPtr->header.stamp.sec+10;
+                jData["laneFollowing_car"] = objPtr->object_id;
+                laneFollowingScenarios.push_back(jData);
+                laneFollowingCar.push_back(objPtr->object_id);
               }
             }
           }
@@ -465,9 +475,24 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         cutoutScenarioJdata.push_back(jData);    
       }
       json j4(cutoutScenarioJdata);
+      
+      //Process the lanefollowing scenario sucha way that lane followinf car is
+      //not in both cut-in and cut-out scenarios
+      std::vector<json> laneFollowingS;
+      for(auto& s: laneFollowingScenarios){
+        auto car = s["laneFollowing_car"];
+        if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), car) != cutInScenarioCar.end() || std::find(cutOutScenarioCar.begin(), cutOutScenarioCar.end(), car) != cutOutScenarioCar.end()){
+          continue; 
+        }else{
+          laneFollowingS.push_back(s);
+        }
+      }
+      json j5(laneFollowingS);
+
       json scenarioJson = {
         {"cut-in scenario", j3},
         {"cut-out scenario", j4},
+        {"lane-following scenario", j5},
         {"file", bag_file}
       };
       std::ofstream o3(scenario_json_file);

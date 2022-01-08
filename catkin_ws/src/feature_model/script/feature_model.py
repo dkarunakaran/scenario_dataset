@@ -25,7 +25,7 @@ class FeatureModel:
         self.group_by_sec = OrderedDict()
         self.group_ego_by_sec = OrderedDict()
         rospy.Subscriber('/finish_extraction', String, self.process)
-        #self.process("true")
+        self.process("true")
         rospy.on_shutdown(self.shutdown)  
         rospy.spin()
     
@@ -220,13 +220,15 @@ class FeatureModel:
                 print("param_cutout_time: {}".format(param_cutout_time))
                 print("param_adv_lane_no_final: {}".format(param_adv_lane_no_final))
 
-
+            startDiffProceed = True
             # Find cut-in distance:
             adv_cut_start = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['s']
             if _type == "cutin":
                 param_cutin_start_dist = adv_cut_start - ego_cutin_start
                 print("init_diff: {} and param_cutin_start_dist: {}".format(param_start_diff, param_cutin_start_dist))
-                #```start_diff = param_start_diff,
+                start_diff = abs(param_start_diff-param_cutin_start_dist)
+                if start_diff > 45:
+                    startDiffProceed = False
             else:
                 param_cutout_start_dist = adv_cut_start - ego_cutout_start
                 print("init_diff: {} and param_cutout_start_dist: {}".format(param_start_diff, param_cutout_start_dist))
@@ -241,8 +243,6 @@ class FeatureModel:
                 if param_cutout_start_dist > param_start_diff:
                     param_adv_speed_init = param_ego_speed_init+2
                 print("Adversary initial speed: {}, lane number init: {}".format(param_adv_speed_init, param_adv_lane_no_init))
-                
-
                 
             # Find average cut-in speed
             speed = 0
@@ -292,7 +292,7 @@ class FeatureModel:
             param_adv_speed_final = lane_change_car_data_by_sec[end][0]['other']['long_speed']
             print("param_adv_speed_final: {}".format(param_adv_speed_final))
            
-            if _type == "cutin":
+            if _type == "cutin" and startDiffProceed == True:
                 # some modification
                 if param_cutin_time == 0:
                     param_cutin_time = 4
@@ -332,7 +332,7 @@ class FeatureModel:
                     print("Saving cut-in data")
                 else:
                     print("Not saved cut-in data")
-            else:
+            elif _type == "cutout":
                 # some modification
                 if param_cutout_time == 0:
                     param_cutout_time = 4
@@ -370,6 +370,8 @@ class FeatureModel:
                 }
                 self.parameterCutOut.append(param)
                 print("Saving cut-out data")
+            else:
+                print("Not saved the data")
 
         else:
             print("Not saved the data")

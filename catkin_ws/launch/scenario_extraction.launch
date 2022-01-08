@@ -4,10 +4,10 @@
     <!-- just run as fast as it can -->
     <param name="limit_playback_speed" value="false" />
     <param name="percentage_start" value="0" />
-    <param name="percentage_end" value="100" />
+    <param name="percentage_end" value="10" />
     <param name="objects" value="ibeo/objects" />
     <param name="odometry" value="ibeo/odometry" />
-    <param name="resume" value="true" />
+    <param name="resume" value="false" />
     <param name="centerline_json_file" value="/model/centerline.json" />
     <param name="objects_json_file" value="/model/objects.json" />
     <param name="centerline_json_file" value="/model/centerline.json" />
