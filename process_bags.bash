@@ -13,6 +13,7 @@ folder_loc="$1/*"
 for file in $folder_loc
 do
     echo "____________________________________________________"
-    echo "playing:$file"
-    rosbag play $file
+    echo "processing:$file"
+    roslaunch /model/catkin_ws/launch/validation_dataset.launch bag_file:=$file output_image:=/model/images/new_image.png laneletsmap_file:=/model/map.osm
+
 done

@@ -1,30 +1,13 @@
 {
-    "cut-in scenario": [
+    "cut-in scenario": [],
+    "cut-out scenario": [
         {
-            "cutin_car": 177,
-            "cutin_end": 1623131296,
-            "cutin_start": 1623131287,
-            "scenario_end": 1623131300,
-            "scenario_start": 1623131280
+            "cutout_car": 165,
+            "cutout_end": 1622614726,
+            "cutout_start": 1622614717,
+            "scenario_end": 1622614730,
+            "scenario_start": 1622614710
         }
     ],
-    "cut-out scenario": [],
-    "file": "/data/ibeo/others/gate_south-end_north-end_20210608_054523.0.bag",
-    "lane-following scenario": [
-        {
-            "laneFollowing_car": 162,
-            "scenario_end": 1623131294,
-            "scenario_start": 1623131284
-        },
-        {
-            "laneFollowing_car": 160,
-            "scenario_end": 1623131309,
-            "scenario_start": 1623131299
-        },
-        {
-            "laneFollowing_car": 128,
-            "scenario_end": 1623131310,
-            "scenario_start": 1623131300
-        }
-    ]
+    "file": "/data/ibeo/validation_dataset_bags/gate_south-end_north-end_20210602_060842.0.bag"
 }

@@ -478,7 +478,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       
       //Process the lanefollowing scenario sucha way that lane followinf car is
       //not in both cut-in and cut-out scenarios
-      std::vector<json> laneFollowingS;
+      /*std::vector<json> laneFollowingS;
       for(auto& s: laneFollowingScenarios){
         auto car = s["laneFollowing_car"];
         if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), car) != cutInScenarioCar.end() || std::find(cutOutScenarioCar.begin(), cutOutScenarioCar.end(), car) != cutOutScenarioCar.end()){
@@ -487,12 +487,12 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           laneFollowingS.push_back(s);
         }
       }
-      json j5(laneFollowingS);
+      json j5(laneFollowingS);*/
 
       json scenarioJson = {
         {"cut-in scenario", j3},
         {"cut-out scenario", j4},
-        {"lane-following scenario", j5},
+        //{"lane-following scenario", j5},
         {"file", bag_file}
       };
       std::ofstream o3(scenario_json_file);
@@ -507,7 +507,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "Extraction");
   Extraction extract;
   extract.init_playback();
-  ROS_INFO_STREAM("Resume: "<<extract.resume);
+  /*ROS_INFO_STREAM("Resume: "<<extract.resume);
   if(extract.resume){
     ROS_INFO_STREAM("Data is loading from JSON files...");
     extract.loadData();
@@ -524,7 +524,7 @@ int main(int argc, char **argv) {
   //Oublishing the msg to inform the end of this process
   std_msgs::String msg;
   msg.data = "true";
-  extract.finishPub.publish(msg);
+  extract.finishPub.publish(msg);*/
   ros::spin();
 
   return 0;
