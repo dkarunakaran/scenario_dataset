@@ -1,0 +1,376 @@
+<?xml version="1.0" ?>
+<OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
+    <FileHeader description="cutOutScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-01-22T22:44:02.071792"/>
+    <ParameterDeclarations>
+        <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
+        <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="9.713889122009277"/>
+        <ParameterDeclaration name="$egoStartPos" parameterType="double" value="189.02977746251833"/>
+        <ParameterDeclaration name="$egoStartLane" parameterType="double" value="-2"/>
+        <ParameterDeclaration name="$adversaryVehicle" parameterType="string" value="adversary"/>
+        <ParameterDeclaration name="$adversaryVelocityInit" parameterType="double" value="8.933889150619507"/>
+        <ParameterDeclaration name="$adversaryPos" parameterType="double" value="212.0275225263188"/>
+        <ParameterDeclaration name="$adversaryLane" parameterType="integer" value="-2"/>
+        <ParameterDeclaration name="$adversaryCutoutSpeed" parameterType="double" value="40"/>
+        <ParameterDeclaration name="$adversaryStartDiff" parameterType="double" value="22.997745063800465"/>
+        <ParameterDeclaration name="$adversaryCutoutTriggerDist" parameterType="double" value="24.83849441796258"/>
+        <ParameterDeclaration name="$adversaryCutoutTime" parameterType="double" value="3"/>
+        <ParameterDeclaration name="$adversaryToCutoutDist" parameterType="double" value="42.07552690601733"/>
+        <ParameterDeclaration name="$adversaryToCutoutTime" parameterType="double" value="7"/>
+        <ParameterDeclaration name="$adversaryAvgCutoutSpeed" parameterType="double" value="7.034444570541382"/>
+        <ParameterDeclaration name="$egoToCutoutDist" parameterType="double" value="40.23477755185522"/>
+        <ParameterDeclaration name="$egoToCutoutTime" parameterType="double" value="7"/>
+        <ParameterDeclaration name="$egoAvgCutoutSpeed" parameterType="double" value="5.294444561004639"/>
+        <ParameterDeclaration name="$adversaryLaneFinal" parameterType="integer" value="-1"/>
+        <ParameterDeclaration name="$adversaryToCutoutEndDist" parameterType="double" value="59.248759814516376"/>
+        <ParameterDeclaration name="$adversarySpeedFinal" parameterType="double" value="9.722777843475342"/>
+        <ParameterDeclaration name="$egoToCutoutEndDist" parameterType="double" value="51.935109386120246"/>
+        <ParameterDeclaration name="$egoSpeedFinal" parameterType="double" value="6.35277795791626"/>
+        <ParameterDeclaration name="$adversaryToCutoutEndTime" parameterType="double" value="9"/>
+        <ParameterDeclaration name="$egoToCutoutEndTime" parameterType="double" value="9"/>
+        <ParameterDeclaration name="$lanechangeCarId" parameterType="double" value="20"/>
+    </ParameterDeclarations>
+    <CatalogLocations>
+        <VehicleCatalog>
+            <Directory path="../xosc/Catalogs/Vehicles"/>
+        </VehicleCatalog>
+    </CatalogLocations>
+    <RoadNetwork>
+        <LogicFile filepath="gate_south-end_north-end_20210608_054523.0.xodr"/>
+    </RoadNetwork>
+    <Entities>
+        <ScenarioObject name="$egoVehicle">
+            <Vehicle name="$egoVehicle" vehicleCategory="car">
+                <ParameterDeclarations/>
+                <BoundingBox>
+                    <Center x="1.5" y="0" z="0.9"/>
+                    <Dimensions width="2.1" length="4.5" height="1.8"/>
+                </BoundingBox>
+                <Performance maxSpeed="100" maxDeceleration="10" maxAcceleration="10"/>
+                <Axles>
+                    <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+                    <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+                </Axles>
+                <Properties>
+                    <Property name="model_id" value="0"/>
+                    <Property name="type" value="ego_vehicle"/>
+                </Properties>
+            </Vehicle>
+            <ObjectController>
+                <Controller name="carlaControler">
+                    <ParameterDeclarations/>
+                    <Properties>
+                        <Property name="module" value="external_control"/>
+                    </Properties>
+                </Controller>
+            </ObjectController>
+        </ScenarioObject>
+        <ScenarioObject name="$adversaryVehicle">
+            <Vehicle name="$adversaryVehicle" vehicleCategory="car">
+                <ParameterDeclarations/>
+                <BoundingBox>
+                    <Center x="1.4" y="0.0" z="0.9"/>
+                    <Dimensions width="2.0" length="5.0" height="1.8"/>
+                </BoundingBox>
+                <Performance maxSpeed="100" maxDeceleration="10" maxAcceleration="10"/>
+                <Axles>
+                    <FrontAxle maxSteering="0.5" wheelDiameter="0.8" trackWidth="1.68" positionX="2.98" positionZ="0.4"/>
+                    <RearAxle maxSteering="0.0" wheelDiameter="0.8" trackWidth="1.68" positionX="0.0" positionZ="0.4"/>
+                </Axles>
+                <Properties>
+                    <Property name="model_id" value="1"/>
+                </Properties>
+            </Vehicle>
+        </ScenarioObject>
+    </Entities>
+    <Storyboard>
+        <Init>
+            <Actions>
+                <Private entityRef="$egoVehicle">
+                    <PrivateAction>
+                        <LongitudinalAction>
+                            <SpeedAction>
+                                <SpeedActionDynamics dynamicsShape="step" value="1" dynamicsDimension="time"/>
+                                <SpeedActionTarget>
+                                    <AbsoluteTargetSpeed value="$egoVelocityInit"/>
+                                </SpeedActionTarget>
+                            </SpeedAction>
+                        </LongitudinalAction>
+                    </PrivateAction>
+                    <PrivateAction>
+                        <TeleportAction>
+                            <Position>
+                                <LanePosition roadId="0" laneId="$egoStartLane" s="$egoStartPos" offset="0"/>
+                            </Position>
+                        </TeleportAction>
+                    </PrivateAction>
+                </Private>
+                <Private entityRef="$adversaryVehicle">
+                    <PrivateAction>
+                        <LongitudinalAction>
+                            <SpeedAction>
+                                <SpeedActionDynamics dynamicsShape="step" value="1" dynamicsDimension="time"/>
+                                <SpeedActionTarget>
+                                    <AbsoluteTargetSpeed value="$adversaryVelocityInit"/>
+                                </SpeedActionTarget>
+                            </SpeedAction>
+                        </LongitudinalAction>
+                    </PrivateAction>
+                    <PrivateAction>
+                        <TeleportAction>
+                            <Position>
+                                <LanePosition roadId="0" laneId="$adversaryLane" s="$adversaryPos" offset="0"/>
+                            </Position>
+                        </TeleportAction>
+                    </PrivateAction>
+                </Private>
+            </Actions>
+        </Init>
+        <Story name="cutOutStory">
+            <ParameterDeclarations/>
+            <Act name="cutOutAct">
+                <ManeuverGroup name="cutOutMangroup" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$adversaryVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutOutManeuver">
+                        <Event name="cutOnevent" priority="overwrite" maximumExecutionCount="1">
+                            <Action name="cutOutLaneAction">
+                                <PrivateAction>
+                                    <LateralAction>
+                                        <LaneChangeAction>
+                                            <LaneChangeActionDynamics dynamicsShape="sinusoidal" value="$adversaryCutoutTime" dynamicsDimension="time"/>
+                                            <LaneChangeTarget>
+                                                <AbsoluteTargetLane value="$adversaryLaneFinal"/>
+                                            </LaneChangeTarget>
+                                        </LaneChangeAction>
+                                    </LateralAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutOutTrigger" delay="0" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$egoVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <RelativeDistanceCondition value="$adversaryCutoutTriggerDist" freespace="true" entityRef="$adversaryVehicle" rule="greaterThan" relativeDistanceType="longitudinal" coordinateSystem="entity"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutOutStartTrigger" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutOutActAdv">
+                <ManeuverGroup name="cutOutMangroupAdv" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$adversaryVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutOutManeuverAdv">
+                        <Event name="cutOuteventAdv" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutOutSpeedActionAdv">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="$adversaryToCutoutTime" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="$adversaryAvgCutoutSpeed"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutOutTriggerAdv" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$adversaryVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="42.07552690601733"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutOutStartTriggerAdv" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutOutActEgo">
+                <ManeuverGroup name="cutOutMangroupEho" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$egoVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutOutManeuverEgo">
+                        <Event name="cutOuteventEgo" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutOutSpeedActionEgo">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="$egoToCutoutTime" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="$egoAvgCutoutSpeed"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutOutTriggerEgo" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$egoVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="40.23477755185522"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutOutStartTriggerEgo" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutOutActAdvFinal">
+                <ManeuverGroup name="cutOutMangroupAdvFinal" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$adversaryVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutOutManeuverAdvFinal">
+                        <Event name="cutOuteventAdvFinal" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutOutSpeedActionAdvFinal">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="$adversaryToCutoutEndTime" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="$adversarySpeedFinal"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutoutTriggerAdvFinal" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$adversaryVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="$adversaryToCutoutEndDist"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutOutStartTriggerAdvFinal" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutOutActEgoFinal">
+                <ManeuverGroup name="cutOutMangroupEgoFinal" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$egoVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutOutManeuverEgoFinal">
+                        <Event name="cutOuteventEgoFinal" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutOutSpeedActionEgoFinal">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="$egoToCutoutEndTime" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="$egoSpeedFinal"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutoutTriggerEgoFinal" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$egoVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="$egoToCutoutEndDist"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutOutStartTriggerEgoFinal" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+        </Story>
+        <StopTrigger>
+            <ConditionGroup>
+                <Condition name="stop_simulation" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                        <SimulationTimeCondition value="30" rule="greaterThan"/>
+                    </ByValueCondition>
+                </Condition>
+            </ConditionGroup>
+        </StopTrigger>
+    </Storyboard>
+</OpenSCENARIO>
