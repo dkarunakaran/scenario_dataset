@@ -2,22 +2,73 @@ esmini GIT REV: f3ca140
 esmini GIT TAG: v2.18.2
 esmini GIT BRANCH: tags/v2.18.2^0
 esmini BUILD VERSION: 2.18.2.build.2034
-Run without viewer
 Disable entity controllers
-Generated seed 3969282275
-Loading gate_south-end_north-end_20210608_054523.0_cutout_1.xosc (v1.1)
-OpenDRIVE: gate_south-end_north-end_20210608_054523.0.xodr
+Generated seed 671123469
+Loading gate_south-end_north-end_20210528_064001.0_cutin_3.xosc (v1.1)
+OpenDRIVE: gate_south-end_north-end_20210528_064001.0.xodr
 Scenegraph: None
 Unexpected scenario object element: ObjectController
 0.000: Init hero LongitudinalAction standbyState -> endTransition -> completeState
 0.000: Starting teleport Action
 0.000: hero New position:
-0.000: Pos(189.08, -3.44, 0.00) Rot(0.01, 0.00, 0.00) roadId 0 laneId -2 offset 0.00 t -4.50
+0.000: Pos(443.86, 3.23, 0.00) Rot(0.05, 0.00, 0.00) roadId 0 laneId -2 offset 0.00 t -4.50
 0.000: Init hero TeleportAction standbyState -> startTransition -> runningState
 0.000: Init adversary LongitudinalAction standbyState -> endTransition -> completeState
 0.000: Starting teleport Action
 0.000: adversary New position:
-0.000: Pos(212.10, -3.10, 0.00) Rot(0.02, 0.00, 0.00) roadId 0 laneId -2 offset 0.00 t -4.50
+0.000: Pos(480.51, 8.14, 0.00) Rot(0.05, 0.00, 0.00) roadId 0 laneId -1 offset 0.00 t -1.50
 0.000: Init adversary TeleportAction standbyState -> startTransition -> runningState
 0.000: Init hero TeleportAction runningState -> endTransition -> completeState
 0.000: Init adversary TeleportAction runningState -> endTransition -> completeState
+0.000: No scenegraph 3D model loaded. Generating a simplistic one...
+0.000: Failed to load visual model car_white.osgb. Also tried the following paths:
+0.000:     .//../resources/models/./car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/../models/car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./../models/car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_white.osgb
+0.000: Creating a dummy model instead
+0.000: Failed to load visual model car_red.osgb. Also tried the following paths:
+0.000:     .//../resources/models/./car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/../models/car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./../models/car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_red.osgb
+0.000: Creating a dummy model instead
+0.100: Trigger /------------------------------------------------
+0.100: advCutInOutStartTrigger == true, 0.1000 > 0.00 edge: rising
+0.100: Trigger  ------------------------------------------------/
+0.100: advCutInOutAct standbyState -> startTransition -> runningState
+0.100: Trigger /------------------------------------------------
+0.100: egoCutInOutStartTrigger == true, 0.1000 > 0.00 edge: rising
+0.100: Trigger  ------------------------------------------------/
+0.100: egoCutInOutAct standbyState -> startTransition -> runningState
+0.110: advCutInOutTrigger timer 0.20s started
+0.110: egoCutInOutTrigger timer 0.20s started
+0.310: advCutInOutTrigger timer expired at 0.20 seconds
+0.310: Trigger /------------------------------------------------
+0.310: advCutInOutTrigger == true, traveled_dist: 0.76 >= 0.10, edge: rising
+0.310: Triggering entity 0: hero
+0.310: Trigger  ------------------------------------------------/
+0.310: egoCutInOutTrigger timer expired at 0.20 seconds
+0.310: Trigger /------------------------------------------------
+0.310: egoCutInOutTrigger == true, traveled_dist: 0.76 >= 0.10, edge: rising
+0.310: Triggering entity 0: hero
+0.310: Trigger  ------------------------------------------------/
+0.320: advEventActionTraj standbyState -> startTransition -> runningState
+0.320: advCutInOutTrajEvent standbyState -> startTransition -> runningState
+0.320: egoEventActionTraj standbyState -> startTransition -> runningState
+0.320: egoCutInOutTrajEvent standbyState -> startTransition -> runningState
+9.310: advCutInOutTrajEvent complete after 1 execution
+9.310: egoCutInOutTrajEvent complete after 1 execution
+9.320: advEventActionTraj runningState -> endTransition -> completeState
+9.320: advCutInOutTrajEvent runningState -> endTransition -> completeState
+9.320: egoEventActionTraj runningState -> endTransition -> completeState
+9.320: egoCutInOutTrajEvent runningState -> endTransition -> completeState
+30.001: Trigger /------------------------------------------------
+30.001: stop_simulation == true, 30.0010 > 30.00 edge: rising
+30.001: Trigger  ------------------------------------------------/

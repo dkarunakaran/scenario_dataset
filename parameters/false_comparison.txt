@@ -1,0 +1,53 @@
+gate_south-end_north-end_20210615_043348.0
+
+total real-world cut-in: 3
+
+total extracted cut-in: 4
+
+False-positive: 1
+
+False negative: 0
+
+total real-world cut-out: 3
+
+total extracted cut-out: 3
+
+False-positive: 0
+
+
+
+gate_south-end_north-end_20210608_054523.0
+
+
+total real-world cut-in: 3
+
+total extracted cut-in: 3
+
+False-positive: 1
+
+
+total real-world cut-out: 2
+
+total extracted cut-out: 2
+
+False-positive: 0
+
+
+gate_south-end_north-end_20210528_064001.0
+
+total real-world cut-in: 3
+
+total extracted cut-in: 3
+
+False-positive: 0
+
+
+total real-world cut-out: 1
+
+total extracted cut-out: 1
+
+False-positive: 0
+
+
+
+

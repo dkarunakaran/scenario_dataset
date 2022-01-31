@@ -52,6 +52,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::vector<int> objectClassVec;
     double frenetS;
     std::vector<std::pair<int, std::vector<json>>> frenetJson;
+    std::vector<std::pair<int, std::vector<json>>> frenetJsonOtherEgoRef;
     lanelet::LineString3d roadCenterLine;
     lanelet::LineString3d egoCenterLine;
     std::vector<json> frenetJsonEgo;
@@ -72,6 +73,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
     std::vector<int> cutOutScenarioCar;
     std::vector<json> laneFollowingScenarios;
     std::vector<int> laneFollowingCar;
+    int currentEgoLaneNo;
+    double currentEgoSpeed;
+    bool standalone_run;
     
     Extraction() : h264_bag_playback() {
       previous_percentage = -1;
@@ -85,6 +89,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       private_nh.getParam("scenario_json_file", scenario_json_file);
       private_nh.getParam("cars_frenet_json_file", cars_frenet_json_file);
       private_nh.getParam("ego_frenet_json_file", ego_frenet_json_file);
+      private_nh.getParam("standalone_run", standalone_run);
+      objectClassVec.push_back(4); //bike
       objectClassVec.push_back(5); //car
       objectClassVec.push_back(6); //truck
       objectClassVec.push_back(15); //motorbike
@@ -96,6 +102,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       sub = nh.subscribe<std_msgs::String> ("finish_map_generation", 1, &Extraction::begin, this);
       lanelet::projection::UtmProjector projector(lanelet::Origin({0, 0}));  
       map = lanelet::load(lanelet_file, projector);
+      currentEgoLaneNo = 0;
+      currentEgoSpeed = 0.;
     }
 
     void begin(const std_msgs::String::ConstPtr& message){
@@ -118,7 +126,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       egoSecVec.clear();
       ReadFromBag();
       savePlotData();
-      //Oublishing the msg to inform the end of this process
+      //Publishing the msg to inform the end of this process
       std_msgs::String msg;
       msg.data = "true";
       finishPub.publish(msg);
@@ -297,23 +305,26 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
 
     void scenarioDetection(ibeo_object_msg::IbeoObject::ConstPtr objPtr){
       auto pointPair = baselinkToOdom(objPtr, transformer_);
-      if(pointPair.first &&(objPtr->pose.pose.position.x > -10 && objPtr->pose.pose.position.x < 100)){
+      if(pointPair.first &&(objPtr->pose.pose.position.x >= 0 && objPtr->pose.pose.position.x < 50)){
         auto point = pointPair.second;  
         double posX = point.x();double posY = point.y(); 
         auto point3d = lanelet::Point3d{lanelet::utils::getId(), posX, posY, 0};
         auto egoCenter = lanelet::geometry::project(egoCenterLine, point3d);
         auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
-        if(egoCenterls.size() > 0){
+        auto laneLaneletPair = getTheLaneNo(map, point);
+        if(egoCenterls.size() > 0 && currentEgoSpeed > 0.5){
           float d = std::abs(lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point));
-          if(d < 0.5 && std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
+          //if(standalone_run && objPtr->object_id == 140)
+          //  ROS_INFO_STREAM("Car_id: "<<objPtr->object_id<<" d: "<<d<<" lane no: "<<laneLaneletPair.first);
+          if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo == laneLaneletPair.first){
             if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), objPtr->object_id) != cutInScenarioCar.end()){
 
             }else{
-              ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id<<" "<<d);
+              ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id<<" "<<d<<" lane no: "<<laneLaneletPair.first<<" ego lane no: "<<currentEgoLaneNo);
               json jData;
-              jData["scenario_start"] = objPtr->header.stamp.sec-15;
-              jData["scenario_end"] = objPtr->header.stamp.sec+5;
-              jData["cutin_start"] = objPtr->header.stamp.sec-8;
+              jData["scenario_start"] = objPtr->header.stamp.sec-8;
+              jData["scenario_end"] = objPtr->header.stamp.sec+4;
+              jData["cutin_start"] = objPtr->header.stamp.sec-5;
               jData["cutin_end"] = objPtr->header.stamp.sec+1;
               jData["cutin_car"] = objPtr->object_id;
               cutInScenarios.push_back(jData);
@@ -324,24 +335,24 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           //Cut-out scenario detection
           //If the d >2 for the car that was on the same line as ego, then we
           //can identify it as the cut-out scenario
-          else if(d > 2 && std::find(cutOutScenarioNoDetect.begin(), cutOutScenarioNoDetect.end(), objPtr->object_id) != cutOutScenarioNoDetect.end()){
+          else if(std::find(cutOutScenarioNoDetect.begin(), cutOutScenarioNoDetect.end(), objPtr->object_id) != cutOutScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo != laneLaneletPair.first){
             if(std::find(cutOutScenarioCar.begin(), cutOutScenarioCar.end(), objPtr->object_id) != cutOutScenarioCar.end()){
 
             }else{
-              ROS_INFO_STREAM("Cut-out Scenario detected!!! car: "<<objPtr->object_id<<" "<<d);
+              ROS_INFO_STREAM("Cut-out Scenario detected!!! car: "<<objPtr->object_id<<" "<<d<<" lane no: "<<laneLaneletPair.first<<" ego lane no: "<<currentEgoLaneNo);
               json jData;
-              jData["scenario_start"] = objPtr->header.stamp.sec-15;
-              jData["scenario_end"] = objPtr->header.stamp.sec+5;
-              jData["cutout_start"] = objPtr->header.stamp.sec-8;
+              jData["scenario_start"] = objPtr->header.stamp.sec-8;
+              jData["scenario_end"] = objPtr->header.stamp.sec+4;
+              jData["cutout_start"] = objPtr->header.stamp.sec-5;
               jData["cutout_end"] = objPtr->header.stamp.sec+1;
               jData["cutout_car"] = objPtr->object_id;
               cutOutScenarios.push_back(jData);
               cutOutScenarioCar.push_back(objPtr->object_id);
             }
           }
-
           
-          if(d > 2){
+          //Detect vehicle that are on the same line as ego vehicle for cut-in 
+          if(d > 1.5 && currentEgoLaneNo != laneLaneletPair.first && currentEgoLaneNo != 0 && laneLaneletPair.first != 0){
             if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
               
             }else{
@@ -351,23 +362,23 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           
           // For cut-out scenario, we need to identify the car infront of the
           // vehicle on the same lane
-          else if(d < 0.5){
+          else if(d < 0.5 && currentEgoLaneNo == laneLaneletPair.first && currentEgoLaneNo != 0 && laneLaneletPair.first != 0){
             if(std::find(cutOutScenarioNoDetect.begin(), cutOutScenarioNoDetect.end(), objPtr->object_id) != cutOutScenarioNoDetect.end()){
               
             }else{
               //Only consider the object that are not in cut-in scenario
-              if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
-              }else{
+             // if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end()){
+              //}else{
+                
                 cutOutScenarioNoDetect.push_back(objPtr->object_id);
-
                 //Consider lane following scenario as well
-                json jData;
+                /*json jData;
                 jData["scenario_start"] = objPtr->header.stamp.sec;
                 jData["scenario_end"] = objPtr->header.stamp.sec+10;
                 jData["laneFollowing_car"] = objPtr->object_id;
                 laneFollowingScenarios.push_back(jData);
-                laneFollowingCar.push_back(objPtr->object_id);
-              }
+                laneFollowingCar.push_back(objPtr->object_id);*/
+              //}
             }
           }
         } 
@@ -382,6 +393,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       auto roadCenter = lanelet::geometry::project(roadCenterLine, egoPoint3d);
       auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
       auto laneLaneletPair = getTheLaneNo(map, egoPoint, "ego");
+      currentEgoLaneNo = laneLaneletPair.first;
+      currentEgoSpeed = odomPtr->twist.twist.linear.x;
       if(laneLaneletPair.first != 0){ 
         //ROS_INFO_STREAM("Ego lane no: "<<laneLaneletPair.first);
         frenetS = getFrenetSEgo(frenetJsonEgo, roadCenterLine, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
@@ -422,13 +435,26 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         auto roadCenterls = getTheRoadLineString(roadCenterLine, lanelet::Point3d{lanelet::utils::getId(), roadCenter.x(), roadCenter.y(), 0});
         auto laneLaneletPair = getTheLaneNo(map, point);
         if(laneLaneletPair.first != 0){ 
-          //ROS_INFO_STREAM("Other lane no: "<<laneLaneletPair.first);
+          
+          //For constructing road ceneter as reference line in Frenet frame
           auto frenetSO = getFrenetS(frenetJson, car, roadCenterLine, point3d, lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()));
           float d = lanelet::geometry::signedDistance(lanelet::utils::to2D(roadCenterls), point); 
           if(egoDataCount > 10 && positiveDir > negativeDir && d < 0)
             d *= -1;
+          
+          //For constructing ego path as reference line in Frenet frame
+          auto egoCenter = lanelet::geometry::project(egoCenterLine, point3d);
+          /*auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
+          auto frenetSOEgo = getFrenetSEgoRef(frenetJsonOtherEgoRef, car, egoCenterLine, point3d, lanelet::BasicPoint2d(egoCenter.x(), egoCenter.y()));
+          float d_ego_ref = lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point); 
+          if(egoDataCount > 10 && positiveDir > negativeDir && d_ego_ref < 0)
+            d_ego_ref *= -1;*/
+
+
           jData["s"] = frenetSO;
           jData["d"] = d;
+          //jData["s_ego_ref"] = frenetSOEgo;
+          //jData["d_ego_ref"] = d_ego_ref;
           jData["sec"] = objPtr->header.stamp.sec;
           odomJdata["x"] = posX;
           odomJdata["y"] = posY;
@@ -436,7 +462,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           otherJdata["long_speed"] = objPtr->twist.twist.linear.x;
           otherJdata["lane_no"] = laneLaneletPair.first;
           //ROS_INFO_STREAM("car: "<<car<<" Lane: "<<laneLaneletPair.first);
-          frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO, otherJdata);
+          frenetJsonVec(frenetJson,std::make_tuple(car, jData,odomJdata),lanelet::BasicPoint2d(roadCenter.x(), roadCenter.y()), frenetSO, otherJdata, lanelet::BasicPoint2d(egoCenter.x(), egoCenter.y()));
         } 
       }
     }
@@ -504,27 +530,30 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
 
 int main(int argc, char **argv) {
 
+  
   ros::init(argc, argv, "Extraction");
   Extraction extract;
   extract.init_playback();
-  /*ROS_INFO_STREAM("Resume: "<<extract.resume);
-  if(extract.resume){
-    ROS_INFO_STREAM("Data is loading from JSON files...");
-    extract.loadData();
-  }else{
-    ROS_INFO_STREAM("Data is loading from Bag file...");
-    extract.storeDataInitially = true;  
+  if(extract.standalone_run){
+    ROS_INFO_STREAM("Resume: "<<extract.resume);
+    if(extract.resume){
+      ROS_INFO_STREAM("Data is loading from JSON files...");
+      extract.loadData();
+    }else{
+      ROS_INFO_STREAM("Data is loading from Bag file...");
+      extract.storeDataInitially = true;  
+      extract.ReadFromBag();
+      extract.storeData();
+    }
+    extract.storeDataInitially = false;
+    extract.egoSecVec.clear();
     extract.ReadFromBag();
-    extract.storeData();
+    extract.savePlotData();
+    //Oublishing the msg to inform the end of this process
+    std_msgs::String msg;
+    msg.data = "true";
+    extract.finishPub.publish(msg);
   }
-  extract.storeDataInitially = false;
-  extract.egoSecVec.clear();
-  extract.ReadFromBag();
-  extract.savePlotData();
-  //Oublishing the msg to inform the end of this process
-  std_msgs::String msg;
-  msg.data = "true";
-  extract.finishPub.publish(msg);*/
   ros::spin();
 
   return 0;

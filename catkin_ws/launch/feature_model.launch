@@ -3,7 +3,7 @@
     <param name="scenario_json_file" value="/model/scenario.json" />
     <param name="cars_frenet_json_file" value="/model/cars_frenet.json" />
     <param name="ego_frenet_json_file" value="/model/ego_frenet.json" />
-    <param name="parameter_json_dir" value="/model/parameters/" />
+    <param name="parameter_json_dir" value="/model/parameters/scenario_data/" />
   </node>
 </launch>
 

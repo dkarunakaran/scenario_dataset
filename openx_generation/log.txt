@@ -1,0 +1,41 @@
+esmini GIT REV: f3ca140
+esmini GIT TAG: v2.18.2
+esmini GIT BRANCH: tags/v2.18.2^0
+esmini BUILD VERSION: 2.18.2.build.2034
+Disable entity controllers
+Generated seed 2575739819
+Loading gate_south-end_north-end_20210608_054523.0_cutout_1.xosc (v1.1)
+OpenDRIVE: gate_south-end_north-end_20210608_054523.0.xodr
+Scenegraph: None
+Unexpected scenario object element: ObjectController
+0.000: Init hero LongitudinalAction standbyState -> endTransition -> completeState
+0.000: Starting teleport Action
+0.000: hero New position:
+0.000: Pos(189.08, -3.44, 0.00) Rot(0.01, 0.00, 0.00) roadId 0 laneId -2 offset 0.00 t -4.50
+0.000: Init hero TeleportAction standbyState -> startTransition -> runningState
+0.000: Init adversary LongitudinalAction standbyState -> endTransition -> completeState
+0.000: Starting teleport Action
+0.000: adversary New position:
+0.000: Pos(212.10, -3.10, 0.00) Rot(0.02, 0.00, 0.00) roadId 0 laneId -2 offset 0.00 t -4.50
+0.000: Init adversary TeleportAction standbyState -> startTransition -> runningState
+0.000: Init hero TeleportAction runningState -> endTransition -> completeState
+0.000: Init adversary TeleportAction runningState -> endTransition -> completeState
+0.000: No scenegraph 3D model loaded. Generating a simplistic one...
+0.000: Failed to load visual model car_white.osgb. Also tried the following paths:
+0.000:     .//../resources/models/./car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/../models/car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./../models/car_white.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_white.osgb
+0.000: Creating a dummy model instead
+0.000: Failed to load visual model car_red.osgb. Also tried the following paths:
+0.000:     .//../resources/models/./car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/../models/car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./../models/car_red.osgb
+0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_red.osgb
+0.000: Creating a dummy model instead
