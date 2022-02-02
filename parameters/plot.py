@@ -87,6 +87,7 @@ with open(_file) as f:
 
 print("total number of scenarios: {}".format(len(data['data'])))
 
+'''
 no = 7
 key = 'speed'
 adversary_esmini1 = data['data'][no]['adversary_esmini'] 
@@ -104,8 +105,8 @@ ego_esmini2 = data['data'][no]['ego_esmini']
 ego_real2 = data['data'][no]['ego_real'] 
 esmini2 = data['data'][no]['esmini'] 
 real2 = data['data'][no]['real'] 
-
-no = 2
+'''
+no = 5
 key = 'speed'
 adversary_esmini3 = data['data'][no]['adversary_esmini']
 adversary_real3 = data['data'][no]['adversary_real']
@@ -120,10 +121,10 @@ plt.figure()
 plt.xlabel("second")
 plt.ylabel(key)
 plt.ylim([2.5, 17.5])
-plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')
-plt.plot(adversary_real1['sec'], adversary_real1[key])
-plt.plot(adversary_esmini2['sec'], adversary_esmini2[key], '--')
-plt.plot(adversary_real2['sec'], adversary_real2[key])
+#plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')
+#plt.plot(adversary_real1['sec'], adversary_real1[key])
+#plt.plot(adversary_esmini2['sec'], adversary_esmini2[key], '--')
+#plt.plot(adversary_real2['sec'], adversary_real2[key])
 plt.plot(adversary_esmini3['sec'], adversary_esmini3[key], '--')
 plt.plot(adversary_real3['sec'], adversary_real3[key])
 plt.legend(['OpenSCENARIO trajectory', 'Real-world trajectory'])
@@ -131,6 +132,7 @@ plt.legend(['OpenSCENARIO trajectory', 'Real-world trajectory'])
 plt.savefig(name)
 plt.close()
 
+'''
 name = path_to_save_dir+"test_ego"
 plt.figure()
 plt.xlabel("second")
@@ -141,7 +143,7 @@ plt.plot(ego_real1['sec'], ego_real1[key], label='real')
 plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()
-
+'''
 
 name = path_to_save_dir+"test_rss"
 key = 'rss'
@@ -149,10 +151,10 @@ plt.figure()
 plt.xlabel("second")
 plt.ylabel(key)
 plt.ylim([10, 40])
-plt.plot(esmini1['sec'], esmini1[key], '--')
-plt.plot(real1['sec'], real1[key])
-plt.plot(esmini2['sec'], esmini2[key], '--')
-plt.plot(real2['sec'], real2[key])
+#plt.plot(esmini1['sec'], esmini1[key], '--')
+#plt.plot(real1['sec'], real1[key])
+#plt.plot(esmini2['sec'], esmini2[key], '--')
+#plt.plot(real2['sec'], real2[key])
 plt.plot(esmini3['sec'], esmini3[key], '--')
 plt.plot(real3['sec'], real3[key])
 plt.legend(['RSS computed in OpenSCENARIO', 'RSS computed in real data'])

@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
-    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-01-30T01:31:34.555268"/>
+    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-02-02T22:51:54.938168"/>
     <ParameterDeclarations>
         <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
         <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="3.202777862548828"/>
@@ -10,6 +10,10 @@
         <ParameterDeclaration name="$adversaryVelocityInit" parameterType="double" value="5.002777814865112"/>
         <ParameterDeclaration name="$adversaryPos" parameterType="integer" value="326.0362201923819"/>
         <ParameterDeclaration name="$adversaryLane" parameterType="double" value="-1"/>
+        <ParameterDeclaration name="$adversaryCutinSpeed" parameterType="double" value="40"/>
+        <ParameterDeclaration name="$adversaryStartDiff" parameterType="double" value="24.71796174634744"/>
+        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="35.75423856523173"/>
+        <ParameterDeclaration name="$adversaryCutinTime" parameterType="double" value="3"/>
         <ParameterDeclaration name="$lanechangeCarId" parameterType="double" value="29"/>
     </ParameterDeclarations>
     <CatalogLocations>
@@ -110,98 +114,34 @@
         </Init>
         <Story name="cutInStory">
             <ParameterDeclarations/>
-            <Act name="advCutInOutAct">
-                <ManeuverGroup name="advCutInOutMangroup" maximumExecutionCount="1">
+            <Act name="cutInAct">
+                <ManeuverGroup name="cutInMangroup" maximumExecutionCount="1">
                     <Actors selectTriggeringEntities="false">
                         <EntityRef entityRef="$adversaryVehicle"/>
                     </Actors>
-                    <Maneuver name="advCutInOutManeuver">
-                        <Event name="advCutInOutTrajEvent" priority="overwrite" maximumExecutionCount="1">
-                            <Action name="advEventActionTraj">
+                    <Maneuver name="cutInManeuver">
+                        <Event name="cutInevent" priority="overwrite" maximumExecutionCount="1">
+                            <Action name="cutInLaneAction">
                                 <PrivateAction>
-                                    <RoutingAction>
-                                        <FollowTrajectoryAction>
-                                            <TrajectoryRef>
-                                                <Trajectory name="advCutInOutTraj" closed="false">
-                                                    <ParameterDeclarations/>
-                                                    <Shape>
-                                                        <Polyline>
-                                                            <Vertex time="1">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="330.8542875839327" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="2">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="336.97427081908324" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="3">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="343.69571797651923" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="4">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="350.8377251085979" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="5">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="358.98239157846166" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="6">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="365.7967101700015" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="7">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="372.10660518890774" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="8">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-1" s="378.8043671772048" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="9">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="385.8007615076221" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="10">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="392.43997648406776" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="11">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="398.91992504947547" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                        </Polyline>
-                                                    </Shape>
-                                                </Trajectory>
-                                            </TrajectoryRef>
-                                            <TimeReference>
-                                                <Timing domainAbsoluteRelative="relative" scale="1" offset="0"/>
-                                            </TimeReference>
-                                            <TrajectoryFollowingMode followingMode="position"/>
-                                        </FollowTrajectoryAction>
-                                    </RoutingAction>
+                                    <LateralAction>
+                                        <LaneChangeAction>
+                                            <LaneChangeActionDynamics dynamicsShape="sinusoidal" value="$adversaryCutinTime" dynamicsDimension="time"/>
+                                            <LaneChangeTarget>
+                                                <AbsoluteTargetLane value="$egoStartLane"/>
+                                            </LaneChangeTarget>
+                                        </LaneChangeAction>
+                                    </LateralAction>
                                 </PrivateAction>
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="advCutInOutTrigger" delay="0.2" conditionEdge="rising">
+                                    <Condition name="cutinTrigger" delay="0" conditionEdge="rising">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="0.1"/>
+                                                <RelativeDistanceCondition value="$adversaryCutinTriggerDist" freespace="true" entityRef="$adversaryVehicle" rule="greaterThan" relativeDistanceType="longitudinal" coordinateSystem="entity"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -212,7 +152,7 @@
                 </ManeuverGroup>
                 <StartTrigger>
                     <ConditionGroup>
-                        <Condition name="advCutInOutStartTrigger" delay="0" conditionEdge="rising">
+                        <Condition name="cutinStartTrigger" delay="0" conditionEdge="rising">
                             <ByValueCondition>
                                 <SimulationTimeCondition value="0" rule="greaterThan"/>
                             </ByValueCondition>
@@ -221,98 +161,34 @@
                 </StartTrigger>
                 <StopTrigger/>
             </Act>
-            <Act name="egoCutInOutAct">
-                <ManeuverGroup name="egoCutInOutMangroup" maximumExecutionCount="1">
+            <Act name="cutInActAdv1">
+                <ManeuverGroup name="cutInMangroupAdv1" maximumExecutionCount="1">
                     <Actors selectTriggeringEntities="false">
-                        <EntityRef entityRef="$egoVehicle"/>
+                        <EntityRef entityRef="$adversaryVehicle"/>
                     </Actors>
-                    <Maneuver name="egoCutInOutManeuver">
-                        <Event name="egoCutInOutTrajEvent" priority="overwrite" maximumExecutionCount="1">
-                            <Action name="egoEventActionTraj">
+                    <Maneuver name="cutInManeuverAdv1">
+                        <Event name="cutIneventAdv1" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutInSpeedActionAdv1">
                                 <PrivateAction>
-                                    <RoutingAction>
-                                        <FollowTrajectoryAction>
-                                            <TrajectoryRef>
-                                                <Trajectory name="egoCutInOutTraj" closed="false">
-                                                    <ParameterDeclarations/>
-                                                    <Shape>
-                                                        <Polyline>
-                                                            <Vertex time="1">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="304.1749698536873" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="2">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="307.7611154914476" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="3">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="312.101698990027" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="4">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="317.0080162799997" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="5">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="322.93819348816083" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="6">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="329.34312417645566" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="7">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="336.352366623676" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="8">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="343.622896307122" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="9">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="350.73711053520424" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="10">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="357.8507195551414" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                            <Vertex time="11">
-                                                                <Position>
-                                                                    <LanePosition roadId="0" laneId="-2" s="364.62012007990603" offset="0"/>
-                                                                </Position>
-                                                            </Vertex>
-                                                        </Polyline>
-                                                    </Shape>
-                                                </Trajectory>
-                                            </TrajectoryRef>
-                                            <TimeReference>
-                                                <Timing domainAbsoluteRelative="relative" scale="1" offset="0"/>
-                                            </TimeReference>
-                                            <TrajectoryFollowingMode followingMode="position"/>
-                                        </FollowTrajectoryAction>
-                                    </RoutingAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="7" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="6.261666834354401"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
                                 </PrivateAction>
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="egoCutInOutTrigger" delay="0.2" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv1" delay="0.2" conditionEdge="rising">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
-                                                <EntityRef entityRef="$egoVehicle"/>
+                                                <EntityRef entityRef="$adversaryVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="0.1"/>
+                                                <TraveledDistanceCondition value="46.07038499652583"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -323,7 +199,242 @@
                 </ManeuverGroup>
                 <StartTrigger>
                     <ConditionGroup>
-                        <Condition name="egoCutInOutStartTrigger" delay="0" conditionEdge="rising">
+                        <Condition name="cutinStartTriggerAdv1" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutInActAdv2">
+                <ManeuverGroup name="cutInMangroupAdv2" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$adversaryVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutInManeuverAdv2">
+                        <Event name="cutIneventAdv2" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutInSpeedActionAdv2">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="2" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="6.882777579128742"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutinTriggerAdv2" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$adversaryVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="59.764541315240194"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutinStartTriggerAdv2" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutInActAdv3">
+                <ManeuverGroup name="cutInMangroupAdv3" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$adversaryVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutInManeuverAdv3">
+                        <Event name="cutIneventAdv3" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutInSpeedActionAdv3">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="2" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="6.882777579128742"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutinTriggerAdv3" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$adversaryVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="102.88370485709356"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutinStartTriggerAdv3" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutInActEgo1">
+                <ManeuverGroup name="cutInMangroupEgo1" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$egoVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutInManeuverEgo1">
+                        <Event name="cutIneventEgo1" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutInSpeedActionEgo1">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="7" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="7.241666793823242"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutinTriggerEgo1" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$egoVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="35.03410817764154"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutinStartTriggerEgo1" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutInActEgo2">
+                <ManeuverGroup name="cutInMangroupEgo2" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$egoVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutInManeuverEgo2">
+                        <Event name="cutIneventEgo2" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutInSpeedActionEgo2">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="2" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="7.002777576446533"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutinTriggerEgo2" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$egoVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="49.418852089169775"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutinStartTriggerEgo2" delay="0" conditionEdge="rising">
+                            <ByValueCondition>
+                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                            </ByValueCondition>
+                        </Condition>
+                    </ConditionGroup>
+                </StartTrigger>
+                <StopTrigger/>
+            </Act>
+            <Act name="cutInActEgo3">
+                <ManeuverGroup name="cutInMangroupEgo3" maximumExecutionCount="1">
+                    <Actors selectTriggeringEntities="false">
+                        <EntityRef entityRef="$egoVehicle"/>
+                    </Actors>
+                    <Maneuver name="cutInManeuverEgo3">
+                        <Event name="cutIneventEgo3" priority="parallel" maximumExecutionCount="1">
+                            <Action name="cutInSpeedActionEgo3">
+                                <PrivateAction>
+                                    <LongitudinalAction>
+                                        <SpeedAction>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="3" dynamicsDimension="time"/>
+                                            <SpeedActionTarget>
+                                                <AbsoluteTargetSpeed value="7.002777576446533"/>
+                                            </SpeedActionTarget>
+                                        </SpeedAction>
+                                    </LongitudinalAction>
+                                </PrivateAction>
+                            </Action>
+                            <StartTrigger>
+                                <ConditionGroup>
+                                    <Condition name="cutinTriggerEgo3" delay="0.2" conditionEdge="rising">
+                                        <ByEntityCondition>
+                                            <TriggeringEntities triggeringEntitiesRule="any">
+                                                <EntityRef entityRef="$egoVehicle"/>
+                                            </TriggeringEntities>
+                                            <EntityCondition>
+                                                <TraveledDistanceCondition value="69.9659463312567"/>
+                                            </EntityCondition>
+                                        </ByEntityCondition>
+                                    </Condition>
+                                </ConditionGroup>
+                            </StartTrigger>
+                        </Event>
+                    </Maneuver>
+                </ManeuverGroup>
+                <StartTrigger>
+                    <ConditionGroup>
+                        <Condition name="cutinStartTriggerEgo3" delay="0" conditionEdge="rising">
                             <ByValueCondition>
                                 <SimulationTimeCondition value="0" rule="greaterThan"/>
                             </ByValueCondition>

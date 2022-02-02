@@ -10,8 +10,8 @@ class Generate:
     def __init__(self):
         self.save_loc = '/home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/'
         self.open_loc = '/home/beastan/Documents/phd/scenario_extraction/parameters/scenario_data/'
-
-        self.shape = xosc.DynamicsShapes.linear
+        #self.shape = xosc.DynamicsShapes.linear
+        self.shape = xosc.DynamicsShapes.sinusoidal
     
     def generate_openscenario_trajectory(self, _file, filename):
         with open(_file) as f:
@@ -191,8 +191,8 @@ class Generate:
         _type = data['type']
         if _type == 'cutin':
             self.cutinScenario(_file, filename, data)
-        if _type == 'cutout':
-            self.cutOutScenario(_file, filename, data)
+        #if _type == 'cutout':
+        #    self.cutOutScenario(_file, filename, data)
         
     def cutOutScenario(self, _file, filename, data):
         # GLOBAL PARAMETERS
@@ -479,24 +479,44 @@ class Generate:
             adversary_start_diff = param['param_start_diff'] # param 5  - difference in s coordinate of road frame
             adversary_lane = param['param_adv_lane_no_init'] # param 6 - lane number
             adversary_cutin_speed = 40 # param 7 
-            adversary_cutin_trigger_dist = param['param_cutin_start_dist'] # param 8 - distance in s from target to ego
+            adversary_cutin_trigger_dist = param['param_cut_triggering_dist'] # param 8 - distance in s from target to ego
             adversary_vehicle_model = 0  # param 9 - car=0, van=1, motorbike=2
 
-            adversary_cutin_time = param['param_cutin_time'] # Param 10 time taken to complete the lane change
+            adversary_cutin_time = param['param_cut_time'] # Param 10 time taken to complete the lane change
+            trigger_cond = param['param_trigger_cond']
+            lanechange_car_id = param['param_lane_change_carid']
+            '''
             adversary_to_cutin_time = param['param_adv_to_cutin_time']
             adversary_to_cutin_dist = param['param_adv_to_cutin_dist']
             adversary_avg_cutin_speed = param['param_adv_cutin_speed']
             ego_to_cutin_dist = param['param_ego_to_cutin_dist']
             ego_to_cutin_time = param['param_ego_to_cutin_time']
             ego_avg_cutin_speed = param['param_ego_cutin_speed']
-            trigger_cond = param['param_trigger_cond']
             adversary_to_cutin_end_dist = param['param_adv_to_cutin_end_dist']
             adversary_speed_final = param['param_adv_speed_final']
             adversary_to_cutin_end_time = param['param_adv_to_cutin_end_time']
             ego_to_cutin_end_dist = param['param_ego_to_cutin_end_dist']
             ego_speed_final = param['param_ego_speed_final']
             ego_to_cutin_end_time = param['param_ego_to_cutin_end_time']
-            lanechange_car_id = param['param_lane_change_carid']
+            '''
+            param_ego_to_cut_start_dist = param['param_ego_to_cut_start_dist']
+            param_ego_to_cut_start_time = param['param_ego_to_cut_start_time']
+            param_ego_cut_start_speed = param['param_ego_cut_start_speed']
+            param_ego_to_cutend_dist = param['param_ego_to_cutend_dist']
+            param_ego_cut_start_to_end_time = param['param_ego_cut_start_to_end_time']
+            param_ego_cutend_speed = param['param_ego_cutend_speed']
+            param_ego_to_scenario_end_dist = param['param_ego_to_scenario_end_dist']
+            param_ego_cutend_to_scenario_end_time = param['param_ego_cutend_to_scenario_end_time']
+            param_ego_speed_final = param['param_ego_speed_final']
+            param_adv_to_cut_start_dist = param['param_adv_to_cut_start_dist']
+            param_adv_to_cut_start_time = param['param_adv_to_cut_start_time']
+            param_adv_cut_start_speed = param['param_adv_cut_start_speed']
+            param_adv_to_cutend_dist = param['param_adv_to_cutend_dist']
+            param_adv_cut_start_to_end_time = param['param_adv_cut_start_to_end_time']
+            param_adv_cutend_speed = param['param_adv_cutend_speed']
+            param_adv_to_scenario_end_dist = param['param_adv_to_scenario_end_dist']
+            param_adv_cutend_to_scenario_end_time = param['param_adv_cutend_to_scenario_end_time']
+            param_adv_speed_final = param['param_adv_speed_final']
 
             # Some modification
             if ego_start_pos < 1.0:
@@ -517,18 +537,6 @@ class Generate:
             paramdec.add_parameter(xosc.Parameter('$adversaryStartDiff',xosc.ParameterType.double,adversary_start_diff))
             paramdec.add_parameter(xosc.Parameter('$adversaryCutinTriggerDist',xosc.ParameterType.double,adversary_cutin_trigger_dist))
             paramdec.add_parameter(xosc.Parameter('$adversaryCutinTime',xosc.ParameterType.double,adversary_cutin_time))
-            paramdec.add_parameter(xosc.Parameter('$adversaryToCutinDist',xosc.ParameterType.double,adversary_to_cutin_dist))
-            paramdec.add_parameter(xosc.Parameter('$adversaryToCutinTime',xosc.ParameterType.double,adversary_to_cutin_time))
-            paramdec.add_parameter(xosc.Parameter('$adversaryAvgCutinSpeed',xosc.ParameterType.double,adversary_avg_cutin_speed))
-            paramdec.add_parameter(xosc.Parameter('$egoToCutinDist',xosc.ParameterType.double,ego_to_cutin_dist))
-            paramdec.add_parameter(xosc.Parameter('$egoToCutinTime',xosc.ParameterType.double, ego_to_cutin_time))
-            paramdec.add_parameter(xosc.Parameter('$egoAvgCutinSpeed',xosc.ParameterType.double, ego_avg_cutin_speed))
-            paramdec.add_parameter(xosc.Parameter('$adversaryToCutinEndDist',xosc.ParameterType.double,adversary_to_cutin_end_dist))
-            paramdec.add_parameter(xosc.Parameter('$adversarySpeedFinal',xosc.ParameterType.double, adversary_speed_final))
-            paramdec.add_parameter(xosc.Parameter('$egoToCutinEndDist',xosc.ParameterType.double,ego_to_cutin_end_dist))
-            paramdec.add_parameter(xosc.Parameter('$egoSpeedFinal',xosc.ParameterType.double, ego_speed_final))
-            paramdec.add_parameter(xosc.Parameter('$adversaryToCutinEndTime',xosc.ParameterType.double,adversary_to_cutin_end_time))
-            paramdec.add_parameter(xosc.Parameter('$egoToCutinEndTime',xosc.ParameterType.double, ego_to_cutin_end_time))
             paramdec.add_parameter(xosc.Parameter('$lanechangeCarId',xosc.ParameterType.double, lanechange_car_id))
 
             
@@ -602,115 +610,129 @@ class Generate:
             starttrigger = xosc.ValueTrigger('cutinStartTrigger',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
             act = xosc.Act('cutInAct',starttrigger)
             act.add_maneuver_group(mangr)
-           
-            # create event and act 2 - adversary vehicle
-            #adv_start_to_cutin_dist = (adversary_to_cutin_dist*param_adv_percentage_dist_to_cutin_dist)/100
-            trig_cond1 = xosc.TraveledDistanceCondition('$adversaryToCutinDist')
-            trigger = xosc.EntityTrigger('cutinTriggerAdv',0.2,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
-            event = xosc.Event('cutIneventAdv',xosc.Priority.parallel)
+             
+            # create event and act - ego vehicle 1
+            trig_cond1 = xosc.TraveledDistanceCondition(param_ego_to_cut_start_dist)
+            trigger = xosc.EntityTrigger('cutinTriggerEgo1',0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
+            event = xosc.Event('cutIneventEgo1',xosc.Priority.parallel)
             event.add_trigger(trigger)
-            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time, '$adversaryToCutinTime')
-            action = xosc.AbsoluteSpeedAction('$adversaryAvgCutinSpeed',lin_time)
-            event.add_action('cutInSpeedActionAdv',action)
-           
-            man = xosc.Maneuver('cutInManeuverAdv')
+            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,param_ego_to_cut_start_time)
+            action = xosc.AbsoluteSpeedAction(param_ego_cut_start_speed,lin_time)
+            event.add_action('cutInSpeedActionEgo1',action)
+            man = xosc.Maneuver('cutInManeuverEgo1')
             man.add_event(event)
-            mangr = xosc.ManeuverGroup('cutInMangroupAdv')
-            mangr.add_actor('$adversaryVehicle')
-            mangr.add_maneuver(man)
-            starttrigger = xosc.ValueTrigger('cutinStartTriggerAdv',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-            actAdv = xosc.Act('cutInActAdv',starttrigger)
-            actAdv.add_maneuver_group(mangr)
-
-            # create event and act 3 - ego vehicle
-            '''if ego_to_cutin_dist > 20:
-                ego_start_to_cutin_dist = 20
-            else:
-                ego_start_to_cutin_dist = (ego_to_cutin_dist*param_ego_percentage_dist_to_cutin_dist)/100
-            '''
-
-            trig_cond1 = xosc.TraveledDistanceCondition('$egoToCutinDist')
-            trigger = xosc.EntityTrigger('cutinTriggerEgo',0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
-            event = xosc.Event('cutIneventEgo',xosc.Priority.parallel)
-            event.add_trigger(trigger)
-            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,'$egoToCutinTime')
-            action = xosc.AbsoluteSpeedAction('$egoAvgCutinSpeed',lin_time)
-            event.add_action('cutInSpeedActionEgo',action)
-            man = xosc.Maneuver('cutInManeuverEgo')
-            man.add_event(event)
-            mangr = xosc.ManeuverGroup('cutInMangroupEho')
+            mangr = xosc.ManeuverGroup('cutInMangroupEgo1')
             mangr.add_actor('$egoVehicle')
             mangr.add_maneuver(man)
-            starttrigger = xosc.ValueTrigger('cutinStartTriggerEgo',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-            actEgo = xosc.Act('cutInActEgo',starttrigger)
-            actEgo.add_maneuver_group(mangr)
-
-            # create event and act 4 - adversary vehicle final speed
-            trig_cond1 = xosc.TraveledDistanceCondition('$adversaryToCutinEndDist')
-            trigger = xosc.EntityTrigger('cutinTriggerAdvFinal',0.2,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
-            event = xosc.Event('cutIneventAdvFinal',xosc.Priority.parallel)
-            event.add_trigger(trigger)
-            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,'$adversaryToCutinEndTime')
-            action = xosc.AbsoluteSpeedAction('$adversarySpeedFinal',lin_time)
-            event.add_action('cutInSpeedActionAdvFinal',action)
-           
-            man = xosc.Maneuver('cutInManeuverAdvFinal')
-            man.add_event(event)
-            mangr = xosc.ManeuverGroup('cutInMangroupAdvFinal')
-            mangr.add_actor('$adversaryVehicle')
-            mangr.add_maneuver(man)
-            starttrigger = xosc.ValueTrigger('cutinStartTriggerAdvFinal',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-            actAdvFinal = xosc.Act('cutInActAdvFinal',starttrigger)
-            actAdvFinal.add_maneuver_group(mangr)
-
-            # create event and act 5 - ego vehicle final speed
-            trig_cond1 = xosc.TraveledDistanceCondition('$egoToCutinEndDist')
-            trigger = xosc.EntityTrigger('cutinTriggerEgoFinal',0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
-            event = xosc.Event('cutIneventEgoFinal',xosc.Priority.parallel)
-            event.add_trigger(trigger)
-            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,'$egoToCutinEndTime')
-            action = xosc.AbsoluteSpeedAction('$egoSpeedFinal',lin_time)
-            event.add_action('cutInSpeedActionEgoFinal',action)
-            man = xosc.Maneuver('cutInManeuverEgoFinal')
-            man.add_event(event)
-            mangr = xosc.ManeuverGroup('cutInMangroupEgoFinal')
-            mangr.add_actor('$egoVehicle')
-            mangr.add_maneuver(man)
-            starttrigger = xosc.ValueTrigger('cutinStartTriggerEgoFinal',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-            actEgoFinal = xosc.Act('cutInActEgoFinal',starttrigger)
-            actEgoFinal.add_maneuver_group(mangr)
-
+            starttrigger = xosc.ValueTrigger('cutinStartTriggerEgo1',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
+            actEgo1 = xosc.Act('cutInActEgo1',starttrigger)
+            actEgo1.add_maneuver_group(mangr)
             
-            '''
-            # Create event and act 4
-            trig_cond1 = xosc.TimeToCollisionCondition(1,xosc.Rule.lessThan,entity='$adversaryVehicle')
-            trigger = xosc.EntityTrigger('TTCTriggerEgo',0,xosc.ConditionEdge.none,trig_cond1,'$egoVehicle')
-            event = xosc.Event('TTCeventEgo',xosc.Priority.parallel)
+            # create event and act - ego vehicle 2
+            trig_cond1 = xosc.TraveledDistanceCondition(param_ego_to_cutend_dist)
+            trigger = xosc.EntityTrigger('cutinTriggerEgo2',0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
+            event = xosc.Event('cutIneventEgo2',xosc.Priority.parallel)
             event.add_trigger(trigger)
-            lin_time = xosc.TransitionDynamics(xosc.DynamicsShapes.linear,xosc.DynamicsDimension.time, 1)
-            action = xosc.AbsoluteSpeedAction('$adversaryAvgCutinSpeed',lin_time)
-            event.add_action('TTCSpeedActionEgo',action)
-            man = xosc.Maneuver('TTCManeuverEgo')
+            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,param_ego_cut_start_to_end_time)
+            action = xosc.AbsoluteSpeedAction(param_ego_cutend_speed,lin_time)
+            event.add_action('cutInSpeedActionEgo2',action)
+            man = xosc.Maneuver('cutInManeuverEgo2')
             man.add_event(event)
-            mangr = xosc.ManeuverGroup('TTCMangroupEho')
+            mangr = xosc.ManeuverGroup('cutInMangroupEgo2')
             mangr.add_actor('$egoVehicle')
             mangr.add_maneuver(man)
-            starttrigger = xosc.ValueTrigger('TTCStartTriggerEgo',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
-            actTTC = xosc.Act('TTCActEgo',starttrigger)
-            actTTC.add_maneuver_group(mangr)
-            '''
+            starttrigger = xosc.ValueTrigger('cutinStartTriggerEgo2',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
+            actEgo2 = xosc.Act('cutInActEgo2',starttrigger)
+            actEgo2.add_maneuver_group(mangr)
 
-            ## create the story
+            # create event and act - ego vehicle 3
+            trig_cond1 = xosc.TraveledDistanceCondition(param_ego_to_scenario_end_dist)
+            trigger = xosc.EntityTrigger('cutinTriggerEgo3',0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
+            event = xosc.Event('cutIneventEgo3',xosc.Priority.parallel)
+            event.add_trigger(trigger)
+            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,param_ego_cutend_to_scenario_end_time)
+            action = xosc.AbsoluteSpeedAction(param_ego_speed_final,lin_time)
+            event.add_action('cutInSpeedActionEgo3',action)
+            man = xosc.Maneuver('cutInManeuverEgo3')
+            man.add_event(event)
+            mangr = xosc.ManeuverGroup('cutInMangroupEgo3')
+            mangr.add_actor('$egoVehicle')
+            mangr.add_maneuver(man)
+            starttrigger = xosc.ValueTrigger('cutinStartTriggerEgo3',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
+            actEgo3 = xosc.Act('cutInActEgo3',starttrigger)
+            actEgo3.add_maneuver_group(mangr)
+
+
+            # create event and act - adversary vehicle 1
+            #adv_start_to_cutin_dist = (adversary_to_cutin_dist*param_adv_percentage_dist_to_cutin_dist)/100
+            trig_cond1 = xosc.TraveledDistanceCondition(param_adv_to_cut_start_dist)
+            trigger = xosc.EntityTrigger('cutinTriggerAdv1',0.2,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
+            event = xosc.Event('cutIneventAdv1',xosc.Priority.parallel)
+            event.add_trigger(trigger)
+            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time, param_adv_to_cut_start_time)
+            action = xosc.AbsoluteSpeedAction(param_adv_cut_start_speed,lin_time)
+            event.add_action('cutInSpeedActionAdv1',action)
+           
+            man = xosc.Maneuver('cutInManeuverAdv1')
+            man.add_event(event)
+            mangr = xosc.ManeuverGroup('cutInMangroupAdv1')
+            mangr.add_actor('$adversaryVehicle')
+            mangr.add_maneuver(man)
+            starttrigger = xosc.ValueTrigger('cutinStartTriggerAdv1',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
+            actAdv1 = xosc.Act('cutInActAdv1',starttrigger)
+            actAdv1.add_maneuver_group(mangr)
+
+            # create event and act - adversary vehicle 2
+            #adv_start_to_cutin_dist = (adversary_to_cutin_dist*param_adv_percentage_dist_to_cutin_dist)/100
+            trig_cond1 = xosc.TraveledDistanceCondition(param_adv_to_cutend_dist)
+            trigger = xosc.EntityTrigger('cutinTriggerAdv2',0.2,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
+            event = xosc.Event('cutIneventAdv2',xosc.Priority.parallel)
+            event.add_trigger(trigger)
+            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time, param_adv_cut_start_to_end_time)
+            action = xosc.AbsoluteSpeedAction(param_adv_cutend_speed,lin_time)
+            event.add_action('cutInSpeedActionAdv2',action)
+           
+            man = xosc.Maneuver('cutInManeuverAdv2')
+            man.add_event(event)
+            mangr = xosc.ManeuverGroup('cutInMangroupAdv2')
+            mangr.add_actor('$adversaryVehicle')
+            mangr.add_maneuver(man)
+            starttrigger = xosc.ValueTrigger('cutinStartTriggerAdv2',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
+            actAdv2 = xosc.Act('cutInActAdv2',starttrigger)
+            actAdv2.add_maneuver_group(mangr)
+
+            # create event and act - adversary vehicle 3
+            #adv_start_to_cutin_dist = (adversary_to_cutin_dist*param_adv_percentage_dist_to_cutin_dist)/100
+            trig_cond1 = xosc.TraveledDistanceCondition(param_adv_to_scenario_end_dist)
+            trigger = xosc.EntityTrigger('cutinTriggerAdv3',0.2,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
+            event = xosc.Event('cutIneventAdv3',xosc.Priority.parallel)
+            event.add_trigger(trigger)
+            lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time, param_adv_cutend_to_scenario_end_time)
+            action = xosc.AbsoluteSpeedAction(param_adv_speed_final,lin_time)
+            event.add_action('cutInSpeedActionAdv3',action)
+           
+            man = xosc.Maneuver('cutInManeuverAdv3')
+            man.add_event(event)
+            mangr = xosc.ManeuverGroup('cutInMangroupAdv3')
+            mangr.add_actor('$adversaryVehicle')
+            mangr.add_maneuver(man)
+            starttrigger = xosc.ValueTrigger('cutinStartTriggerAdv3',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(0,xosc.Rule.greaterThan))
+            actAdv3 = xosc.Act('cutInActAdv3',starttrigger)
+            actAdv3.add_maneuver_group(mangr)
+
+
+            # create the story
             #storyparam = xosc.ParameterDeclarations()
             #storyparam.add_parameter(xosc.Parameter('$owner',xosc.ParameterType.string,'$adversaryVehicle'))
             #story = xosc.Story('cutInStory',storyparam)
             story = xosc.Story('cutInStory')
             story.add_act(act)
-            story.add_act(actAdv)
-            story.add_act(actEgo)
-            story.add_act(actAdvFinal)
-            story.add_act(actEgoFinal)
-            #story.add_act(actTTC)
+            story.add_act(actAdv1)
+            story.add_act(actAdv2)
+            story.add_act(actAdv3)
+            story.add_act(actEgo1)
+            story.add_act(actEgo2)
+            story.add_act(actEgo3)
 
             ## create the storyboard
             sb = xosc.StoryBoard(init, xosc.ValueTrigger('stop_simulation',0,xosc.ConditionEdge.rising,xosc.SimulationTimeCondition(30,xosc.Rule.greaterThan),'stop'))
@@ -799,6 +821,6 @@ if __name__ == '__main__':
         base = os.path.basename(_file)
         fileDetails = os.path.splitext(base)
         if fileDetails[1] == '.cutin' or fileDetails[1] == '.cutout':
-            #gen.generate_openscenario(loc+_file, fileDetails[0])
-            gen.generate_openscenario_trajectory(loc+_file, fileDetails[0])
+            gen.generate_openscenario(loc+_file, fileDetails[0])
+            #gen.generate_openscenario_trajectory(loc+_file, fileDetails[0])
             gen.generate_opendrive(loc+fileDetails[0]+".laneletToOD", fileDetails[0])
