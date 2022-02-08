@@ -119,7 +119,7 @@ for _file in _dir:
 
                 }
                 print("Processing the {} file: {}".format(_type, _file))
-                se.SE_Init(bytes(name, 'utf-8'), 1, 1, 0, 0)
+                se.SE_Init(bytes(name, 'utf-8'), 0, 7, 0, 0)
                 obj_state = SEScenarioObjectState()  # object that will be passed and filled in with object state info
                 sec_store = {
                     'ego': [],
@@ -134,17 +134,17 @@ for _file in _dir:
                     for j in range(se.SE_GetNumberOfObjects()):
                         se.SE_GetObjectState(j, ctypes.byref(obj_state))
                         sec = int(obj_state.timestamp)+1
-                        if sec > last_sec_count:
+                        if sec >= last_sec_count+1:
                             continue
                         if j == 0:
                             if sec in sec_store['ego']:
                                 continue
                             else:
-                                data['ego_esmini']['speed'].append(obj_state.centerOffsetX)
+                                data['ego_esmini']['speed'].append(obj_state.centerOffsetX*3.6)
                                 data['ego_esmini']['x'].append(obj_state.x)
                                 data['ego_esmini']['y'].append(obj_state.y)
                                 data['ego_esmini']['sec'].append(sec)
-                                data['ego_real']['speed'].append(ego_traj[sec]['speed'])
+                                data['ego_real']['speed'].append(ego_traj[sec]['speed']*3.6)
                                 data['ego_real']['x'].append(ego_traj[sec]['s'])
                                 data['ego_real']['y'].append(ego_traj[sec]['d'])
                                 data['ego_real']['sec'].append(sec)
@@ -152,16 +152,15 @@ for _file in _dir:
                                 ego_esmini_speed = obj_state.centerOffsetX 
                                 ego_real_speed = ego_traj[sec]['speed']
                                 sec_store['ego'].append(sec)
-                                print('Time {:.2f} esmini speed {:.2f} real speed {:.2f} esmini x: {:.2f} real x:{:.2f} offset:{:.2f}'.format(obj_state.timestamp,obj_state.centerOffsetX,ego_traj[sec]['speed'], obj_state.x,ego_traj[sec]['s'], obj_state.y))
                         if j == 1:
                             if sec in sec_store['adversary']:
                                continue
                             else:
-                                data['adversary_esmini']['speed'].append(obj_state.centerOffsetX)
+                                data['adversary_esmini']['speed'].append(obj_state.centerOffsetX*3.6)
                                 data['adversary_esmini']['x'].append(obj_state.x)
                                 data['adversary_esmini']['y'].append(obj_state.y)
                                 data['adversary_esmini']['sec'].append(sec)
-                                data['adversary_real']['speed'].append(other_traj[sec]['speed'])
+                                data['adversary_real']['speed'].append(other_traj[sec]['speed']*3.6)
                                 data['adversary_real']['x'].append(other_traj[sec]['s'])
                                 data['adversary_real']['y'].append(other_traj[sec]['d'])
                                 data['adversary_real']['sec'].append(sec)
@@ -169,6 +168,7 @@ for _file in _dir:
                                 adversary_esmini_speed = obj_state.centerOffsetX 
                                 adversary_real_speed = other_traj[sec]['speed'] 
                                 sec_store['adversary'].append(sec)
+                                print('Time {:.2f} esmini speed {:.2f} real speed {:.2f} esmini x: {:.2f} real x:{:.2f} offset:{:.2f}'.format(obj_state.timestamp,obj_state.centerOffsetX,ego_traj[sec]['speed'], obj_state.x,ego_traj[sec]['s'], obj_state.y))
                         
                     if rss_enable:
                         rss_esmini_dist = rss.calculate_rss_safe_dist(ego_esmini_speed, adversary_esmini_speed)

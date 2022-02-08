@@ -810,15 +810,9 @@ class Generate:
             #allowed.append(len(param['param_relative_lane_pos'])-2)
             
             #Equally dividing
-            allowed = []
             num = len(param['param_relative_lane_pos'])
             div = 4
-            section = ([num // div + (1 if x < num % div else 0)  for x in range (div)])
-            add = 0;
-            allowed.append(0)
-            for each in section:
-                add += each 
-                allowed.append(add)
+            allowed = ([num // div + (1 if x < num % div else 0)  for x in range (div)])
             print(allowed)
             
             print("----------------------------------------------")
@@ -831,7 +825,7 @@ class Generate:
                 if index not in allowed:
                     continue
 
-                if (index+1) >= len(param['param_relative_lane_pos']):
+                if (index+1) > len(param['param_relative_lane_pos']):
                     break
                 
                 if index != 0:

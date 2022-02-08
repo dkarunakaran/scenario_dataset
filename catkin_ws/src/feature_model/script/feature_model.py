@@ -28,7 +28,7 @@ class FeatureModel:
         self.window = 1
         self.rss = RSS()
         rospy.Subscriber('/finish_extraction', String, self.process)
-        self.process("true")
+        #self.process("true")
         rospy.on_shutdown(self.shutdown)  
         rospy.spin()
     
@@ -213,25 +213,35 @@ class FeatureModel:
                 increase_pos = True
             
             ego_cut_start_time = cut_start
-            
-             #---------Ego cut start speed, distance from ego start to cutstart, time taken till cut start from last point
-            param_ego_to_cut_start_dist = ego_cut_start-param_ego_start_pos
-            param_ego_cut_start_speed = self.group_ego_by_sec[cut_start][0]['other']['long_speed']
-            param_ego_to_cut_start_time = self.group_ego_by_sec[cut_start][0]['frenet_data']['sec'] - self.group_ego_by_sec[lane_change_start_time][0]['frenet_data']['sec']
-            
+            #---------Ego middle speed, distance from ego start to middle, time taken till cut start from last point
+            ego_to_cut_start_dist = ego_cut_start-param_ego_start_pos
+            param_ego_to_middle_dist = int(ego_to_cut_start_dist/2)
+            ego_to_cut_start_time = self.group_ego_by_sec[cut_start][0]['frenet_data']['sec'] - self.group_ego_by_sec[lane_change_start_time][0]['frenet_data']['sec']
+            param_ego_to_middle_time = int(ego_to_cut_start_time/2)
+            middle_time_sec = self.group_ego_by_sec[lane_change_start_time][0]['frenet_data']['sec']+param_ego_to_middle_time
+            param_ego_to_middle_speed = self.group_ego_by_sec[middle_time_sec][0]['other']['long_speed']
+            print("param_ego_to_middle_speed: {}, param_ego_to_middle_time: {}".format(param_ego_to_middle_speed, param_ego_to_middle_time))
+
+             #---------Ego cut start speed, distance from middle to cutstart, time taken till cut start from last point
+            param_ego_middle_to_cut_start_dist = ego_cut_start-param_ego_start_pos
+            param_ego_middle_to_cut_start_speed = self.group_ego_by_sec[cut_start][0]['other']['long_speed']
+            param_ego_middle_to_cut_start_time = self.group_ego_by_sec[cut_start][0]['frenet_data']['sec'] - self.group_ego_by_sec[middle_time_sec][0]['frenet_data']['sec']
+            print("param_ego_middle_to_cut_start_speed: {}, param_ego_middle_to_cut_start_time: {}".format(param_ego_middle_to_cut_start_speed, param_ego_middle_to_cut_start_time))
 
             # --------Ego cut-end speed, time taken from cut-in to cut-end, distance till cut-end------
 
             param_ego_cut_start_to_end_time = self.group_ego_by_sec[cut_end][0]['frenet_data']['sec'] - self.group_ego_by_sec[ego_cut_start_time][0]['frenet_data']['sec']
             param_ego_to_cutend_dist = ego_cut_end-param_ego_start_pos
             param_ego_cutend_speed = self.group_ego_by_sec[cut_end][0]['other']['long_speed']
-                       
+            print("param_ego_cutend_speed: {}".format(param_ego_cutend_speed))
+            
             #-------Ego final speed, total diatnce to end, and time taken from cut-in end to scenario end ----------------------------
             
             ego_end = cut_end
-            param_ego_cutend_to_scenario_end_time = self.group_ego_by_sec[lane_change_end_time][0]['frenet_data']['sec'] - self.group_ego_by_sec[ego_end][0]['frenet_data']['sec']
-            param_ego_to_scenario_end_dist = self.group_ego_by_sec[lane_change_end_time][0]['frenet_data']['s'] - param_ego_start_pos
+            param_ego_cutend_to_scenario_end_time = 0 #self.group_ego_by_sec[lane_change_end_time][0]['frenet_data']['sec'] - self.group_ego_by_sec[ego_end][0]['frenet_data']['sec']
+            param_ego_to_scenario_end_dist = 0 #self.group_ego_by_sec[lane_change_end_time][0]['frenet_data']['s'] - param_ego_start_pos
             param_ego_speed_final = self.group_ego_by_sec[ego_end][0]['other']['long_speed']
+            print("param_ego_speed_final: {}".format(param_ego_speed_final))
 
             #---------------Starting difference----------------------------
             
@@ -260,7 +270,7 @@ class FeatureModel:
             if found == True:
                 param_cut_time = (cutin_end_sec-cutin_start_sec)-1
             
-            param_cut_time = 3
+            #param_cut_time = 3
             startDiffProceed = True
             time_is_not_found = False
             
@@ -309,6 +319,7 @@ class FeatureModel:
                 
                 #------------------------triggering distance--------------------------
                 param_cut_triggering_dist = adv_cut_start - ego_cut_start
+                print("param_cut_triggering_dist: {}".format(param_cut_triggering_dist))
                 
                 '''if _type == "cutin":
                     print("init_diff: {} and param_cutin_start_dist: {}".format(param_start_diff, param_cutin_start_dist))
@@ -320,17 +331,30 @@ class FeatureModel:
                     print("init_diff: {} and param_cutout_start_dist: {}".format(param_start_diff, param_cutout_start_dist))
                 '''
                 
+                #---------Adversary middle to cut start speed, distance from adv to cutstart, time taken till cut start from last point
+                adv_to_cut_start_dist = adv_cut_start-param_adv_start_pos
+                param_adv_to_middle_dist = int(adv_to_cut_start_dist/2)
+                adv_to_cut_start_time = lane_change_car_data_by_sec[adv_cut_start_time][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec']
+                param_adv_to_middle_time = int(adv_to_cut_start_time/2) 
+                middle_time_sec = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec']+param_adv_to_middle_time
+                param_adv_to_middle_speed = self.group_ego_by_sec[middle_time_sec][0]['other']['long_speed'] + lane_change_car_data_by_sec[middle_time_sec][0]['other']['long_speed']
+                print("param_adv_to_middle_speed: {}, param_adv_to_middle_time: {}".format(param_adv_to_middle_speed, param_adv_to_middle_time))
+                
+
                 #---------Adversary cut start speed, distance from adv to cutstart, time taken till cut start from last point
-                param_adv_to_cut_start_dist = adv_cut_start-param_adv_start_pos
-                param_adv_cut_start_speed = self.group_ego_by_sec[adv_cut_start_time][0]['other']['long_speed'] + lane_change_car_data_by_sec[cut_start][0]['other']['long_speed']
-                param_adv_to_cut_start_time = lane_change_car_data_by_sec[adv_cut_start_time][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec']
+                param_adv_middle_to_cut_start_dist = adv_cut_start-param_adv_start_pos
+                param_adv_middle_to_cut_start_speed = self.group_ego_by_sec[adv_cut_start_time][0]['other']['long_speed'] + lane_change_car_data_by_sec[adv_cut_start_time][0]['other']['long_speed']
+                param_adv_middle_to_cut_start_time = lane_change_car_data_by_sec[adv_cut_start_time][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[middle_time_sec][0]['frenet_data']['sec']
+                print("param_adv_middle_to_cut_start_speed: {}, param_adv_middle_to_cut_start_time: {}".format(param_adv_middle_to_cut_start_speed, param_adv_middle_to_cut_start_time))
+                
                 
                 #---------Adversary cut end speed, distance from adv to cutend, time taken to cut end from  cut start from last point
                 param_adv_to_cutend_dist = adv_cut_end_pos-param_adv_start_pos
                 param_adv_cutend_speed = self.group_ego_by_sec[adv_end][0]['other']['long_speed'] + lane_change_car_data_by_sec[adv_end][0]['other']['long_speed']
                 param_adv_cut_start_to_end_time = lane_change_car_data_by_sec[adv_end][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[adv_cut_start_time][0]['frenet_data']['sec']
+                param_adv_cut_start_to_end_time_taken = lane_change_car_data_by_sec[adv_end][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec']
 
-
+                print("param_adv_cutend_speed: {}, param_adv_cut_start_to_end_time: {}".format(param_adv_cutend_speed, param_adv_cut_start_to_end_time))
                 #-------Adversary speed final/ distance to sceanrio end, time taken from last point to final point------------------
                 # Calculating the cutin/cutout final speed and time to reach that and
                 # distance travelled to get there.
@@ -338,8 +362,9 @@ class FeatureModel:
                 param_adv_cutend_to_scenario_end_time = lane_change_car_data_by_sec[adv_scenario_end_time][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[adv_end][0]['frenet_data']['sec']
                 param_adv_to_scenario_end_dist = adv_scenario_end_pos-param_adv_start_pos
                 print("param_adv_to_scenario_end_dist: {}".format(param_adv_to_scenario_end_dist))
-                param_adv_speed_final = self.group_ego_by_sec[adv_end][0]['other']['long_speed'] + lane_change_car_data_by_sec[adv_end][0]['other']['long_speed']
-                print("param_adv_speed_final: {}".format(param_adv_speed_final))
+                param_adv_speed_final = self.group_ego_by_sec[adv_scenario_end_time][0]['other']['long_speed'] + lane_change_car_data_by_sec[adv_scenario_end_time][0]['other']['long_speed']
+                param_adv_cutend_to_scenario_end_time_taken = lane_change_car_data_by_sec[adv_scenario_end_time][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec']
+                print("param_adv_speed_final: {}, param_adv_cutend_to_scenario_end_time: {}".format(param_adv_speed_final, param_adv_cutend_to_scenario_end_time))
                
                 #--------------------------Trajectory data----------------------------
                 param_relative_lane_pos = []
@@ -369,6 +394,9 @@ class FeatureModel:
                             param_ego_speed_init = ego_speed
                             #param_ego_start_pos = ego_s
                             param_ego_lane_no_init = ego_lane_no
+
+                        ego_to_dist = ego_s-param_ego_start_pos
+                        adv_to_dist = other_s-param_adv_start_pos
                         
                         data = {
                             'ego': {
@@ -376,6 +404,7 @@ class FeatureModel:
                                 'd': ego_d,
                                 'speed': ego_speed,
                                 'lane': ego_lane_no,
+                                'start_to_current_dist': ego_to_dist,
                                 'sec_count': second
                             },
                             'other': {
@@ -383,6 +412,7 @@ class FeatureModel:
                                 'd': other_d, 
                                 'speed': other_speed,
                                 'lane': other_lane_no,
+                                'start_to_current_dist': adv_to_dist,
                                 'sec_count': second
                             }
                         }
@@ -399,11 +429,13 @@ class FeatureModel:
                         'ego': {
                             's': self.group_ego_by_sec[lane_change_end_time][0]['frenet_data']['s'],
                             'lane': self.group_ego_by_sec[lane_change_end_time][0]['other']['lane_no'],
+                            'speed':self.group_ego_by_sec[lane_change_end_time][0]['other']['long_speed'], 
                             'sec_count': time_diff
                         },
                         'other': {
                             's': lane_change_car_data_by_sec[lane_change_end_time][0]['frenet_data']['s'],
                             'lane':lane_change_car_data_by_sec[lane_change_end_time][0]['other']['lane_no'],
+                            'speed': self.group_ego_by_sec[lane_change_end_time][0]['other']['long_speed']+lane_change_car_data_by_sec[lane_change_end_time][0]['other']['long_speed'],
                             'sec_count': time_diff
                         }
                     }
@@ -449,18 +481,24 @@ class FeatureModel:
                                 'param_trigger_cond': trigger_cond,
                                 'param_relative_lane_pos': param_relative_lane_pos,
                                 'param_lane_change_carid': laneChangeCar,
-                                'param_ego_to_cut_start_dist': param_ego_to_cut_start_dist,
-                                'param_ego_to_cut_start_time': param_ego_to_cut_start_time,
-                                'param_ego_cut_start_speed': param_ego_cut_start_speed,
+                                'param_ego_to_middle_dist': param_ego_to_middle_dist,
+                                'param_ego_to_middle_time': param_ego_to_middle_time,
+                                'param_ego_to_middle_speed': param_ego_to_middle_speed,
+                                'param_ego_middle_to_cut_start_dist': param_ego_middle_to_cut_start_dist,
+                                'param_ego_middle_to_cut_start_time': param_ego_middle_to_cut_start_time,
+                                'param_ego_middle_to_cut_start_speed': param_ego_middle_to_cut_start_speed,
                                 'param_ego_to_cutend_dist': param_ego_to_cutend_dist,
                                 'param_ego_cut_start_to_end_time': param_ego_cut_start_to_end_time,
                                 'param_ego_cutend_speed': param_ego_cutend_speed,
                                 'param_ego_to_scenario_end_dist': param_ego_to_scenario_end_dist,
                                 'param_ego_cutend_to_scenario_end_time': param_ego_cutend_to_scenario_end_time,
                                 'param_ego_speed_final': param_ego_speed_final,
-                                'param_adv_to_cut_start_dist': param_adv_to_cut_start_dist,
-                                'param_adv_to_cut_start_time': param_adv_to_cut_start_time,
-                                'param_adv_cut_start_speed': param_adv_cut_start_speed,
+                                'param_adv_to_middle_dist': param_adv_to_middle_dist,
+                                'param_adv_to_middle_time': param_adv_to_middle_time,
+                                'param_adv_to_middle_speed': param_adv_to_middle_speed,
+                                'param_adv_middle_to_cut_start_dist': param_adv_middle_to_cut_start_dist,
+                                'param_adv_middle_to_cut_start_time': param_adv_middle_to_cut_start_time,
+                                'param_adv_middle_to_cut_start_speed': param_adv_middle_to_cut_start_speed,
                                 'param_adv_to_cutend_dist': param_adv_to_cutend_dist,
                                 'param_adv_cut_start_to_end_time': param_adv_cut_start_to_end_time,
                                 'param_adv_cutend_speed': param_adv_cutend_speed,
@@ -502,18 +540,24 @@ class FeatureModel:
                             'param_adv_lane_no_final': param_adv_lane_no_final,
                             'param_relative_lane_pos': param_relative_lane_pos,
                             'param_lane_change_carid': laneChangeCar,
-                            'param_ego_to_cut_start_dist': param_ego_to_cut_start_dist,
-                            'param_ego_to_cut_start_time': param_ego_to_cut_start_time,
-                            'param_ego_cut_start_speed': param_ego_cut_start_speed,
+                            'param_ego_to_middle_dist': param_ego_to_middle_dist,
+                            'param_ego_to_middle_time': param_ego_to_middle_time,
+                            'param_ego_to_middle_speed': param_ego_to_middle_speed,
+                            'param_ego_middle_to_cut_start_dist': param_ego_middle_to_cut_start_dist,
+                            'param_ego_middle_to_cut_start_time': param_ego_middle_to_cut_start_time,
+                            'param_ego_middle_to_cut_start_speed': param_ego_middle_to_cut_start_speed,
                             'param_ego_to_cutend_dist': param_ego_to_cutend_dist,
                             'param_ego_cut_start_to_end_time': param_ego_cut_start_to_end_time,
                             'param_ego_cutend_speed': param_ego_cutend_speed,
                             'param_ego_to_scenario_end_dist': param_ego_to_scenario_end_dist,
                             'param_ego_cutend_to_scenario_end_time': param_ego_cutend_to_scenario_end_time,
                             'param_ego_speed_final': param_ego_speed_final,
-                            'param_adv_to_cut_start_dist': param_adv_to_cut_start_dist,
-                            'param_adv_to_cut_start_time': param_adv_to_cut_start_time,
-                            'param_adv_cut_start_speed': param_adv_cut_start_speed,
+                            'param_adv_to_middle_dist': param_adv_to_middle_dist,
+                            'param_adv_to_middle_time': param_adv_to_middle_time,
+                            'param_adv_to_middle_speed': param_adv_to_middle_speed,
+                            'param_adv_middle_to_cut_start_dist': param_adv_middle_to_cut_start_dist,
+                            'param_adv_middle_to_cut_start_time': param_adv_middle_to_cut_start_time,
+                            'param_adv_middle_to_cut_start_speed': param_adv_middle_to_cut_start_speed,
                             'param_adv_to_cutend_dist': param_adv_to_cutend_dist,
                             'param_adv_cut_start_to_end_time': param_adv_cut_start_to_end_time,
                             'param_adv_cutend_speed': param_adv_cutend_speed,
@@ -524,6 +568,7 @@ class FeatureModel:
                     }
                     self.parameterCutOut.append(param)
                     print("Saving cut-out data")
+                    
                 else:
                     print("Not saved the lane change data")
             else:

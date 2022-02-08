@@ -96,8 +96,8 @@ ego_esmini1 = data['data'][no]['ego_esmini']
 ego_real1 = data['data'][no]['ego_real']
 esmini1 = data['data'][no]['esmini'] 
 real1 = data['data'][no]['real'] 
-
-no = 3
+'''
+no = 4
 key = 'speed'
 adversary_esmini2 = data['data'][no]['adversary_esmini'] 
 adversary_real2 = data['data'][no]['adversary_real'] 
@@ -105,8 +105,8 @@ ego_esmini2 = data['data'][no]['ego_esmini']
 ego_real2 = data['data'][no]['ego_real'] 
 esmini2 = data['data'][no]['esmini'] 
 real2 = data['data'][no]['real'] 
-'''
-no = 5
+
+no = 1
 key = 'speed'
 adversary_esmini3 = data['data'][no]['adversary_esmini']
 adversary_real3 = data['data'][no]['adversary_real']
@@ -120,11 +120,11 @@ name = path_to_save_dir+"test"
 plt.figure()
 plt.xlabel("second")
 plt.ylabel(key)
-plt.ylim([2.5, 17.5])
+plt.ylim([10, 60])
 #plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')
 #plt.plot(adversary_real1['sec'], adversary_real1[key])
-#plt.plot(adversary_esmini2['sec'], adversary_esmini2[key], '--')
-#plt.plot(adversary_real2['sec'], adversary_real2[key])
+plt.plot(adversary_esmini2['sec'], adversary_esmini2[key], '--')
+plt.plot(adversary_real2['sec'], adversary_real2[key])
 plt.plot(adversary_esmini3['sec'], adversary_esmini3[key], '--')
 plt.plot(adversary_real3['sec'], adversary_real3[key])
 plt.legend(['OpenSCENARIO trajectory', 'Real-world trajectory'])
@@ -132,18 +132,18 @@ plt.legend(['OpenSCENARIO trajectory', 'Real-world trajectory'])
 plt.savefig(name)
 plt.close()
 
-'''
+
 name = path_to_save_dir+"test_ego"
 plt.figure()
 plt.xlabel("second")
 plt.ylabel(key+' m/s')
 plt.ylim([0, 20])
-plt.plot(ego_esmini1['sec'], ego_esmini1[key], label='generated')
-plt.plot(ego_real1['sec'], ego_real1[key], label='real')
+plt.plot(ego_esmini3['sec'], ego_esmini3[key], label='generated')
+plt.plot(ego_real3['sec'], ego_real3[key], label='real')
 plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()
-'''
+
 
 name = path_to_save_dir+"test_rss"
 key = 'rss'
