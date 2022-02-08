@@ -119,7 +119,7 @@ for _file in _dir:
 
                 }
                 print("Processing the {} file: {}".format(_type, _file))
-                se.SE_Init(bytes(name, 'utf-8'), 0, 7, 0, 0)
+                se.SE_Init(bytes(name, 'utf-8'), 1, 1, 0, 0)
                 obj_state = SEScenarioObjectState()  # object that will be passed and filled in with object state info
                 sec_store = {
                     'ego': [],
@@ -136,6 +136,7 @@ for _file in _dir:
                         sec = int(obj_state.timestamp)+1
                         if sec >= last_sec_count+1:
                             continue
+                        #print(sec)
                         if j == 0:
                             if sec in sec_store['ego']:
                                 continue

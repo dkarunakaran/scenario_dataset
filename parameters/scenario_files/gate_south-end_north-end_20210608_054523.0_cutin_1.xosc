@@ -1,19 +1,19 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
-    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-02-07T02:35:22.829649"/>
+    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-02-09T01:08:41.637176"/>
     <ParameterDeclarations>
         <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
-        <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="0.0"/>
-        <ParameterDeclaration name="$egoStartPos" parameterType="double" value="32.52449474636146"/>
+        <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="2.6777777671813965"/>
+        <ParameterDeclaration name="$egoStartPos" parameterType="double" value="33.055236428366186"/>
         <ParameterDeclaration name="$egoStartLane" parameterType="double" value="-2"/>
         <ParameterDeclaration name="$adversaryVehicle" parameterType="string" value="adversary"/>
-        <ParameterDeclaration name="$adversaryVelocityInit" parameterType="double" value="11.029999732971191"/>
-        <ParameterDeclaration name="$adversaryPos" parameterType="integer" value="30.50333149688737"/>
+        <ParameterDeclaration name="$adversaryVelocityInit" parameterType="double" value="10.617777824401855"/>
+        <ParameterDeclaration name="$adversaryPos" parameterType="integer" value="50.72105961195825"/>
         <ParameterDeclaration name="$adversaryLane" parameterType="double" value="-3"/>
         <ParameterDeclaration name="$adversaryCutinSpeed" parameterType="double" value="40"/>
-        <ParameterDeclaration name="$adversaryStartDiff" parameterType="double" value="-2.021163249474094"/>
+        <ParameterDeclaration name="$adversaryStartDiff" parameterType="double" value="17.665823183592064"/>
         <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="17.665823183592067"/>
-        <ParameterDeclaration name="$adversaryCutinTime" parameterType="double" value="2"/>
+        <ParameterDeclaration name="$adversaryCutinTime" parameterType="double" value="4"/>
         <ParameterDeclaration name="$lanechangeCarId" parameterType="double" value="59"/>
     </ParameterDeclarations>
     <CatalogLocations>
@@ -174,7 +174,7 @@
                                         <SpeedAction>
                                             <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.2" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="1.3083332777023315"/>
+                                                <AbsoluteTargetSpeed value="4.252777576446533"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -188,7 +188,7 @@
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="0.1"/>
+                                                <TraveledDistanceCondition value="2.069526203252458"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -221,7 +221,7 @@
                                         <SpeedAction>
                                             <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.2" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="11.098333239555359"/>
+                                                <AbsoluteTargetSpeed value="10.45277738571167"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -235,7 +235,7 @@
                                                 <EntityRef entityRef="$adversaryVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="0.1"/>
+                                                <TraveledDistanceCondition value="10.485410495935469"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -268,7 +268,7 @@
                                         <SpeedAction>
                                             <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.2" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="4.252777576446533"/>
+                                                <AbsoluteTargetSpeed value="8.327777862548828"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -282,7 +282,7 @@
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="0.5307416820047237"/>
+                                                <TraveledDistanceCondition value="17.303081200002453"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -315,7 +315,7 @@
                                         <SpeedAction>
                                             <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.2" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="10.45277738571167"/>
+                                                <AbsoluteTargetSpeed value="10.107777833938599"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -329,7 +329,7 @@
                                                 <EntityRef entityRef="$adversaryVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="20.217728115070884"/>
+                                                <TraveledDistanceCondition value="41.69463777445118"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -341,100 +341,6 @@
                 <StartTrigger>
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv1" delay="0" conditionEdge="rising">
-                            <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
-                            </ByValueCondition>
-                        </Condition>
-                    </ConditionGroup>
-                </StartTrigger>
-                <StopTrigger/>
-            </Act>
-            <Act name="cutInActEgo2">
-                <ManeuverGroup name="cutInMangroupEgo2" maximumExecutionCount="1">
-                    <Actors selectTriggeringEntities="false">
-                        <EntityRef entityRef="$egoVehicle"/>
-                    </Actors>
-                    <Maneuver name="cutInManeuverEgo2">
-                        <Event name="cutIneventEgo2" priority="parallel" maximumExecutionCount="1">
-                            <Action name="cutInSpeedActionEgo2">
-                                <PrivateAction>
-                                    <LongitudinalAction>
-                                        <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.2" dynamicsDimension="time"/>
-                                            <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="7.255555629730225"/>
-                                            </SpeedActionTarget>
-                                        </SpeedAction>
-                                    </LongitudinalAction>
-                                </PrivateAction>
-                            </Action>
-                            <StartTrigger>
-                                <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo2" delay="0.2" conditionEdge="rising">
-                                        <ByEntityCondition>
-                                            <TriggeringEntities triggeringEntitiesRule="any">
-                                                <EntityRef entityRef="$egoVehicle"/>
-                                            </TriggeringEntities>
-                                            <EntityCondition>
-                                                <TraveledDistanceCondition value="6.054710176547083"/>
-                                            </EntityCondition>
-                                        </ByEntityCondition>
-                                    </Condition>
-                                </ConditionGroup>
-                            </StartTrigger>
-                        </Event>
-                    </Maneuver>
-                </ManeuverGroup>
-                <StartTrigger>
-                    <ConditionGroup>
-                        <Condition name="cutinStartTriggerEgo2" delay="0" conditionEdge="rising">
-                            <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
-                            </ByValueCondition>
-                        </Condition>
-                    </ConditionGroup>
-                </StartTrigger>
-                <StopTrigger/>
-            </Act>
-            <Act name="cutInActAdv2">
-                <ManeuverGroup name="cutInMangroupAdv2" maximumExecutionCount="1">
-                    <Actors selectTriggeringEntities="false">
-                        <EntityRef entityRef="$adversaryVehicle"/>
-                    </Actors>
-                    <Maneuver name="cutInManeuverAdv2">
-                        <Event name="cutIneventAdv2" priority="parallel" maximumExecutionCount="1">
-                            <Action name="cutInSpeedActionAdv2">
-                                <PrivateAction>
-                                    <LongitudinalAction>
-                                        <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.2" dynamicsDimension="time"/>
-                                            <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="10.36555552482605"/>
-                                            </SpeedActionTarget>
-                                        </SpeedAction>
-                                    </LongitudinalAction>
-                                </PrivateAction>
-                            </Action>
-                            <StartTrigger>
-                                <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv2" delay="0.2" conditionEdge="rising">
-                                        <ByEntityCondition>
-                                            <TriggeringEntities triggeringEntitiesRule="any">
-                                                <EntityRef entityRef="$adversaryVehicle"/>
-                                            </TriggeringEntities>
-                                            <EntityCondition>
-                                                <TraveledDistanceCondition value="41.086586964363306"/>
-                                            </EntityCondition>
-                                        </ByEntityCondition>
-                                    </Condition>
-                                </ConditionGroup>
-                            </StartTrigger>
-                        </Event>
-                    </Maneuver>
-                </ManeuverGroup>
-                <StartTrigger>
-                    <ConditionGroup>
-                        <Condition name="cutinStartTriggerAdv2" delay="0" conditionEdge="rising">
                             <ByValueCondition>
                                 <SimulationTimeCondition value="0" rule="greaterThan"/>
                             </ByValueCondition>

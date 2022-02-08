@@ -799,27 +799,24 @@ class Generate:
             actCount = 0
             actEgoList = []
             actAdvList = []
-            allowed = []
-            for index in range(len(param['param_relative_lane_pos'])):
-                if index%2 == 0:
-                    allowed.append(index)
-            #allowed = []
-            #length = len(param['param_relative_lane_pos'])
-            #allowed.append(0)
-            #allowed.append(int(length/2))
-            #allowed.append(len(param['param_relative_lane_pos'])-2)
-            
             #Equally dividing
             allowed = []
-            num = len(param['param_relative_lane_pos'])
-            div = 4
+            num = len(param['param_relative_lane_pos'])-1
+            print("num: {}".format(num))
+            div = 1
             section = ([num // div + (1 if x < num % div else 0)  for x in range (div)])
             add = 0;
             allowed.append(0)
+            prev = 0
             for each in section:
                 add += each 
+                temp = add-1
+                if add == num and temp != prev:
+                    add = temp
                 allowed.append(add)
+                prev = add
             print(allowed)
+            
             
             print("----------------------------------------------")
             for index in range(len(param['param_relative_lane_pos'])):
@@ -834,6 +831,7 @@ class Generate:
                 if (index+1) >= len(param['param_relative_lane_pos']):
                     break
                 
+                print(index)
                 if index != 0:
                     data_prev = param['param_relative_lane_pos'][index-1]
 
@@ -845,10 +843,10 @@ class Generate:
                 print("*")
                 
                 #Ego
-                if index == 0:
-                    trig_cond1 = xosc.TraveledDistanceCondition(0.1)
-                else:
-                    trig_cond1 = xosc.TraveledDistanceCondition(data_prev['ego']['start_to_current_dist'])
+                #if index == 0:
+                #    trig_cond1 = xosc.TraveledDistanceCondition(0.1)
+                #else:
+                trig_cond1 = xosc.TraveledDistanceCondition(data_current['ego']['start_to_current_dist'])
                 trigger = xosc.EntityTrigger('cutinTriggerEgo'+str(actCount),0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
                 event = xosc.Event('cutIneventEgo'+str(actCount),xosc.Priority.parallel)
                 event.add_trigger(trigger)
@@ -866,10 +864,10 @@ class Generate:
                 actEgoList.append(actEgo)
                 
                 #Adversary
-                if index == 0:
-                    trig_cond1 = xosc.TraveledDistanceCondition(0.1)
-                else:
-                    trig_cond1 = xosc.TraveledDistanceCondition(data_prev['other']['start_to_current_dist'])
+                #if index == 0:
+                #    trig_cond1 = xosc.TraveledDistanceCondition(0.1)
+                #else:
+                trig_cond1 = xosc.TraveledDistanceCondition(data_current['other']['start_to_current_dist'])
                 trigger = xosc.EntityTrigger('cutinTriggerAdv'+str(actCount),0.2,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
                 event = xosc.Event('cutIneventAdv'+str(actCount),xosc.Priority.parallel)
                 event.add_trigger(trigger)

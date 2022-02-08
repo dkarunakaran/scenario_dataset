@@ -122,15 +122,20 @@ class FeatureModel:
         while True:
             if count > 20:
                 break
+            if self.group_ego_by_sec[lane_change_start_time][0]['other']['long_speed'] < 0.1:
+                lane_change_start_time += 1
+                count +=1
+                continue
             if lane_change_start_time in lane_change_car_data_by_sec.keys():
                 found = True
                 break
+
             lane_change_start_time += 1
             count +=1
         
 
         proceed = False
-        laneChangeCarData = group_by_car[laneChangeCar]
+        #laneChangeCarData = group_by_car[laneChangeCar]
         param_ego_lane_no_init = self.group_ego_by_sec[lane_change_start_time][0]['other']['lane_no']
         param_adv_lane_no_init = lane_change_car_data_by_sec[lane_change_start_time][0]['other']['lane_no']
         
@@ -153,6 +158,9 @@ class FeatureModel:
                 if sec < scenario['cutin_start']:
                     continue
 
+                if self.group_ego_by_sec[sec][0]['other']['long_speed'] < 0.1:
+                    continue
+
                 data_per_sec = lane_change_car_data_by_sec[sec] 
                 lane_no = data_per_sec[0]['other']['lane_no']
                 if ego_lane_at_cutin == lane_no:
@@ -167,6 +175,9 @@ class FeatureModel:
                 if sec < scenario['cutout_start']:
                     continue
                 
+                if self.group_ego_by_sec[sec][0]['other']['long_speed'] < 0.1:
+                    continue
+
                 data_per_sec = lane_change_car_data_by_sec[sec] 
                 lane_no = data_per_sec[0]['other']['lane_no']
                 if ego_lane_at_cutout != lane_no:

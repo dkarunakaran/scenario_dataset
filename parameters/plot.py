@@ -97,7 +97,8 @@ ego_real1 = data['data'][no]['ego_real']
 esmini1 = data['data'][no]['esmini'] 
 real1 = data['data'][no]['real'] 
 '''
-no = 4
+'''
+no = 0
 key = 'speed'
 adversary_esmini2 = data['data'][no]['adversary_esmini'] 
 adversary_real2 = data['data'][no]['adversary_real'] 
@@ -105,6 +106,7 @@ ego_esmini2 = data['data'][no]['ego_esmini']
 ego_real2 = data['data'][no]['ego_real'] 
 esmini2 = data['data'][no]['esmini'] 
 real2 = data['data'][no]['real'] 
+'''
 
 no = 1
 key = 'speed'
@@ -123,11 +125,11 @@ plt.ylabel(key)
 plt.ylim([10, 60])
 #plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')
 #plt.plot(adversary_real1['sec'], adversary_real1[key])
-plt.plot(adversary_esmini2['sec'], adversary_esmini2[key], '--')
-plt.plot(adversary_real2['sec'], adversary_real2[key])
+#plt.plot(adversary_esmini2['sec'], adversary_esmini2[key], '--')
+#plt.plot(adversary_real2['sec'], adversary_real2[key])
 plt.plot(adversary_esmini3['sec'], adversary_esmini3[key], '--')
 plt.plot(adversary_real3['sec'], adversary_real3[key])
-plt.legend(['OpenSCENARIO trajectory', 'Real-world trajectory'])
+plt.legend(['OpenSCENARIO', 'Real-world'])
 #plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
 plt.savefig(name)
 plt.close()
