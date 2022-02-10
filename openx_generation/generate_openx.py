@@ -811,12 +811,16 @@ class Generate:
             add = 0;
             allowed.append(0)
             prev = 0
+            s_count = 1
             for each in section:
                 add += each 
                 temp = add-1
-                if add == num:
-                    break
-                allowed.append(add)
+                if s_count == len(section):
+                    if (add-1) not in allowed: 
+                        allowed.append(add-1)
+                else:
+                    allowed.append(add)
+                s_count += 1
             print(allowed)
             
             prev = 0 
@@ -830,14 +834,14 @@ class Generate:
                 if index not in allowed:
                     continue
 
-                if (index+1) >= len(param['param_relative_lane_pos']):
+                if (index+1) > len(param['param_relative_lane_pos']):
                     break
-                #if index+1 == len(param['param_relative_lane_pos']):
-                #    data_current = param['param_relative_lane_pos'][index]
-                #    data_next = param['param_relative_lane_pos'][index]
-                #else:
-                data_current = param['param_relative_lane_pos'][index]
-                data_next = param['param_relative_lane_pos'][index+1]
+                if (index+1) == len(param['param_relative_lane_pos']):
+                    data_current = param['param_relative_lane_pos'][index]
+                    data_next = param['param_relative_lane_pos'][index]
+                else:
+                    data_current = param['param_relative_lane_pos'][index]
+                    data_next = param['param_relative_lane_pos'][index+1]
                 
                 print(index)
                 print(data_current['other']['speed'])

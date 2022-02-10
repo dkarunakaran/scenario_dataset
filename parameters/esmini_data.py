@@ -60,7 +60,7 @@ for _file in _dir:
         filename = loc+'scenario_files/'+fileDetails[0]+"_"+_type+"_"
         for param in file_data['parameter']: 
             
-            if count == 1 or count == 3:
+            if count == 2 or count == 3:
                 count += 1
                 continue
 
