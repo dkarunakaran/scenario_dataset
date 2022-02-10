@@ -28,7 +28,7 @@ class FeatureModel:
         self.window = 1
         self.rss = RSS()
         rospy.Subscriber('/finish_extraction', String, self.process)
-        #self.process("true")
+        self.process("true")
         rospy.on_shutdown(self.shutdown)  
         rospy.spin()
     
@@ -383,8 +383,13 @@ class FeatureModel:
                 start_time = lane_change_start_time
                 start_time += self.window
                 second = self.window
+                param_all_data = {
+                    'ego': [],
+                    'other': []
+                }
                 while start_time <= lane_change_end_time:
                     if start_time in self.group_ego_by_sec.keys() and start_time in lane_change_car_data_by_sec.keys():
+                        #-----------------------sec data------------------------
                         ego_s = self.group_ego_by_sec[start_time][0]['frenet_data']['s']
                         ego_d = self.group_ego_by_sec[start_time][0]['frenet_data']['d']
                         ego_speed = self.group_ego_by_sec[start_time][0]['other']['long_speed']
@@ -428,6 +433,43 @@ class FeatureModel:
                             }
                         }
                         param_relative_lane_pos.append(data)
+
+                        #--------------------all data------------------
+                        for each in self.group_ego_by_sec[start_time]:
+                            ego_s = each['frenet_data']['s']
+                            ego_d = each['frenet_data']['d']
+                            ego_speed = each['other']['long_speed']
+                            ego_lane_no = each['other']['lane_no']
+                            if increase_pos == True:
+                                ego_s += increase_pos_amount
+                            ego_to_dist = ego_s-param_ego_start_pos
+                            data = {
+                                's': ego_s,
+                                'd': ego_d,
+                                'speed': ego_speed,
+                                'lane': ego_lane_no,
+                                'start_to_current_dist': ego_to_dist
+                            }
+                            param_all_data['ego'].append(data)
+
+                        for each in lane_change_car_data_by_sec[start_time]:
+                            other_s = each['frenet_data']['s']
+                            other_d = each['frenet_data']['d']
+                            other_speed = each['other']['long_speed']
+                            other_lane_no = each['other']['lane_no']
+                            if increase_pos == True:
+                                other_s += increase_pos_amount
+                            adv_to_dist = other_s-param_adv_start_pos
+                            data = {
+                                's': other_s,
+                                'd': other_d,
+                                'speed': other_speed,
+                                'lane': other_lane_no,
+                                'start_to_current_dist': adv_to_dist
+                            }
+                            param_all_data['other'].append(data)
+
+
                         start_time += self.window
                         second += self.window
                     else:
@@ -451,7 +493,43 @@ class FeatureModel:
                         }
                     }
                     param_relative_lane_pos.append(data)
-                
+
+                    #--------------------all data------------------
+                    for each in self.group_ego_by_sec[lane_change_end_time]:
+                        ego_s = each['frenet_data']['s']
+                        ego_d = each['frenet_data']['d']
+                        ego_speed = each['other']['long_speed']
+                        ego_lane_no = each['other']['lane_no']
+                        if increase_pos == True:
+                            ego_s += increase_pos_amount
+                        ego_to_dist = ego_s-param_ego_start_pos
+                        data = {
+                            's': ego_s,
+                            'd': ego_d,
+                            'speed': ego_speed,
+                            'lane': ego_lane_no,
+                            'start_to_current_dist': ego_to_dist
+                        }
+                        param_all_data['ego'].append(data)
+
+                    for each in lane_change_car_data_by_sec[lane_change_end_time]:
+                        other_s = each['frenet_data']['s']
+                        other_d = each['frenet_data']['d']
+                        other_speed = each['other']['long_speed']
+                        other_lane_no = each['other']['lane_no']
+                        if increase_pos == True:
+                            other_s += increase_pos_amount
+                        adv_to_dist = other_s-param_adv_start_pos
+                        data = {
+                            's': other_s,
+                            'd': other_d,
+                            'speed': other_speed,
+                            'lane': other_lane_no,
+                            'start_to_current_dist': adv_to_dist
+                        }
+                        param_all_data['other'].append(data)
+
+
                 #print(param_relative_lane_pos)
                 
                 if _type == "cutin":
@@ -515,7 +593,8 @@ class FeatureModel:
                                 'param_adv_cutend_speed': param_adv_cutend_speed,
                                 'param_adv_to_scenario_end_dist': param_adv_to_scenario_end_dist,
                                 'param_adv_cutend_to_scenario_end_time': param_adv_cutend_to_scenario_end_time,
-                                'param_adv_speed_final': param_adv_speed_final
+                                'param_adv_speed_final': param_adv_speed_final,
+                                'param_all_data': param_all_data
 
                         }
                         self.parameterCutIn.append(param)
@@ -574,7 +653,8 @@ class FeatureModel:
                             'param_adv_cutend_speed': param_adv_cutend_speed,
                             'param_adv_to_scenario_end_dist': param_adv_to_scenario_end_dist,
                             'param_adv_cutend_to_scenario_end_time': param_adv_cutend_to_scenario_end_time,
-                            'param_adv_speed_final': param_adv_speed_final
+                            'param_adv_speed_final': param_adv_speed_final,
+                            'param_all_data': param_all_data
 
                     }
                     self.parameterCutOut.append(param)

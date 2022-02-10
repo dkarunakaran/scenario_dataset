@@ -21,6 +21,7 @@ class SEScenarioObjectState(ctypes.Structure):
         ("p", ctypes.c_float),
         ("r", ctypes.c_float),
         ("roadId", ctypes.c_int),
+        ("junctionId", ctypes.c_int),
         ("t", ctypes.c_float),
         ("laneId", ctypes.c_int),
         ("laneOffset", ctypes.c_float),
@@ -32,6 +33,8 @@ class SEScenarioObjectState(ctypes.Structure):
         ("width", ctypes.c_float),
         ("length", ctypes.c_float),
         ("height", ctypes.c_float),
+        ("objectType", ctypes.c_int),
+        ("objectCategory", ctypes.c_int),  
     ]
 
 if sys.platform == "linux" or sys.platform == "linux2":
@@ -56,8 +59,14 @@ for _file in _dir:
         count = 1 
         filename = loc+'scenario_files/'+fileDetails[0]+"_"+_type+"_"
         for param in file_data['parameter']: 
+            
+            if count == 1 or count == 3:
+                count += 1
+                continue
+
             param_relative_lane_pos = param['param_relative_lane_pos']
             carid = param['param_lane_change_carid']
+            
             ego_traj = {}
             other_traj = {}
             last_sec_count = 1
@@ -86,28 +95,54 @@ for _file in _dir:
                     'carid': carid,
                     'ego_esmini': {
                         'speed': [],
-                        'x': [],
-                        'y': [],
+                        's': [],
+                        't': [],
                         'sec': [],
                     },
+                    'ego_esmini_sec': {
+                        'speed': [],
+                        's': [],
+                        't': [],
+                        'sec': [],
+                    },
+
                     'ego_real': {
                         'speed': [],
-                        'x': [],
-                        'y': [],
+                        's': [],
+                        't': [],
+                        'sec': [],
+                    },
+                    'ego_real_sec': {
+                        'speed': [],
+                        's': [],
+                        't': [],
                         'sec': [],
                     },
                     'adversary_esmini':{
                         'speed': [],
-                        'x': [],
-                        'y': [],
+                        's': [],
+                        't': [],
+                        'sec': [],
+                    }, 
+                    'adversary_esmini_sec':{
+                        'speed': [],
+                        's': [],
+                        't': [],
                         'sec': [],
                     }, 
                     'adversary_real':{
                         'speed': [],
-                        'x': [],
-                        'y': [],
+                        's': [],
+                        't': [],
                         'sec': [],
                     },
+                    'adversary_real_sec':{
+                        'speed': [],
+                        's': [],
+                        't': [],
+                        'sec': [],
+                    },
+
                     'esmini':{
                         'rss': [],
                         'sec': []
@@ -118,6 +153,17 @@ for _file in _dir:
                     }
 
                 }
+                
+                for item in param['param_all_data']['ego']:
+                    data['ego_real']['speed'].append(item['speed'])
+                    data['ego_real']['s'].append(item['s'])
+                    data['ego_real']['t'].append(item['d'])
+                
+                for item in param['param_all_data']['other']:
+                    data['adversary_real']['speed'].append(item['speed'])
+                    data['adversary_real']['s'].append(item['s'])
+                    data['adversary_real']['t'].append(item['d']-6)
+
                 print("Processing the {} file: {}".format(_type, _file))
                 se.SE_Init(bytes(name, 'utf-8'), 1, 1, 0, 0)
                 obj_state = SEScenarioObjectState()  # object that will be passed and filled in with object state info
@@ -134,51 +180,41 @@ for _file in _dir:
                     for j in range(se.SE_GetNumberOfObjects()):
                         se.SE_GetObjectState(j, ctypes.byref(obj_state))
                         sec = int(obj_state.timestamp)+1
-                        if sec >= last_sec_count+1:
+                        if sec >= 12:
                             continue
-                        #print(sec)
                         if j == 0:
-                            if sec in sec_store['ego']:
-                                continue
-                            else:
-                                data['ego_esmini']['speed'].append(obj_state.centerOffsetX*3.6)
-                                data['ego_esmini']['x'].append(obj_state.x)
-                                data['ego_esmini']['y'].append(obj_state.y)
-                                data['ego_esmini']['sec'].append(sec)
-                                data['ego_real']['speed'].append(ego_traj[sec]['speed']*3.6)
-                                data['ego_real']['x'].append(ego_traj[sec]['s'])
-                                data['ego_real']['y'].append(ego_traj[sec]['d'])
-                                data['ego_real']['sec'].append(sec)
-                                rss_enable = True
-                                ego_esmini_speed = obj_state.centerOffsetX 
-                                ego_real_speed = ego_traj[sec]['speed']
-                                sec_store['ego'].append(sec)
+                            if sec not in sec_store['ego'] and sec <= last_sec_count:
+                                data['ego_esmini_sec']['speed'].append(obj_state.speed*3.6)
+                                data['ego_esmini_sec']['s'].append(obj_state.x)
+                                data['ego_esmini_sec']['t'].append(obj_state.t)
+                                data['ego_esmini_sec']['sec'].append(sec)
+                                data['ego_real_sec']['speed'].append(ego_traj[sec]['speed']*3.6)
+                                data['ego_real_sec']['s'].append(ego_traj[sec]['s'])
+                                data['ego_real_sec']['t'].append(ego_traj[sec]['d'])
+                                data['ego_real_sec']['sec'].append(sec)
+
+                            data['ego_esmini']['speed'].append(obj_state.speed*3.6)
+                            data['ego_esmini']['s'].append(obj_state.x)
+                            data['ego_esmini']['t'].append(obj_state.t)
+                            data['ego_esmini']['sec'].append(sec)
+                            sec_store['ego'].append(sec)
                         if j == 1:
-                            if sec in sec_store['adversary']:
-                               continue
-                            else:
-                                data['adversary_esmini']['speed'].append(obj_state.centerOffsetX*3.6)
-                                data['adversary_esmini']['x'].append(obj_state.x)
-                                data['adversary_esmini']['y'].append(obj_state.y)
-                                data['adversary_esmini']['sec'].append(sec)
-                                data['adversary_real']['speed'].append(other_traj[sec]['speed']*3.6)
-                                data['adversary_real']['x'].append(other_traj[sec]['s'])
-                                data['adversary_real']['y'].append(other_traj[sec]['d'])
-                                data['adversary_real']['sec'].append(sec)
-                                rss_enable = True
-                                adversary_esmini_speed = obj_state.centerOffsetX 
-                                adversary_real_speed = other_traj[sec]['speed'] 
-                                sec_store['adversary'].append(sec)
-                                print('Time {:.2f} esmini speed {:.2f} real speed {:.2f} esmini x: {:.2f} real x:{:.2f} offset:{:.2f}'.format(obj_state.timestamp,obj_state.centerOffsetX,ego_traj[sec]['speed'], obj_state.x,ego_traj[sec]['s'], obj_state.y))
-                        
-                    if rss_enable:
-                        rss_esmini_dist = rss.calculate_rss_safe_dist(ego_esmini_speed, adversary_esmini_speed)
-                        rss_real_dist = rss.calculate_rss_safe_dist(ego_real_speed, adversary_real_speed)
-                        data['esmini']['rss'].append(rss_esmini_dist);
-                        data['esmini']['sec'] = sec_store['ego']
-                        data['real']['rss'].append(rss_real_dist);
-                        data['real']['sec'] = sec_store['ego']
-                        print("rss_esmini_dist: {}, rss_real_dist:{}".format(rss_esmini_dist, rss_real_dist))
+                            if sec not in sec_store['adversary'] and sec <= last_sec_count:
+                                data['adversary_esmini_sec']['speed'].append(obj_state.speed)
+                                data['adversary_esmini_sec']['s'].append(obj_state.x)
+                                data['adversary_esmini_sec']['t'].append(obj_state.t)
+                                data['adversary_esmini_sec']['sec'].append(sec)
+                                data['adversary_real_sec']['speed'].append(other_traj[sec]['speed'])
+                                data['adversary_real_sec']['s'].append(other_traj[sec]['s'])
+                                data['adversary_real_sec']['t'].append(other_traj[sec]['d']-6)
+                                data['adversary_real_sec']['sec'].append(sec)
+
+                            data['adversary_esmini']['speed'].append(obj_state.speed*3.6)
+                            data['adversary_esmini']['s'].append(obj_state.x)
+                            data['adversary_esmini']['t'].append(obj_state.t)
+                            data['adversary_esmini']['sec'].append(sec)
+                            sec_store['adversary'].append(sec)
+                            #print('Time {:.2f} esmini speed {:.2f} real speed {:.2f} esmini x: {:.2f} real x:{:.2f} t:{:.2f}'.format(obj_state.timestamp,obj_state.centerOffsetX,ego_traj[sec]['speed'], obj_state.x,ego_traj[sec]['s'], obj_state.t))
                     se.SE_Step()
                 if len(sec_store['ego']) > 2:
                     all_data.append(data)

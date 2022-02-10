@@ -322,8 +322,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
             }else{
               ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id<<" "<<d<<" lane no: "<<laneLaneletPair.first<<" ego lane no: "<<currentEgoLaneNo);
               json jData;
-              jData["scenario_start"] = objPtr->header.stamp.sec-8;
-              jData["scenario_end"] = objPtr->header.stamp.sec+4;
+              jData["scenario_start"] = objPtr->header.stamp.sec-12; //8 before
+              jData["scenario_end"] = objPtr->header.stamp.sec+8; //4 before
               jData["cutin_start"] = objPtr->header.stamp.sec-5;
               jData["cutin_end"] = objPtr->header.stamp.sec+1;
               jData["cutin_car"] = objPtr->object_id;
@@ -341,8 +341,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
             }else{
               ROS_INFO_STREAM("Cut-out Scenario detected!!! car: "<<objPtr->object_id<<" "<<d<<" lane no: "<<laneLaneletPair.first<<" ego lane no: "<<currentEgoLaneNo);
               json jData;
-              jData["scenario_start"] = objPtr->header.stamp.sec-8;
-              jData["scenario_end"] = objPtr->header.stamp.sec+4;
+              jData["scenario_start"] = objPtr->header.stamp.sec-12; //8 before
+              jData["scenario_end"] = objPtr->header.stamp.sec+8; //4 before
               jData["cutout_start"] = objPtr->header.stamp.sec-5;
               jData["cutout_end"] = objPtr->header.stamp.sec+1;
               jData["cutout_car"] = objPtr->object_id;

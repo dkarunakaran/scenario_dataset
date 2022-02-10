@@ -801,23 +801,25 @@ class Generate:
             actAdvList = []
             #Equally dividing
             allowed = []
-            num = len(param['param_relative_lane_pos'])-1
-            print("num: {}".format(num))
-            div = 1
-            section = ([num // div + (1 if x < num % div else 0)  for x in range (div)])
+            num = len(param['param_relative_lane_pos'])
+            print(num) 
+            #value = 1 # 2 parameters
+            #value = num*(2/4) #0.5
+            value = num*(4/4) # full
+            div = int(value)
+            section = self.split(num, div)
             add = 0;
             allowed.append(0)
             prev = 0
             for each in section:
                 add += each 
                 temp = add-1
-                if add == num and temp != prev:
-                    add = temp
+                if add == num:
+                    break
                 allowed.append(add)
-                prev = add
             print(allowed)
             
-            
+            prev = 0 
             print("----------------------------------------------")
             for index in range(len(param['param_relative_lane_pos'])):
                 
@@ -830,27 +832,25 @@ class Generate:
 
                 if (index+1) >= len(param['param_relative_lane_pos']):
                     break
-                
-                print(index)
-                if index != 0:
-                    data_prev = param['param_relative_lane_pos'][index-1]
-
+                #if index+1 == len(param['param_relative_lane_pos']):
+                #    data_current = param['param_relative_lane_pos'][index]
+                #    data_next = param['param_relative_lane_pos'][index]
+                #else:
                 data_current = param['param_relative_lane_pos'][index]
                 data_next = param['param_relative_lane_pos'][index+1]
                 
-                print(data_next['other']['speed'])
+                print(index)
+                print(data_current['other']['speed'])
                 print(data_current['other']['start_to_current_dist'])
                 print("*")
                 
                 #Ego
-                #if index == 0:
-                #    trig_cond1 = xosc.TraveledDistanceCondition(0.1)
-                #else:
                 trig_cond1 = xosc.TraveledDistanceCondition(data_current['ego']['start_to_current_dist'])
-                trigger = xosc.EntityTrigger('cutinTriggerEgo'+str(actCount),0.2,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
+                trigger = xosc.EntityTrigger('cutinTriggerEgo'+str(actCount),0.1,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
                 event = xosc.Event('cutIneventEgo'+str(actCount),xosc.Priority.parallel)
                 event.add_trigger(trigger)
-                lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,0.2)
+                duration = (index+1) - index
+                lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,duration)
                 action = xosc.AbsoluteSpeedAction(data_next['ego']['speed'],lin_time)
                 event.add_action('cutInSpeedActionEgo'+str(actCount),action)
                 man = xosc.Maneuver('cutInManeuverEgo'+str(actCount))
@@ -864,14 +864,12 @@ class Generate:
                 actEgoList.append(actEgo)
                 
                 #Adversary
-                #if index == 0:
-                #    trig_cond1 = xosc.TraveledDistanceCondition(0.1)
-                #else:
                 trig_cond1 = xosc.TraveledDistanceCondition(data_current['other']['start_to_current_dist'])
-                trigger = xosc.EntityTrigger('cutinTriggerAdv'+str(actCount),0.2,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
+                trigger = xosc.EntityTrigger('cutinTriggerAdv'+str(actCount),0.1,xosc.ConditionEdge.rising,trig_cond1,'$adversaryVehicle')
                 event = xosc.Event('cutIneventAdv'+str(actCount),xosc.Priority.parallel)
                 event.add_trigger(trigger)
-                lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,0.2)
+                duration = (index+1) - index
+                lin_time = xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,duration)
                 action = xosc.AbsoluteSpeedAction(data_next['other']['speed'],lin_time)
                 event.add_action('cutInSpeedActionAdv'+str(actCount),action)
                 man = xosc.Maneuver('cutInManeuverAdv'+str(actCount))
@@ -883,7 +881,7 @@ class Generate:
                 actAdv = xosc.Act('cutInActAdv'+str(actCount),starttrigger)
                 actAdv.add_maneuver_group(mangr)
                 actAdvList.append(actAdv)
-    
+                prev = index 
                 actCount +=1
             
             for index in range(len(actEgoList)):
@@ -905,8 +903,34 @@ class Generate:
             sce.write_xml(name)
             count += 1
 
+    def split(self, x, n):
+        allowed = [] 
+        # If we cannot split the
+        # number into exactly 'N' parts
+        if(x < n):
+            return -1
+     
+        # If x % n == 0 then the minimum
+        # difference is 0 and all
+        # numbers are x / n
+        elif (x % n == 0):
+            for i in range(n):
+                allowed.append(x//n)
+        else:
+            # upto n-(x % n) the values
+            # will be x / n
+            # after that the values
+            # will be x / n + 1
+            zp = n - (x % n)
+            pp = x//n
+            for i in range(n):
+                if(i>= zp):
+                    allowed.append(pp + 1)
+                else:
+                    allowed.append(pp)
 
-       
+        return allowed
+           
     def generate_opendrive(self, _file, filename):
         with open(_file) as f:
             data = json.loads(f.read())
