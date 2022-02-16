@@ -385,7 +385,8 @@ class FeatureModel:
                 second = self.window
                 param_all_data = {
                     'ego': [],
-                    'other': []
+                    'other': [],
+                    'other_sec': {}
                 }
                 while start_time <= lane_change_end_time:
                     if start_time in self.group_ego_by_sec.keys() and start_time in lane_change_car_data_by_sec.keys():
@@ -448,14 +449,15 @@ class FeatureModel:
                                 'd': ego_d,
                                 'speed': ego_speed,
                                 'lane': ego_lane_no,
-                                'start_to_current_dist': ego_to_dist
+                                'start_to_current_dist': ego_to_dist-2
                             }
                             param_all_data['ego'].append(data)
-
+                        ego_count = 0
+                        param_all_data['other_sec'][second] = []
                         for each in lane_change_car_data_by_sec[start_time]:
                             other_s = each['frenet_data']['s']
                             other_d = each['frenet_data']['d']
-                            other_speed = each['other']['long_speed']
+                            other_speed = self.group_ego_by_sec[start_time][ego_count]['other']['long_speed']+each['other']['long_speed']
                             other_lane_no = each['other']['lane_no']
                             if increase_pos == True:
                                 other_s += increase_pos_amount
@@ -465,9 +467,12 @@ class FeatureModel:
                                 'd': other_d,
                                 'speed': other_speed,
                                 'lane': other_lane_no,
-                                'start_to_current_dist': adv_to_dist
+                                'start_to_current_dist': adv_to_dist-2
                             }
                             param_all_data['other'].append(data)
+                            param_all_data['other_sec'][second].append(data)
+                            
+                            ego_count += 1
 
 
                         start_time += self.window

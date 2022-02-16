@@ -117,15 +117,14 @@ ego_real3 = data['data'][no]['ego_real']
 
 adversary_esmini_sec3 = data['data'][no]['adversary_esmini_sec']
 adversary_real_sec3 = data['data'][no]['adversary_real_sec']
-
-print(len(adversary_esmini_sec3['speed']))
-
+ego_esmini_sec3 = data['data'][no]['ego_esmini_sec']
+ego_real_sec3 = data['data'][no]['ego_real_sec']
 
 name = path_to_save_dir+"test"
 plt.figure()
 plt.xlabel("second")
-plt.ylabel(key)
-#plt.ylim([30, 45])
+plt.ylabel(key+" (km/hr)")
+plt.xlim([0, 11])
 #plt.plot(adversary_real1['sec'], adversary_real1[key])
 #plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')
 #plt.plot(adversary_real2['sec'], adversary_real2[key])
@@ -137,12 +136,50 @@ plt.legend(['Real-world', 'OpenSCENARIO'])
 plt.savefig(name)
 plt.close()
 
+name = path_to_save_dir+"test_ego"
+plt.figure()
+plt.xlabel("second")
+plt.ylabel(key+' (km/hr)')
+#plt.ylim([0, 20])
+plt.plot(ego_real_sec3['sec'], ego_real_sec3[key], label='real')
+plt.plot(ego_esmini_sec3['sec'], ego_esmini_sec3[key], label='generated')
+plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+plt.savefig(name)
+plt.close()
+
+
+adversary_esmini_milli = data['data'][no]['adversary_esmini_milli']
+adversary_real_milli = data['data'][no]['adversary_real_milli']
+
+sec = []
+speed = []
+for index in range(len(adversary_esmini_sec3['speed'])):
+    sec.append(index*10)
+    speed.append(adversary_esmini_sec3['speed'][index])
+
+sec_real = []
+speed_real = []
+for index in range(len(adversary_real_milli['speed'])):
+    sec_real.append(index)
+    speed_real.append(adversary_real_milli['speed'][index])
+
+name = path_to_save_dir+"test_other_milli"
+plt.figure()
+plt.xlabel("second")
+plt.ylabel(key+' (km/hr)')
+#plt.ylim([0, 20])
+#plt.plot(adversary_esmini_milli['speed'], label='generated')
+plt.plot(adversary_esmini_milli['sec'], adversary_esmini_milli['speed'], label='real')
+#plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+plt.legend(['Real-world', 'OpenSCENARIO'])
+plt.savefig(name)
+
 key = 's'
 name = path_to_save_dir+"test_s_t"
 plt.figure()
 plt.xlabel("t, lateral displacement")
 plt.ylabel('s, longitudinal displacement')
-plt.xlim([0, -6])
+plt.xlim([-1, -5])
 #plt.ylim([100, 130])
 #plt.plot(adversary_real1['sec'], adversary_real1[key])
 #plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')
@@ -156,19 +193,8 @@ plt.savefig(name)
 plt.close()
 
 
+
 '''
-name = path_to_save_dir+"test_ego"
-plt.figure()
-plt.xlabel("second")
-plt.ylabel(key+' m/s')
-plt.ylim([0, 20])
-plt.plot(ego_esmini3['sec'], ego_esmini3[key], label='generated')
-plt.plot(ego_real3['sec'], ego_real3[key], label='real')
-plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
-plt.savefig(name)
-plt.close()
-
-
 name = path_to_save_dir+"test_rss"
 key = 'rss'
 plt.figure()

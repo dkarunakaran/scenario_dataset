@@ -3,19 +3,19 @@ esmini GIT TAG: v2.20.5
 esmini GIT BRANCH: tags/v2.20.5^0
 esmini BUILD VERSION: 2.20.5.build.2190
 Disable entity controllers
-Generated seed 411030575
-Loading gate_south-end_north-end_20210615_043348.0_cutin_2.xosc (v1.1)
-OpenDRIVE: gate_south-end_north-end_20210615_043348.0.xodr
+Generated seed 3935087546
+Loading gate_south-end_north-end_20210528_064001.0_cutin_1.xosc (v1.1)
+OpenDRIVE: gate_south-end_north-end_20210528_064001.0.xodr
 Scenegraph: None
 0.000: Init hero LongitudinalAction standbyState -> startTransition -> runningState
 0.000: Starting teleport Action
 0.000: hero New position:
-0.000: Pos(494.41, 0.09, 0.00) Rot(0.04, 0.00, 0.00) roadId 0 laneId -2 offset 0.00 t -4.50
+0.000: Pos(312.18, -2.11, 0.00) Rot(0.02, 0.00, 0.00) roadId 0 laneId -2 offset 0.00 t -4.50
 0.000: Init hero TeleportAction standbyState -> startTransition -> runningState
 0.000: Init adversary LongitudinalAction standbyState -> startTransition -> runningState
 0.000: Starting teleport Action
 0.000: adversary New position:
-0.000: Pos(513.40, 3.78, 0.00) Rot(0.04, 0.00, 0.00) roadId 0 laneId -1 offset 0.00 t -1.50
+0.000: Pos(300.22, 0.69, 0.00) Rot(0.01, 0.00, 0.00) roadId 0 laneId -1 offset 0.00 t -1.50
 0.000: Init adversary TeleportAction standbyState -> startTransition -> runningState
 0.000: Init hero LongitudinalAction runningState -> endTransition -> completeState
 0.000: Init hero TeleportAction runningState -> endTransition -> completeState
@@ -31,259 +31,133 @@ Scenegraph: None
 0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/./../models/car_white.osgb
 0.000:     /home/beastan/Documents/phd/scenario_extraction/parameters/scenario_files/././car_white.osgb
 0.000: Creating a dummy model instead
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTrigger == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInAct standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo0 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo0 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv0 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv0 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo1 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo1 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv1 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv1 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo2 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo2 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv2 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv2 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo3 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo3 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv3 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv3 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo4 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo4 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv4 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv4 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo5 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo5 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv5 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv5 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo6 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo6 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv6 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv6 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerEgo7 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActEgo7 standbyState -> startTransition -> runningState
-0.010: Trigger /------------------------------------------------
-0.010: cutinStartTriggerAdv7 == true, 0.0100 > 0.00 edge: rising
-0.010: Trigger  ------------------------------------------------/
-0.010: cutInActAdv7 standbyState -> startTransition -> runningState
-0.732: cutinTriggerEgo0 timer 0.10s started
-0.832: cutinTriggerEgo0 timer expired at 0.10 seconds
-0.832: Trigger /------------------------------------------------
-0.832: cutinTriggerEgo0 == true, traveled_dist: 1.39 >= 1.37, edge: rising
-0.832: Triggering entity 0: hero
-0.832: Trigger  ------------------------------------------------/
-0.842: cutInSpeedActionEgo0 standbyState -> startTransition -> runningState
-0.842: cutIneventEgo0 standbyState -> startTransition -> runningState
-1.022: cutinTriggerAdv0 timer 0.10s started
-1.122: cutinTriggerAdv0 timer expired at 0.10 seconds
-1.122: Trigger /------------------------------------------------
-1.122: cutinTriggerAdv0 == true, traveled_dist: 4.91 >= 4.87, edge: rising
-1.122: Triggering entity 0: adversary
-1.122: Trigger  ------------------------------------------------/
-1.132: cutInSpeedActionAdv0 standbyState -> startTransition -> runningState
-1.132: cutIneventAdv0 standbyState -> startTransition -> runningState
-1.772: cutinTriggerEgo1 timer 0.10s started
-1.822: cutIneventEgo0 complete after 1 execution
-1.832: cutInSpeedActionEgo0 runningState -> endTransition -> completeState
-1.832: cutIneventEgo0 runningState -> endTransition -> completeState
-1.872: cutinTriggerEgo1 timer expired at 0.10 seconds
-1.872: Trigger /------------------------------------------------
-1.872: cutinTriggerEgo1 == true, traveled_dist: 3.86 >= 3.84, edge: rising
-1.872: Triggering entity 0: hero
-1.872: Trigger  ------------------------------------------------/
-1.882: cutInSpeedActionEgo1 standbyState -> startTransition -> runningState
-1.882: cutIneventEgo1 standbyState -> startTransition -> runningState
-2.012: cutinTriggerAdv1 timer 0.10s started
-2.112: cutinTriggerAdv1 timer expired at 0.10 seconds
-2.112: Trigger /------------------------------------------------
-2.112: cutinTriggerAdv1 == true, traveled_dist: 9.60 >= 9.56, edge: rising
-2.112: Triggering entity 0: adversary
-2.112: Trigger  ------------------------------------------------/
-2.112: Stopping object adversary cutInSpeedActionAdv0 on conflicting longitudinal domain(s)
-2.112: cutIneventAdv0 complete after 1 execution
-2.122: cutInSpeedActionAdv0 runningState -> endTransition -> completeState
-2.122: cutIneventAdv0 runningState -> endTransition -> completeState
-2.122: cutInSpeedActionAdv1 standbyState -> startTransition -> runningState
-2.122: cutIneventAdv1 standbyState -> startTransition -> runningState
-2.802: cutinTriggerEgo2 timer 0.10s started
-2.862: cutIneventEgo1 complete after 1 execution
-2.872: cutInSpeedActionEgo1 runningState -> endTransition -> completeState
-2.872: cutIneventEgo1 runningState -> endTransition -> completeState
-2.902: cutinTriggerEgo2 timer expired at 0.10 seconds
-2.902: Trigger /------------------------------------------------
-2.902: cutinTriggerEgo2 == true, traveled_dist: 7.26 >= 7.24, edge: rising
-2.902: Triggering entity 0: hero
-2.902: Trigger  ------------------------------------------------/
-2.912: cutInSpeedActionEgo2 standbyState -> startTransition -> runningState
-2.912: cutIneventEgo2 standbyState -> startTransition -> runningState
-2.992: cutinTriggerAdv2 timer 0.10s started
-3.092: cutinTriggerAdv2 timer expired at 0.10 seconds
-3.092: Trigger /------------------------------------------------
-3.092: cutinTriggerAdv2 == true, traveled_dist: 14.11 >= 14.09, edge: rising
-3.092: Triggering entity 0: adversary
-3.092: Trigger  ------------------------------------------------/
-3.092: Stopping object adversary cutInSpeedActionAdv1 on conflicting longitudinal domain(s)
-3.092: cutIneventAdv1 complete after 1 execution
-3.102: cutInSpeedActionAdv1 runningState -> endTransition -> completeState
-3.102: cutIneventAdv1 runningState -> endTransition -> completeState
-3.102: cutInSpeedActionAdv2 standbyState -> startTransition -> runningState
-3.102: cutIneventAdv2 standbyState -> startTransition -> runningState
-3.822: cutinTriggerEgo3 timer 0.10s started
-3.892: cutIneventEgo2 complete after 1 execution
-3.902: cutInSpeedActionEgo2 runningState -> endTransition -> completeState
-3.902: cutIneventEgo2 runningState -> endTransition -> completeState
-3.922: cutinTriggerEgo3 timer expired at 0.10 seconds
-3.922: Trigger /------------------------------------------------
-3.922: cutinTriggerEgo3 == true, traveled_dist: 11.03 >= 10.99, edge: rising
-3.922: Triggering entity 0: hero
-3.922: Trigger  ------------------------------------------------/
-3.932: cutInSpeedActionEgo3 standbyState -> startTransition -> runningState
-3.932: cutIneventEgo3 standbyState -> startTransition -> runningState
-4.012: cutinTriggerAdv3 timer 0.10s started
-4.082: cutIneventAdv2 complete after 1 execution
-4.092: cutInSpeedActionAdv2 runningState -> endTransition -> completeState
-4.092: cutIneventAdv2 runningState -> endTransition -> completeState
-4.112: cutinTriggerAdv3 timer expired at 0.10 seconds
-4.112: Trigger /------------------------------------------------
-4.112: cutinTriggerAdv3 == true, traveled_dist: 18.87 >= 18.87, edge: rising
-4.112: Triggering entity 0: adversary
-4.112: Trigger  ------------------------------------------------/
-4.122: cutInSpeedActionAdv3 standbyState -> startTransition -> runningState
-4.122: cutIneventAdv3 standbyState -> startTransition -> runningState
-4.802: cutinTriggerEgo4 timer 0.10s started
-4.902: cutinTriggerEgo4 timer expired at 0.10 seconds
-4.902: Trigger /------------------------------------------------
-4.902: cutinTriggerEgo4 == true, traveled_dist: 14.58 >= 14.56, edge: rising
-4.902: Triggering entity 0: hero
-4.902: Trigger  ------------------------------------------------/
-4.902: Stopping object hero cutInSpeedActionEgo3 on conflicting longitudinal domain(s)
-4.902: cutIneventEgo3 complete after 1 execution
-4.912: cutInSpeedActionEgo3 runningState -> endTransition -> completeState
-4.912: cutIneventEgo3 runningState -> endTransition -> completeState
-4.912: cutInSpeedActionEgo4 standbyState -> startTransition -> runningState
-4.912: cutIneventEgo4 standbyState -> startTransition -> runningState
-5.082: cutinTriggerAdv4 timer 0.10s started
-5.102: cutIneventAdv3 complete after 1 execution
-5.112: cutInSpeedActionAdv3 runningState -> endTransition -> completeState
-5.112: cutIneventAdv3 runningState -> endTransition -> completeState
-5.182: cutinTriggerAdv4 timer expired at 0.10 seconds
-5.182: Trigger /------------------------------------------------
-5.182: cutinTriggerAdv4 == true, traveled_dist: 24.36 >= 24.33, edge: rising
-5.182: Triggering entity 0: adversary
-5.182: Trigger  ------------------------------------------------/
-5.192: cutInSpeedActionAdv4 standbyState -> startTransition -> runningState
-5.192: cutIneventAdv4 standbyState -> startTransition -> runningState
-5.802: cutinTriggerEgo5 timer 0.10s started
-5.892: cutIneventEgo4 complete after 1 execution
-5.902: cutInSpeedActionEgo4 runningState -> endTransition -> completeState
-5.902: cutIneventEgo4 runningState -> endTransition -> completeState
-5.902: cutinTriggerEgo5 timer expired at 0.10 seconds
-5.902: Trigger /------------------------------------------------
-5.902: cutinTriggerEgo5 == true, traveled_dist: 18.30 >= 18.28, edge: rising
-5.902: Triggering entity 0: hero
-5.902: Trigger  ------------------------------------------------/
-5.912: cutInSpeedActionEgo5 standbyState -> startTransition -> runningState
-5.912: cutIneventEgo5 standbyState -> startTransition -> runningState
-6.102: cutinTriggerAdv5 timer 0.10s started
-6.112: Trigger /------------------------------------------------
-6.112: cutinTrigger == true, rel_dist: 24.83 > 24.82, edge: rising
-6.112: Triggering entity 0: hero
-6.112: Trigger  ------------------------------------------------/
-6.122: cutInLaneAction standbyState -> startTransition -> runningState
-6.122: cutInevent standbyState -> startTransition -> runningState
-6.172: cutIneventAdv4 complete after 1 execution
-6.182: cutInSpeedActionAdv4 runningState -> endTransition -> completeState
-6.182: cutIneventAdv4 runningState -> endTransition -> completeState
-6.202: cutinTriggerAdv5 timer expired at 0.10 seconds
-6.202: Trigger /------------------------------------------------
-6.202: cutinTriggerAdv5 == true, traveled_dist: 30.02 >= 29.97, edge: rising
-6.202: Triggering entity 0: adversary
-6.202: Trigger  ------------------------------------------------/
-6.212: cutInSpeedActionAdv5 standbyState -> startTransition -> runningState
-6.212: cutIneventAdv5 standbyState -> startTransition -> runningState
-6.822: cutinTriggerEgo6 timer 0.10s started
-6.892: cutIneventEgo5 complete after 1 execution
-6.902: cutInSpeedActionEgo5 runningState -> endTransition -> completeState
-6.902: cutIneventEgo5 runningState -> endTransition -> completeState
-6.922: cutinTriggerEgo6 timer expired at 0.10 seconds
-6.922: Trigger /------------------------------------------------
-6.922: cutinTriggerEgo6 == true, traveled_dist: 22.69 >= 22.65, edge: rising
-6.922: Triggering entity 0: hero
-6.922: Trigger  ------------------------------------------------/
-6.932: cutInSpeedActionEgo6 standbyState -> startTransition -> runningState
-6.932: cutIneventEgo6 standbyState -> startTransition -> runningState
-7.092: cutinTriggerAdv6 timer 0.10s started
-7.192: cutinTriggerAdv6 timer expired at 0.10 seconds
-7.192: Trigger /------------------------------------------------
-7.192: cutinTriggerAdv6 == true, traveled_dist: 35.69 >= 35.66, edge: rising
-7.192: Triggering entity 0: adversary
-7.192: Trigger  ------------------------------------------------/
-7.192: Stopping object adversary cutInSpeedActionAdv5 on conflicting longitudinal domain(s)
-7.192: cutIneventAdv5 complete after 1 execution
-7.202: cutInSpeedActionAdv5 runningState -> endTransition -> completeState
-7.202: cutIneventAdv5 runningState -> endTransition -> completeState
-7.202: cutInSpeedActionAdv6 standbyState -> startTransition -> runningState
-7.202: cutIneventAdv6 standbyState -> startTransition -> runningState
-7.862: cutinTriggerEgo7 timer 0.10s started
-7.912: cutIneventEgo6 complete after 1 execution
-7.922: cutInSpeedActionEgo6 runningState -> endTransition -> completeState
-7.922: cutIneventEgo6 runningState -> endTransition -> completeState
-7.962: cutinTriggerEgo7 timer expired at 0.10 seconds
-7.962: Trigger /------------------------------------------------
-7.962: cutinTriggerEgo7 == true, traveled_dist: 27.90 >= 27.85, edge: rising
-7.962: Triggering entity 0: hero
-7.962: Trigger  ------------------------------------------------/
-7.962: cutIneventEgo7 complete after 1 execution
-7.972: cutInSpeedActionEgo7 standbyState -> endTransition -> completeState
-7.972: cutIneventEgo7 standbyState -> endTransition -> completeState
-8.062: cutinTriggerAdv7 timer 0.10s started
-8.162: cutinTriggerAdv7 timer expired at 0.10 seconds
-8.162: Trigger /------------------------------------------------
-8.162: cutinTriggerAdv7 == true, traveled_dist: 41.41 >= 41.39, edge: rising
-8.162: Triggering entity 0: adversary
-8.162: Trigger  ------------------------------------------------/
-8.162: Stopping object adversary cutInSpeedActionAdv6 on conflicting longitudinal domain(s)
-8.162: cutIneventAdv6 complete after 1 execution
-8.172: cutInSpeedActionAdv6 runningState -> endTransition -> completeState
-8.172: cutIneventAdv6 runningState -> endTransition -> completeState
-8.172: cutInSpeedActionAdv7 standbyState -> startTransition -> runningState
-8.172: cutIneventAdv7 standbyState -> startTransition -> runningState
-9.112: cutInevent complete after 1 execution
-9.122: cutInLaneAction runningState -> endTransition -> completeState
-9.122: cutInevent runningState -> endTransition -> completeState
-9.152: cutIneventAdv7 complete after 1 execution
-9.162: cutInSpeedActionAdv7 runningState -> endTransition -> completeState
-9.162: cutIneventAdv7 runningState -> endTransition -> completeState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTrigger == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInAct standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo0 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo0 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv0 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv0 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo1 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo1 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv1 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv1 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo2 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo2 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv2 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv2 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo3 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo3 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv3 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv3 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo4 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo4 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv4 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv4 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo5 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo5 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv5 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv5 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo6 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo6 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv6 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv6 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo7 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo7 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv7 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv7 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo8 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo8 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv8 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv8 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo9 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo9 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv9 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv9 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo10 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo10 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv10 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv10 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerEgo11 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActEgo11 standbyState -> startTransition -> runningState
+0.020: Trigger /------------------------------------------------
+0.020: cutinStartTriggerAdv11 == true, 0.0200 > 0.01 edge: rising
+0.020: Trigger  ------------------------------------------------/
+0.020: cutInActAdv11 standbyState -> startTransition -> runningState
+0.110: cutinTriggerAdv0 timer 0.01s started
+0.120: cutinTriggerAdv0 timer expired at 0.01 seconds
+0.120: Trigger /------------------------------------------------
+0.120: cutinTriggerAdv0 == true, traveled_dist: 1.09 >= 1.00, edge: risingOrFalling
+0.120: Triggering entity 0: adversary
+0.120: Trigger  ------------------------------------------------/
+0.130: cutInSpeedActionAdv0 standbyState -> startTransition -> runningState
+0.130: cutIneventAdv0 standbyState -> startTransition -> runningState
+0.140: cutIneventAdv0 complete after 1 execution
+0.150: cutInSpeedActionAdv0 runningState -> endTransition -> completeState
+0.150: cutIneventAdv0 runningState -> endTransition -> completeState
+0.190: cutinTriggerEgo0 timer 0.01s started
+0.200: cutinTriggerEgo0 timer expired at 0.01 seconds
+0.200: Trigger /------------------------------------------------
+0.200: cutinTriggerEgo0 == true, traveled_dist: 1.02 >= 1.00, edge: risingOrFalling
+0.200: Triggering entity 0: hero
+0.200: Trigger  ------------------------------------------------/
+0.210: cutInSpeedActionEgo0 standbyState -> startTransition -> runningState
+0.210: cutIneventEgo0 standbyState -> startTransition -> runningState
+0.310: cutIneventEgo0 complete after 1 execution
+0.320: cutInSpeedActionEgo0 runningState -> endTransition -> completeState
+0.320: cutIneventEgo0 runningState -> endTransition -> completeState
+1.690: cutinTriggerAdv1 timer 0.01s started
+1.700: cutinTriggerAdv1 timer expired at 0.01 seconds
+1.700: Trigger /------------------------------------------------
+1.700: cutinTriggerAdv1 == true, traveled_dist: 17.09 >= 17.05, edge: risingOrFalling
+1.700: Triggering entity 0: adversary
+1.700: Trigger  ------------------------------------------------/
+1.710: cutInSpeedActionAdv1 standbyState -> startTransition -> runningState
+1.710: cutIneventAdv1 standbyState -> startTransition -> runningState

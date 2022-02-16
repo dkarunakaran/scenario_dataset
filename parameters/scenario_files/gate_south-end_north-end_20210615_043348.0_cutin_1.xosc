@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
-    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-02-10T23:12:14.093714"/>
+    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-02-13T15:59:46.135104"/>
     <ParameterDeclarations>
         <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
         <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="5.505555629730225"/>
@@ -12,7 +12,7 @@
         <ParameterDeclaration name="$adversaryLane" parameterType="double" value="-1"/>
         <ParameterDeclaration name="$adversaryCutinSpeed" parameterType="double" value="40"/>
         <ParameterDeclaration name="$adversaryStartDiff" parameterType="double" value="6.999817547490295"/>
-        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="11.012503505554832"/>
+        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="6.012503505554832"/>
         <ParameterDeclaration name="$adversaryCutinTime" parameterType="double" value="7"/>
         <ParameterDeclaration name="$lanechangeCarId" parameterType="double" value="104"/>
     </ParameterDeclarations>
@@ -141,7 +141,7 @@
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <RelativeDistanceCondition value="$adversaryCutinTriggerDist" freespace="true" entityRef="$adversaryVehicle" rule="greaterThan" relativeDistanceType="euclidianDistance" coordinateSystem="entity"/>
+                                                <RelativeDistanceCondition value="$adversaryCutinTriggerDist" freespace="true" entityRef="$adversaryVehicle" rule="greaterThan" relativeDistanceType="longitudinal" coordinateSystem="entity"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -154,7 +154,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTrigger" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -172,7 +172,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="6.505555629730225"/>
                                             </SpeedActionTarget>
@@ -182,13 +182,13 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo0" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo0" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="5.0466143421813285"/>
+                                                <TraveledDistanceCondition value="1"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -201,7 +201,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo0" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -219,7 +219,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="7.67555558681488"/>
                                             </SpeedActionTarget>
@@ -229,13 +229,13 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv0" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv0" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="6.453377834699495"/>
+                                                <TraveledDistanceCondition value="1"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -248,7 +248,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv0" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -266,7 +266,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="7.086111068725586"/>
                                             </SpeedActionTarget>
@@ -276,7 +276,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo1" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo1" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -295,7 +295,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo1" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -313,7 +313,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="8.016111075878143"/>
                                             </SpeedActionTarget>
@@ -323,7 +323,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv1" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv1" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -342,7 +342,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv1" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -360,7 +360,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="7.324999809265137"/>
                                             </SpeedActionTarget>
@@ -370,7 +370,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo2" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo2" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -389,7 +389,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo2" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -407,7 +407,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="7.92499977350235"/>
                                             </SpeedActionTarget>
@@ -417,7 +417,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv2" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv2" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -436,7 +436,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv2" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -454,7 +454,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="7.3222222328186035"/>
                                             </SpeedActionTarget>
@@ -464,7 +464,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo3" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo3" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -483,7 +483,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo3" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -501,7 +501,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="7.83222222328186"/>
                                             </SpeedActionTarget>
@@ -511,7 +511,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv3" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv3" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -530,7 +530,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv3" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -548,7 +548,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="7.1777777671813965"/>
                                             </SpeedActionTarget>
@@ -558,7 +558,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo4" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo4" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -577,7 +577,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo4" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -595,7 +595,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="6.847777783870697"/>
                                             </SpeedActionTarget>
@@ -605,7 +605,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv4" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv4" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -624,7 +624,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv4" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -642,7 +642,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="6.919444561004639"/>
                                             </SpeedActionTarget>
@@ -652,7 +652,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo5" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo5" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -671,7 +671,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo5" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -689,7 +689,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="5.669444561004639"/>
                                             </SpeedActionTarget>
@@ -699,7 +699,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv5" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv5" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -718,7 +718,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv5" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -736,7 +736,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="5.833333492279053"/>
                                             </SpeedActionTarget>
@@ -746,7 +746,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo6" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo6" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -765,7 +765,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo6" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -783,7 +783,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="5.463333487510681"/>
                                             </SpeedActionTarget>
@@ -793,7 +793,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv6" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv6" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -812,7 +812,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv6" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -830,7 +830,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="5.0916666984558105"/>
                                             </SpeedActionTarget>
@@ -840,7 +840,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo7" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo7" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -859,7 +859,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo7" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -877,7 +877,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="5.181666694581509"/>
                                             </SpeedActionTarget>
@@ -887,7 +887,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv7" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv7" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -906,7 +906,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv7" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -924,7 +924,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="4.494444370269775"/>
                                             </SpeedActionTarget>
@@ -934,7 +934,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo8" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo8" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -953,7 +953,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo8" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -971,7 +971,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="5.064444363117218"/>
                                             </SpeedActionTarget>
@@ -981,7 +981,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv8" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv8" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -1000,7 +1000,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv8" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -1018,7 +1018,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="3.991666555404663"/>
                                             </SpeedActionTarget>
@@ -1028,7 +1028,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo9" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo9" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -1047,7 +1047,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo9" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -1065,7 +1065,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="4.9816665053367615"/>
                                             </SpeedActionTarget>
@@ -1075,7 +1075,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv9" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv9" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -1094,7 +1094,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv9" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -1112,7 +1112,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="3.9555556774139404"/>
                                             </SpeedActionTarget>
@@ -1122,7 +1122,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo10" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo10" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -1141,7 +1141,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo10" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -1159,7 +1159,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="4.635555684566498"/>
                                             </SpeedActionTarget>
@@ -1169,7 +1169,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv10" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv10" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -1188,7 +1188,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv10" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -1206,7 +1206,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="3.9555556774139404"/>
                                             </SpeedActionTarget>
@@ -1216,7 +1216,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerEgo11" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerEgo11" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$egoVehicle"/>
@@ -1235,7 +1235,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerEgo11" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -1253,7 +1253,7 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="1" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0.01" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
                                                 <AbsoluteTargetSpeed value="4.635555684566498"/>
                                             </SpeedActionTarget>
@@ -1263,7 +1263,7 @@
                             </Action>
                             <StartTrigger>
                                 <ConditionGroup>
-                                    <Condition name="cutinTriggerAdv11" delay="0.1" conditionEdge="rising">
+                                    <Condition name="cutinTriggerAdv11" delay="0.01" conditionEdge="risingOrFalling">
                                         <ByEntityCondition>
                                             <TriggeringEntities triggeringEntitiesRule="any">
                                                 <EntityRef entityRef="$adversaryVehicle"/>
@@ -1282,7 +1282,7 @@
                     <ConditionGroup>
                         <Condition name="cutinStartTriggerAdv11" delay="0" conditionEdge="rising">
                             <ByValueCondition>
-                                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                                <SimulationTimeCondition value="0.01" rule="greaterThan"/>
                             </ByValueCondition>
                         </Condition>
                     </ConditionGroup>
@@ -1294,7 +1294,7 @@
             <ConditionGroup>
                 <Condition name="stop_simulation" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                        <SimulationTimeCondition value="30" rule="greaterThan"/>
+                        <SimulationTimeCondition value="15" rule="greaterThan"/>
                     </ByValueCondition>
                 </Condition>
             </ConditionGroup>
