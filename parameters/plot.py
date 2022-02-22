@@ -6,79 +6,9 @@ matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import json
+import math
+import numpy as np
 
-'''
-loc = '/model/parameters/'
-_dir = os.listdir(loc)
-evaluation = {
-    'cut-in': {
-        'param_ego_speed_init': [],
-        'param_adv_speed_init': [],
-        'param_start_diff': [],
-        'param_cutin_start_dist': [],
-        'param_cutin_time': [],
-        'param_ego_to_cutin_dist': [],
-        'param_ego_to_cutin_time': [],
-        'param_adv_to_cutin_time': [],
-        'param_adv_to_cutin_dist': []
-    },
-    'cut-out':{
-        'param_ego_speed_init': [],
-        'param_adv_speed_init': [],
-        'param_start_diff': [],
-        'param_cutout_start_dist': [],
-        'param_cutout_time': [],
-        'param_ego_to_cutout_dist': [],
-        'param_ego_to_cutout_time': [],
-        'param_adv_to_cutout_time': [],
-        'param_adv_to_cutout_dist': []
-
-    }
-}
-for _file in _dir:
-    base = os.path.basename(_file)
-    fileDetails = os.path.splitext(base)
-    if fileDetails[1] == '.cutin' or fileDetails[1] == '.cutout':
-        print("Processing the file: {}".format(_file))
-        with open(_file) as f:
-            data = json.loads(f.read())
-        _type = data['type']
-        if _type == 'cutin':
-            for param in data['parameter']:
-                evaluation['cut-in']['param_ego_speed_init'].append(param['param_ego_speed_init'])
-                evaluation['cut-in']['param_adv_speed_init'].append(param['param_adv_speed_init'])
-                evaluation['cut-in']['param_start_diff'].append(param['param_start_diff'])
-                evaluation['cut-in']['param_cutin_start_dist'].append(param['param_cutin_start_dist'])
-                evaluation['cut-in']['param_cutin_time'].append(param['param_cutin_time'])
-                evaluation['cut-in']['param_ego_to_cutin_dist'].append(param['param_ego_to_cutin_dist'])
-                evaluation['cut-in']['param_adv_to_cutin_time'].append(param['param_adv_to_cutin_time'])
-                evaluation['cut-in']['param_adv_to_cutin_dist'].append(param['param_adv_to_cutin_dist'])
-         
-        if _type == 'cutout':
-            for param in data['parameter']:
-                evaluation['cut-out']['param_ego_speed_init'].append(param['param_ego_speed_init'])
-                evaluation['cut-out']['param_adv_speed_init'].append(param['param_adv_speed_init'])
-                evaluation['cut-out']['param_start_diff'].append(param['param_start_diff'])
-                evaluation['cut-out']['param_cutout_start_dist'].append(param['param_cutout_start_dist'])
-                evaluation['cut-out']['param_cutout_time'].append(param['param_cutout_time'])
-                evaluation['cut-out']['param_ego_to_cutout_dist'].append(param['param_ego_to_cutout_dist'])
-                evaluation['cut-out']['param_adv_to_cutout_time'].append(param['param_adv_to_cutout_time'])
-                evaluation['cut-out']['param_adv_to_cutout_dist'].append(param['param_adv_to_cutout_dist'])
-        
-        
-
-print(evaluation)
-
-for key in evaluation['cut-in'].keys():
-    path_to_save_dir = '/model/plots/param_plots/'
-    name = path_to_save_dir+key
-    plt.figure()
-    hist = plt.hist(evaluation['cut-in'][key], bins='auto', color='#B45743', rwidth=0.25, normed=False)
-    plt.ylabel("Frequency")
-    plt.xlabel(key)
-    plt.savefig(name)
-    plt.close()
-'''
 #-----------------------------------esmini data------------------------------
 path_to_save_dir = 'plots/'
 _file = 'esmini_real_plot_data.json'
@@ -108,7 +38,8 @@ esmini2 = data['data'][no]['esmini']
 real2 = data['data'][no]['real'] 
 '''
 
-no = 0
+no = 0 
+
 key = 'speed'
 adversary_esmini3 = data['data'][no]['adversary_esmini']
 adversary_real3 = data['data'][no]['adversary_real']
@@ -153,9 +84,59 @@ adversary_real_milli = data['data'][no]['adversary_real_milli']
 
 sec = []
 speed = []
+squared_error_s = []
+squared_error_t = []
+mse_sec = []
 for index in range(len(adversary_esmini_sec3['speed'])):
+    print("----------index: {}---------".format(index))
     sec.append(index*10)
     speed.append(adversary_esmini_sec3['speed'][index])
+    if index < len(adversary_real_sec3['t']):
+        '''
+        x1 = adversary_real_sec3['t'][index]
+        y1 = adversary_real_sec3['s'][index]
+        x2 = adversary_esmini_sec3['t'][index]
+        y2 = adversary_esmini_sec3['s'][index]
+        error =  math.sqrt(np.square(x1-x2)+np.square(y1-y2))
+        #y_pred = adversary_esmini_sec3['t'][index]
+        #y_actual = adversary_real_sec3['t'][index]
+        #squared_error = np.square(np.subtract(y_actual,y_pred))
+        mse_data.append(error)
+        '''
+        s_actual = adversary_real_sec3['s'][index]
+        s_pred = adversary_esmini_sec3['s'][index]
+        t_actual = adversary_real_sec3['t'][index]
+        t_pred = adversary_esmini_sec3['t'][index]
+        squared_error_s.append(np.square(np.subtract(s_actual,s_pred)))
+        squared_error_t.append(np.square(np.subtract(t_actual,t_pred)))
+        mse_sec.append(index)
+        print(np.square(np.subtract(s_actual,s_pred)))
+        
+rmse_s = math.sqrt(sum(squared_error_s)/len(squared_error_s))
+rmse_t = math.sqrt(sum(squared_error_t)/len(squared_error_t))
+print("rmse_s: {}, rmse_t:{}".format(rmse_s, rmse_t))
+
+name = path_to_save_dir+"test_rmse_s"
+plt.figure()
+plt.xlabel("error")
+plt.ylabel("second")
+plt.plot(mse_sec, squared_error_s)
+plt.legend(['rmse_s'])
+plt.savefig(name)
+plt.close()
+
+name = path_to_save_dir+"test_rmse_t"
+plt.figure()
+plt.xlabel("error")
+plt.ylabel("second")
+plt.plot(mse_sec, squared_error_t)
+plt.legend(['rmse_t'])
+plt.savefig(name)
+plt.close()
+
+
+
+
 
 sec_real = []
 speed_real = []
@@ -179,7 +160,9 @@ name = path_to_save_dir+"test_s_t"
 plt.figure()
 plt.xlabel("t, lateral displacement")
 plt.ylabel('s, longitudinal displacement')
-plt.xlim([-1, -5])
+plt.xlim([0, -7])
+plt.text(-5, adversary_real3[key][len(adversary_real3[key])-5], "rmse_s = {:.3f} m".format(rmse_s), fontsize = 10)
+plt.text(-5, adversary_real3[key][len(adversary_real3[key])-15], "rmse_t = {:.3f} m".format(rmse_t), fontsize = 10)
 #plt.ylim([100, 130])
 #plt.plot(adversary_real1['sec'], adversary_real1[key])
 #plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')

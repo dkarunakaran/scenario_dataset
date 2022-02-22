@@ -322,8 +322,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
             }else{
               ROS_INFO_STREAM("Cutin Scenario detected!!! car: "<<objPtr->object_id<<" "<<d<<" lane no: "<<laneLaneletPair.first<<" ego lane no: "<<currentEgoLaneNo);
               json jData;
-              jData["scenario_start"] = objPtr->header.stamp.sec-12; //8 before
-              jData["scenario_end"] = objPtr->header.stamp.sec+8; //4 before
+              jData["scenario_start"] = objPtr->header.stamp.sec-8; //8 before
+              jData["scenario_end"] = objPtr->header.stamp.sec+4; //4 before
               jData["cutin_start"] = objPtr->header.stamp.sec-5;
               jData["cutin_end"] = objPtr->header.stamp.sec+1;
               jData["cutin_car"] = objPtr->object_id;
@@ -341,8 +341,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
             }else{
               ROS_INFO_STREAM("Cut-out Scenario detected!!! car: "<<objPtr->object_id<<" "<<d<<" lane no: "<<laneLaneletPair.first<<" ego lane no: "<<currentEgoLaneNo);
               json jData;
-              jData["scenario_start"] = objPtr->header.stamp.sec-12; //8 before
-              jData["scenario_end"] = objPtr->header.stamp.sec+8; //4 before
+              jData["scenario_start"] = objPtr->header.stamp.sec-8; //8 before
+              jData["scenario_end"] = objPtr->header.stamp.sec+4; //4 before
               jData["cutout_start"] = objPtr->header.stamp.sec-5;
               jData["cutout_end"] = objPtr->header.stamp.sec+1;
               jData["cutout_car"] = objPtr->object_id;
@@ -408,8 +408,11 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         if(egoDataCount > 10 && positiveDir > negativeDir && d < 0)
             d *= -1;
         //ROS_INFO_STREAM("roadCenterLs: "<<roadCenterls.front().x()<<" "<<roadCenterls.front().y()<<" "<<roadCenterls.back().x()<<" "<<roadCenterls.back().y()<<" egoDataCount: "<<egoDataCount<<" positiveDir: "<<positiveDir<<" negativeDir: "<<negativeDir<<" , egoPoint: "<<egoPoint.x()<<" "<<egoPoint.y()<<" d:"<<d);
+        auto laneOffset = findThelaneOffset(map, egoPoint);
+        
         jData["s"] = frenetS;
         jData["d"] = d;
+        jData["lane_offset"] = laneOffset;
         jData["sec"] = odomPtr->header.stamp.sec;
         odomJdata["x"] = egoPosX;
         odomJdata["y"] = egoPosY;
@@ -449,10 +452,15 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           float d_ego_ref = lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point); 
           if(egoDataCount > 10 && positiveDir > negativeDir && d_ego_ref < 0)
             d_ego_ref *= -1;*/
-
+        
+          auto laneOffset = findThelaneOffset(map, point);
+          //auto laneOffset1 = findThelaneOffset1(map, egoPoint);
 
           jData["s"] = frenetSO;
           jData["d"] = d;
+          jData["lane_offset"] = laneOffset;
+          if(car == 20)
+            ROS_INFO_STREAM("car: "<<car<<" offset: "<<laneOffset);
           //jData["s_ego_ref"] = frenetSOEgo;
           //jData["d_ego_ref"] = d_ego_ref;
           jData["sec"] = objPtr->header.stamp.sec;

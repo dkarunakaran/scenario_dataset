@@ -986,5 +986,27 @@ bool checkSecObjExist(int object_id, uint32_t sec, uint32_t nsec, std::vector<st
   return proceed;
 }
 
+double findThelaneOffset(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d startingPoint){
+  std::vector<std::pair<double, lanelet::Lanelet>> nearLanelets = lanelet::geometry::findNearest(map->laneletLayer, startingPoint, 10);
+  std::vector<lanelet::Lanelet> lanelets;
+  lanelet::Lanelet lanelet;
+  double dist = 0.;
+  double smallD = 1000.; size_t selectedIndex = 0; bool found = false;
+  for(size_t i=0; i<nearLanelets.size(); i++){
+    if(nearLanelets[i].first < smallD && nearLanelets[i].first < 10){
+      smallD = nearLanelets[i].first;
+      selectedIndex = i;
+      found = true;
+    }
+    lanelets.push_back(nearLanelets[i].second);
+  }
+  if(found){
+    lanelet = lanelets[selectedIndex];
+    auto centerline = lanelet.centerline();
+    dist = lanelet::geometry::signedDistance(lanelet::utils::to2D(centerline), startingPoint);
+  }
+
+  return dist;
+}
 
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP

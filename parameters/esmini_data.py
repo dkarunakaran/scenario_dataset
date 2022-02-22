@@ -4,6 +4,8 @@ import os
 from ctypes import *
 import json
 from rss import RSS
+import math
+import numpy as np
 
 rss = RSS()
 
@@ -166,8 +168,7 @@ for _file in _dir:
                     data['ego_real']['s'].append(item['s'])
                     data['ego_real']['t'].append(item['d'])
 
-                print(param['param_all_data']['other'])
-                
+                #print(param['param_relative_lane_pos'])
                 for item in param['param_all_data']['other']:
                     data['adversary_real']['speed'].append(item['speed'])
                     data['adversary_real']['s'].append(item['s'])
@@ -192,18 +193,19 @@ for _file in _dir:
                     for j in range(se.SE_GetNumberOfObjects()):
                         se.SE_GetObjectState(j, ctypes.byref(obj_state))
                         sec = int(obj_state.timestamp)+1
-                        if sec >= 12:
+                        if sec >= 15:
                             continue
                         if j == 0:
-                            if sec not in sec_store['ego'] and sec <= last_sec_count:
+                            if sec not in sec_store['ego']:
                                 data['ego_esmini_sec']['speed'].append(obj_state.speed*3.6)
                                 data['ego_esmini_sec']['s'].append(obj_state.s)
                                 data['ego_esmini_sec']['t'].append(obj_state.t)
                                 data['ego_esmini_sec']['sec'].append(sec)
-                                data['ego_real_sec']['speed'].append(ego_traj[sec]['speed']*3.6)
-                                data['ego_real_sec']['s'].append(ego_traj[sec]['s'])
-                                data['ego_real_sec']['t'].append(ego_traj[sec]['d'])
-                                data['ego_real_sec']['sec'].append(sec)
+                                if sec <= last_sec_count:
+                                    data['ego_real_sec']['speed'].append(ego_traj[sec]['speed']*3.6)
+                                    data['ego_real_sec']['s'].append(ego_traj[sec]['s'])
+                                    data['ego_real_sec']['t'].append(ego_traj[sec]['d'])
+                                    data['ego_real_sec']['sec'].append(sec)
 
                             data['ego_esmini']['speed'].append(obj_state.speed*3.6)
                             data['ego_esmini']['s'].append(obj_state.s)
@@ -212,8 +214,6 @@ for _file in _dir:
                             sec_store['ego'].append(sec)
                         if j == 1:
                             if sec not in sec_store['adversary']:
-                                print(sec)
-                                print(obj_state.speed*3.6)
                                 sec_count = 1
                                 data['adversary_esmini_sec']['speed'].append(obj_state.speed*3.6)
                                 data['adversary_esmini_sec']['s'].append(obj_state.s)
@@ -226,6 +226,7 @@ for _file in _dir:
                                     data['adversary_real_sec']['sec'].append(sec)
                                     data['adversary_esmini_milli']['speed'].append(obj_state.speed*3.6)
                                     data['adversary_esmini_milli']['sec'].append(obj_state.timestamp)
+
                                     #if(sec < len(param['param_all_data']['other_sec'])):
                                     #    data['adversary_real_milli']['speed'].append(param['param_all_data']['other_sec'][str(sec)][sec_count])
                                     sec_count += 1

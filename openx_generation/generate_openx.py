@@ -473,17 +473,17 @@ class Generate:
             ### create parameters
             ego_vehicle = 'hero'
             ego_velocity_init = param['param_ego_speed_init'] # param 0
-            ego_start_pos = param['param_ego_start_pos'] # param 1 - s coordinate of road frame
+            ego_start_pos = param['param_relative_lane_pos'][0]['ego']['s'] #param['param_ego_start_pos'] # param 1 - s coordinate of road frame
             ego_start_lane = param['param_ego_lane_no_init'] # param 2 - lane number
             adversary_vehicle = 'adversary'
             adversary_velocity_init = param['param_adv_speed_init'] # param 3
             # Difference between ego vehicle and adversary, positive value indicates the
             # Target location is ahead of ego vehicle
-            adversary_pos = param['param_adv_start_pos'] # param 4 - front=0 or back=1
+            adversary_pos=param['param_relative_lane_pos'][0]['other']['s']#param['param_adv_start_pos'] # param 4 - front=0 or back=1
             adversary_start_diff = param['param_start_diff'] # param 5  - difference in s coordinate of road frame
             adversary_lane = param['param_adv_lane_no_init'] # param 6 - lane number
             adversary_cutin_speed = 40 # param 7 
-            adversary_cutin_trigger_dist = param['param_cut_triggering_dist']-5 # param 8 - distance in s from target to ego
+            adversary_cutin_trigger_dist=param['param_cut_triggering_dist']-5 # param 8 - distance in s from target to ego
             adversary_vehicle_model = 0  # param 9 - car=0, van=1, motorbike=2
             adversary_cutin_time = param['param_cut_time'] # Param 10 time taken to complete the lane change
             trigger_cond = param['param_trigger_cond']
@@ -685,7 +685,7 @@ class Generate:
                     event = xosc.Event('cutIneventEgo'+str(actCount),xosc.Priority.parallel)
                     event.add_trigger(trigger)
                     duration = (index+1) - index
-                    lin_time=xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,0.01)
+                    lin_time=xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,0.1)
                     action = xosc.AbsoluteSpeedAction(data_next['ego']['speed'],lin_time)
                     event.add_action('cutInSpeedActionEgo'+str(actCount),action)
                     man = xosc.Maneuver('cutInManeuverEgo'+str(actCount))
@@ -708,7 +708,7 @@ class Generate:
                     event = xosc.Event('cutIneventAdv'+str(actCount),xosc.Priority.parallel)
                     event.add_trigger(trigger)
                     duration = (index+1) - index
-                    lin_time=xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,0.01)
+                    lin_time=xosc.TransitionDynamics(self.shape,xosc.DynamicsDimension.time,0.1)
                     action = xosc.AbsoluteSpeedAction(data_next['other']['speed'],lin_time)
                     event.add_action('cutInSpeedActionAdv'+str(actCount),action)
                     man = xosc.Maneuver('cutInManeuverAdv'+str(actCount))
