@@ -457,14 +457,37 @@ class Generate:
         param_ego_percentage_dist_to_cutin_dist = 100
         _type = data['type']
         count = 1
+
+        manual_trigger = True
         for param in data['parameter']:
             print("--------------------{}------------------------".format(param['param_lane_change_carid']))
-            #if count ==2 or count == 3:
-            #    count += 1
-            #    continue
             name = self.save_loc+filename+"_"+_type+"_"+str(count)+".xosc"
-            #print(param)
-
+            if manual_trigger == True:
+                param_relative_lane_pos = []
+                ego_speed = [5, 5.5, 6, 6.5, 7, 7.5, 8, 9, 10, 10.5, 11, 11.5]
+                ego_start_to_current_dist=[5,10.5,16.6,23,30.5,38,46,55,65,75.5,86.5,88]
+                other_speed = [10, 12, 13, 13.5, 14.5, 15.5, 16.5, 17, 17.5, 18, 19, 20]
+                other_start_to_current_dist=[10, 22, 35, 48.5, 63, 78.5, 95, 112, 129.5, 147.5, 166.5, 186.5]
+                for index in range(len(ego_speed)):
+                    data = {
+                        'ego': {
+                            's': None,
+                            'speed': ego_speed[index],
+                            'start_to_current_dist': ego_start_to_current_dist[index],
+                        },
+                        'other': {
+                            's': None,
+                            'speed': other_speed[index],
+                            'start_to_current_dist':other_start_to_current_dist[index],
+                        }
+                    }
+                    param_relative_lane_pos.append(data)
+                param['param_relative_lane_pos'] = param_relative_lane_pos  
+                param['param_relative_lane_pos'][0]['ego']['s'] = 450
+                param['param_relative_lane_pos'][0]['other']['s'] = 458
+                param['param_cut_triggering_dist'] = 35
+           
+           
             ### create catalogs
             catalog = xosc.Catalog()
             catalog.add_catalog('VehicleCatalog','../xosc/Catalogs/Vehicles')
@@ -475,8 +498,8 @@ class Generate:
             
             print("lane offset start: {} lane offset end: {}".format(lane_offset, lane_offset_end))
            
-            for o_count in range(len(param['param_relative_lane_pos'])):
-                print("lane offset: {}".format(param['param_relative_lane_pos'][o_count]['other']['lane_offset']))
+            #for o_count in range(len(param['param_relative_lane_pos'])):
+            #    print("lane offset: {}".format(param['param_relative_lane_pos'][o_count]['other']['lane_offset']))
 
             ### create parameters
             ego_vehicle = 'hero'
@@ -627,10 +650,10 @@ class Generate:
                 #Equally dividing
                 allowed = []
                 num = len(param['param_relative_lane_pos'])
-                value = 2 # 2 parameters
+                #value = 2 # 2 parameters
                 #value = 3
                 #value = num*(2/4) #0.5
-                #value = num
+                value = num
                 div = int(value)
                 section = self.split(num, div)
                 if value == 2:

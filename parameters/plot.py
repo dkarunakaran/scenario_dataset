@@ -17,29 +17,7 @@ with open(_file) as f:
 
 print("total number of scenarios: {}".format(len(data['data'])))
 
-'''
-no = 7
-key = 'speed'
-adversary_esmini1 = data['data'][no]['adversary_esmini'] 
-adversary_real1 = data['data'][no]['adversary_real'] 
-ego_esmini1 = data['data'][no]['ego_esmini']
-ego_real1 = data['data'][no]['ego_real']
-esmini1 = data['data'][no]['esmini'] 
-real1 = data['data'][no]['real'] 
-'''
-'''
-no = 0
-key = 'speed'
-adversary_esmini2 = data['data'][no]['adversary_esmini'] 
-adversary_real2 = data['data'][no]['adversary_real'] 
-ego_esmini2 = data['data'][no]['ego_esmini'] 
-ego_real2 = data['data'][no]['ego_real'] 
-esmini2 = data['data'][no]['esmini'] 
-real2 = data['data'][no]['real'] 
-'''
-
 no = 0 
-
 key = 'speed'
 adversary_esmini3 = data['data'][no]['adversary_esmini']
 adversary_real3 = data['data'][no]['adversary_real']
