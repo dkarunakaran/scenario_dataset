@@ -504,7 +504,7 @@ class Generate:
             # cut-in/cut-out car. During the data capture using IBEO car,
             # relative distance is compued from the base_link. we assume it
             # has 2.5 meters differs from front of the ego vehicle to base_link.
-            param['param_cut_triggering_dist'] -= 2
+            param['param_cut_triggering_dist'] -= 2.0
             adversary_cutin_trigger_dist=param['param_cut_triggering_dist'] # param 8 - distance in s from target to ego
             adversary_vehicle_model = 0  # param 9 - car=0, van=1, motorbike=2
             adversary_cutin_time = param['param_cut_time'] # Param 10 time taken to complete the lane change
@@ -512,6 +512,15 @@ class Generate:
             trigger_cond = param['param_trigger_cond']
             lanechange_car_id = param['param_lane_change_carid']
             total_duration = param['param_total_duration'] 
+            
+            '''if adversary_start_diff > adversary_cutin_trigger_dist:
+                trigger_cond = 0
+            elif adversary_start_diff == adversary_cutin_trigger_dist:
+                trigger_cond = 1
+            else:
+                trigger_cond = 1'''
+
+
 
             paramdec = xosc.ParameterDeclarations()
             paramdec.add_parameter(xosc.Parameter('$egoVehicle',xosc.ParameterType.string, ego_vehicle))
@@ -587,7 +596,7 @@ class Generate:
             if trigger_cond == 0:
                 trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.lessThan,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
             else:
-                trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.greaterThan,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
+                trig_cond1=xosc.RelativeDistanceCondition('$adversaryCutinTriggerDist',xosc.Rule.greaterOrEqual,dist_type=xosc.RelativeDistanceType.longitudinal,entity='$adversaryVehicle')
             trigger = xosc.EntityTrigger('cutinTrigger',0,xosc.ConditionEdge.rising,trig_cond1,'$egoVehicle')
             event = xosc.Event('cutInevent',xosc.Priority.overwrite)
             event.add_trigger(trigger)
@@ -618,11 +627,10 @@ class Generate:
                 #Equally dividing
                 allowed = []
                 num = len(param['param_relative_lane_pos'])
-                #value = 2 # 2 parameters
+                value = 2 # 2 parameters
                 #value = 3
                 #value = num*(2/4) #0.5
-                #value = num*(4/4) # full
-                value = num
+                #value = num
                 div = int(value)
                 section = self.split(num, div)
                 if value == 2:

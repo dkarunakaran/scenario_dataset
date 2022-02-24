@@ -1,70 +1,28 @@
 {
     "cut-in scenario": [
         {
-            "cutin_car": 107,
-            "cutin_end": 1622184283,
-            "cutin_start": 1622184277,
-            "scenario_end": 1622184286,
-            "scenario_start": 1622184274
+            "cutin_car": 180,
+            "cutin_end": 1623818761,
+            "cutin_start": 1623818755,
+            "scenario_end": 1623818764,
+            "scenario_start": 1623818752
         },
         {
-            "cutin_car": 29,
-            "cutin_end": 1622184293,
-            "cutin_start": 1622184287,
-            "scenario_end": 1622184296,
-            "scenario_start": 1622184284
-        },
-        {
-            "cutin_car": 231,
-            "cutin_end": 1622184296,
-            "cutin_start": 1622184290,
-            "scenario_end": 1622184299,
-            "scenario_start": 1622184287
-        },
-        {
-            "cutin_car": 130,
-            "cutin_end": 1622184297,
-            "cutin_start": 1622184291,
-            "scenario_end": 1622184300,
-            "scenario_start": 1622184288
-        },
-        {
-            "cutin_car": 101,
-            "cutin_end": 1622184316,
-            "cutin_start": 1622184310,
-            "scenario_end": 1622184319,
-            "scenario_start": 1622184307
+            "cutin_car": 6,
+            "cutin_end": 1623818837,
+            "cutin_start": 1623818831,
+            "scenario_end": 1623818840,
+            "scenario_start": 1623818828
         }
     ],
     "cut-out scenario": [
         {
-            "cutout_car": 29,
-            "cutout_end": 1622184295,
-            "cutout_start": 1622184289,
-            "scenario_end": 1622184298,
-            "scenario_start": 1622184286
-        },
-        {
-            "cutout_car": 101,
-            "cutout_end": 1622184317,
-            "cutout_start": 1622184311,
-            "scenario_end": 1622184320,
-            "scenario_start": 1622184308
-        },
-        {
-            "cutout_car": 84,
-            "cutout_end": 1622184398,
-            "cutout_start": 1622184392,
-            "scenario_end": 1622184401,
-            "scenario_start": 1622184389
-        },
-        {
-            "cutout_car": 231,
-            "cutout_end": 1622184423,
-            "cutout_start": 1622184417,
-            "scenario_end": 1622184426,
-            "scenario_start": 1622184414
+            "cutout_car": 8,
+            "cutout_end": 1623818705,
+            "cutout_start": 1623818699,
+            "scenario_end": 1623818708,
+            "scenario_start": 1623818696
         }
     ],
-    "file": "/data/ibeo/others/gate_south-end_north-end_20210528_064001.0.bag"
+    "file": "/data/ibeo/others/gate_south-end_north-end_20210616_044127.0.bag"
 }

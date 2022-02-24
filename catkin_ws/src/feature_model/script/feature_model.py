@@ -28,7 +28,7 @@ class FeatureModel:
         self.window = 1
         self.rss = RSS()
         rospy.Subscriber('/finish_extraction', String, self.process)
-        self.process("true")
+        #self.process("true")
         rospy.on_shutdown(self.shutdown)  
         rospy.spin()
     
@@ -158,14 +158,18 @@ class FeatureModel:
             cut_start = scenario['cutout_start']
             cut_end = scenario['cutout_end']
             
-        # lane_offset_threshold, around 0.40 m comes from UNECE Proposal
-        # for a New UN Regulation on Uniform Provisions Concerning the Approval
+        # lane_offset_threshold, around 0.375 m is the comes UNECE's lateral
+        # minimum movement. In IBEO data, there are some fluctation in other
+        # vehicle's pos, so have use as 0.50 as the threshold. Choosing this
+        # valuse was mainly through the experimentation. 
+        # UNECE Proposal for a New UN Regulation on Uniform Provisions Concerning the Approval
         # of Vehicles with Regards to Automated Lane Keeping System - https://unece.org/sites/default/files/2021-03/R157e.pdf
         lane_offset_threshold = 0.50
         param_lane_offset_start = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['lane_offset']
         # cut-start
         cut_start_sub_sec = 0
         cut_end_sub_sec = 0
+        side = 1
         for sec in lane_change_car_data_by_sec.keys():
             if self.group_ego_by_sec[sec][0]['other']['long_speed'] < 0.1:
                 continue
@@ -174,10 +178,12 @@ class FeatureModel:
              
             for index in range(len(lane_change_car_data_by_sec[sec])):
                 lane_offset  = lane_change_car_data_by_sec[sec][index]['frenet_data']['lane_offset']
-                print("sec: {}, lane_offset {}".format(sec, lane_offset))
+                #print("sec: {}, lane_offset {}".format(sec, lane_offset))
                 if abs(lane_offset) > lane_offset_threshold:
                     cut_start_sub_sec = index
                     found = True
+                    if lane_offset < 0:
+                        side = -1
                     break
             if found == True:
                 cut_start = sec
@@ -190,7 +196,11 @@ class FeatureModel:
             found = False
             for index in range(len(lane_change_car_data_by_sec[sec])):
                 lane_offset  = lane_change_car_data_by_sec[sec][index]['frenet_data']['lane_offset']
-                print("---sec: {}, lane_offset {}".format(sec,lane_offset))
+                #print("---sec: {}, lane_offset {}".format(sec,lane_offset))
+                multi = lane_offset*side
+                if multi > 0:
+                    continue
+
                 if abs(lane_offset) < lane_offset_threshold:
                     cut_end_sub_sec = index
                     found = True
@@ -299,9 +309,9 @@ class FeatureModel:
             time_is_not_found = False
 
             param_cut_time = cut_end-cut_start
-            if cut_start in lane_change_car_data_by_sec.keys() and cut_end in lane_change_car_data_by_sec.keys():
-                end_sec = len(lane_change_car_data_by_sec[cut_end])-1
-                param_cut_distance=lane_change_car_data_by_sec[cut_end+2][0]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][0]['frenet_data']['s']
+            if cut_start in lane_change_car_data_by_sec.keys() and cut_end+1 in lane_change_car_data_by_sec.keys():
+                end_sec = len(lane_change_car_data_by_sec[cut_end+1])-1
+                param_cut_distance=lane_change_car_data_by_sec[cut_end+1][end_sec-4]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][0]['frenet_data']['s']
             else:
                 time_is_not_found = True
             
@@ -595,7 +605,7 @@ class FeatureModel:
                     if param_start_diff > param_cut_triggering_dist:
                         trigger_cond = 0
                     elif param_start_diff == param_cut_triggering_dist:
-                        trigger_cond = 0
+                        trigger_cond = 1
                     else:
                         trigger_cond = 1
                      
@@ -636,7 +646,7 @@ class FeatureModel:
                     if param_start_diff > param_cut_triggering_dist:
                         trigger_cond = 0
                     elif param_start_diff == param_cut_triggering_dist:
-                        trigger_cond = 0
+                        trigger_cond = 1
                     else:
                         trigger_cond = 1
 
