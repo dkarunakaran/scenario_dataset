@@ -29,6 +29,8 @@ adversary_real_sec3 = data['data'][no]['adversary_real_sec']
 ego_esmini_sec3 = data['data'][no]['ego_esmini_sec']
 ego_real_sec3 = data['data'][no]['ego_real_sec']
 
+print(adversary_real_sec3)
+
 name = path_to_save_dir+"test"
 plt.figure()
 plt.xlabel("second")
@@ -139,8 +141,8 @@ plt.figure()
 plt.xlabel("t, lateral displacement")
 plt.ylabel('s, longitudinal displacement')
 plt.xlim([0, -7])
-plt.text(-5, adversary_real3[key][len(adversary_real3[key])-5], "rmse_s = {:.3f} m".format(rmse_s), fontsize = 10)
-plt.text(-5, adversary_real3[key][len(adversary_real3[key])-15], "rmse_t = {:.3f} m".format(rmse_t), fontsize = 10)
+plt.text(-5, adversary_real3[key][len(adversary_real3[key])-30], "rmse_s = {:.3f} m".format(rmse_s), fontsize = 10)
+plt.text(-5, adversary_real3[key][len(adversary_real3[key])-40], "rmse_t = {:.3f} m".format(rmse_t), fontsize = 10)
 #plt.ylim([100, 130])
 #plt.plot(adversary_real1['sec'], adversary_real1[key])
 #plt.plot(adversary_esmini1['sec'], adversary_esmini1[key], '--')
@@ -150,6 +152,18 @@ plt.plot(adversary_real3['t'], adversary_real3[key])
 plt.plot(adversary_esmini3['t'], adversary_esmini3[key], '--')
 plt.legend(['Real-world', 'OpenSCENARIO'])
 #plt.legend(loc="upper right", prop={'size': 8}, labelspacing=0.1, bbox_to_anchor=(1.125,1))
+plt.savefig(name)
+plt.close()
+
+key = 's'
+name = path_to_save_dir+"test_s_t_sec"
+plt.figure()
+plt.xlabel("t, lateral displacement")
+plt.ylabel('s, longitudinal displacement')
+plt.xlim([0, -7])
+plt.plot(adversary_real_sec3['t'],adversary_real_sec3[key])
+plt.plot(adversary_esmini_sec3['t'], adversary_esmini_sec3[key],'--')
+plt.legend(['Real-world', 'OpenSCENARIO'])
 plt.savefig(name)
 plt.close()
 

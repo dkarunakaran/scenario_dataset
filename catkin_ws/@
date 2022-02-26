@@ -28,7 +28,7 @@ class FeatureModel:
         self.window = 1
         self.rss = RSS()
         rospy.Subscriber('/finish_extraction', String, self.process)
-        #self.process("true")
+        self.process("true")
         rospy.on_shutdown(self.shutdown)  
         rospy.spin()
     
@@ -316,11 +316,13 @@ class FeatureModel:
             time_is_not_found = False
 
             param_cut_time = cut_end-cut_start
-            if cut_start in lane_change_car_data_by_sec.keys() and cut_end in lane_change_car_data_by_sec.keys():
-                end_sec = len(lane_change_car_data_by_sec[cut_end])-1
-                param_cut_distance=lane_change_car_data_by_sec[cut_end][end_sec-4]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][0]['frenet_data']['s']
+            if cut_start in lane_change_car_data_by_sec.keys() and cut_end+1 in lane_change_car_data_by_sec.keys():
+                end_sec = len(lane_change_car_data_by_sec[cut_end+1])-1
+                param_cut_distance=lane_change_car_data_by_sec[cut_end+1][end_sec-4]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][0]['frenet_data']['s']
             else:
                 time_is_not_found = True
+                print("here1: {}".format(cut_start in lane_change_car_data_by_sec.keys()))
+                print("here2: {}".format(cut_end in lane_change_car_data_by_sec.keys()))
             
             # Finding final lane number
             param_adv_lane_no_final = param_adv_lane_no_init

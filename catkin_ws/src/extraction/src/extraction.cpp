@@ -324,7 +324,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
               json jData;
               jData["scenario_start"] = objPtr->header.stamp.sec-8; //8 before
               jData["scenario_end"] = objPtr->header.stamp.sec+4; //4 before
-              jData["cutin_start"] = objPtr->header.stamp.sec-5;
+              jData["cutin_start"] = objPtr->header.stamp.sec-5; //5 before
               jData["cutin_end"] = objPtr->header.stamp.sec+1;
               jData["cutin_car"] = objPtr->object_id;
               cutInScenarios.push_back(jData);
@@ -343,7 +343,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
               json jData;
               jData["scenario_start"] = objPtr->header.stamp.sec-8; //8 before
               jData["scenario_end"] = objPtr->header.stamp.sec+4; //4 before
-              jData["cutout_start"] = objPtr->header.stamp.sec-5;
+              jData["cutout_start"] = objPtr->header.stamp.sec-5; //5 before
               jData["cutout_end"] = objPtr->header.stamp.sec+1;
               jData["cutout_car"] = objPtr->object_id;
               cutOutScenarios.push_back(jData);

@@ -72,16 +72,59 @@ for _file in _dir:
             ego_traj = {}
             other_traj = {}
             last_sec_count = 1
+            
+            
+            manual_trigger = False
+            if manual_trigger == True:
+                param_relative_lane_pos = []
+                with open('manual_data1.json') as f:
+                    data = json.loads(f.read())
+
+                param_relative_lane_pos = []
+                ego_speed = data['speed']
+                ego_d = data['d']
+                ego_s = data['s']
+                ego_start_to_current_dist=data['start_to_current_dist']
+                ego_sec_count = data['sec_count']
+                with open('manual_data2.json') as f:
+                    data = json.loads(f.read())
+
+                param_relative_lane_pos = []
+                other_speed = data['speed']
+                other_d = data['d']
+                other_s = data['s']
+                other_start_to_current_dist=data['start_to_current_dist']
+                other_sec_count = data['sec_count']
+                for index in range(len(ego_speed)):
+                    data = {
+                        'ego': {
+                            's': ego_s[index],
+                            'd': ego_d[index],
+                            'speed': ego_speed[index],
+                            'start_to_current_dist': ego_start_to_current_dist[index],
+                            'sec_count': ego_sec_count[index]
+                        },
+                        'other': {
+                            's': other_s[index],
+                            'd': other_d[index],
+                            'speed': other_speed[index],
+                            'start_to_current_dist':other_start_to_current_dist[index],
+                            'sec_count': other_sec_count[index]
+                        }
+                    }
+                    param_relative_lane_pos.append(data)
+ 
             for item in param_relative_lane_pos:
+                #print(item['ego']['sec_count'])
                 ego_traj[item['ego']['sec_count']] = {
-                    'lane': item['ego']['lane'], 
+                    #'lane': item['ego']['lane'], 
                     's': item['ego']['s'], 
                     'd': item['ego']['d'], 
                     'speed': item['ego']['speed'] 
                 }
                 
                 other_traj[item['other']['sec_count']] = {
-                    'lane': item['other']['lane'], 
+                    #'lane': item['other']['lane'], 
                     's': item['other']['s'], 
                     'd': item['other']['d'], 
                     'speed': item['other']['speed'] 
@@ -188,7 +231,7 @@ for _file in _dir:
                     ego_esmini_speed = None
                     ego_real_speed = None
                     adversary_esmini_speed = None
-                    adversary_real_speed = None
+                    adversary_reaparam_relative_lane_posl_speed = None
                     sec_count = 1
                     for j in range(se.SE_GetNumberOfObjects()):
                         se.SE_GetObjectState(j, ctypes.byref(obj_state))
@@ -202,6 +245,7 @@ for _file in _dir:
                                 data['ego_esmini_sec']['t'].append(obj_state.t)
                                 data['ego_esmini_sec']['sec'].append(sec)
                                 if sec <= last_sec_count:
+                                    #print(ego_traj[sec]['s'])
                                     data['ego_real_sec']['speed'].append(ego_traj[sec]['speed']*3.6)
                                     data['ego_real_sec']['s'].append(ego_traj[sec]['s'])
                                     data['ego_real_sec']['t'].append(ego_traj[sec]['d'])
