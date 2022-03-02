@@ -318,7 +318,7 @@ class FeatureModel:
             param_cut_time = cut_end-cut_start
             if cut_start in lane_change_car_data_by_sec.keys() and cut_end in lane_change_car_data_by_sec.keys():
                 end_sec = len(lane_change_car_data_by_sec[cut_end])-1
-                param_cut_distance=lane_change_car_data_by_sec[cut_end][end_sec-4]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][0]['frenet_data']['s']
+                param_cut_distance=lane_change_car_data_by_sec[cut_end][end_sec]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][0]['frenet_data']['s']
             else:
                 time_is_not_found = True
             

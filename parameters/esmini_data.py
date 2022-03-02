@@ -220,7 +220,7 @@ for _file in _dir:
                 
                 
                 print("Processing the {} file: {}".format(_type, _file))
-                se.SE_Init(bytes(name, 'utf-8'), 1, 1, 0, 0)
+                se.SE_Init(bytes(name, 'utf-8'), 1, 0, 0, 0)
                 obj_state = SEScenarioObjectState()  # object that will be passed and filled in with object state info
                 sec_store = {
                     'ego': [],
@@ -324,3 +324,4 @@ if exist is False or data_exist is False:
         json.dump(final_data, outfile)
 
 print("Saved")
+
