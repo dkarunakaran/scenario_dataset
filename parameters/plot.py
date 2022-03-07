@@ -18,7 +18,7 @@ with open(_file) as f:
 print("total number of scenarios: {}".format(len(data['data'])))
 
 
-no = 0
+no = 1
 key = 'speed'
 adversary_esmini3 = data['data'][no]['adversary_esmini']
 adversary_real3 = data['data'][no]['adversary_real']
@@ -159,21 +159,49 @@ for index in range(len(adversary_esmini3['s'])):
         s_prev = s_current
 
 
+s_real_sec = []
+for index in range(len(adversary_real_sec3['s'])):
+    if index == 0:
+        s_real_sec.append(0)
+        s_prev = 0
+    else:
+        s_diff = adversary_real_sec3['s'][index] - adversary_real_sec3['s'][index-1]
+        s_current = s_prev+s_diff
+        s_real_sec.append(s_current)
+        s_prev = s_current
 
-print("here")
+s_esmini_sec = []
+for index in range(len(adversary_esmini_sec3['s'])):
+    if index == 0:
+        s_esmini_sec.append(0)
+        s_prev = 0
+    else:
+        s_diff = adversary_esmini_sec3['s'][index] - adversary_esmini_sec3['s'][index-1]
+        s_current = s_prev+s_diff
+        s_esmini_sec.append(s_current)
+        s_prev = s_current
 
 key = 's'
 name = path_to_save_dir+"test_s_t"
 plt.figure()
 plt.xlabel("t, lateral displacement")
 plt.ylabel('s, longitudinal displacement')
-plt.xlim([0, -6])
-plt.text(-5, adversary_real3[key][len(adversary_real3[key])-30], "rmse_s = {:.3f} m".format(rmse_s), fontsize = 10)
-plt.text(-5, adversary_real3[key][len(adversary_real3[key])-40], "rmse_t = {:.3f} m".format(rmse_t), fontsize = 10)
+plt.xlim([0, -7])
+plt.text(-5, 60, "rmse_s = {:.3f} m".format(rmse_s), fontsize = 10)
+plt.text(-5, 55, "rmse_t = {:.3f} m".format(rmse_t), fontsize = 10)
 #plt.plot(adversary_real3['t'], adversary_real3[key])
 #plt.plot(adversary_esmini3['t'], adversary_esmini3[key], '--')
-plt.plot(adversary_real3['t'], s_real)
-plt.plot(adversary_esmini3['t'], s_pred, '--')
+plt.plot(adversary_real3['t'], s_real, color='b')
+plt.plot(adversary_esmini3['t'], s_pred, '--', color='g')
+for index in range(len(s_real_sec)): 
+    plt.text(adversary_real_sec3['t'][index]+0.1, s_real_sec[index]-1,str(index+1), fontsize=10, color='w')
+    plt.plot(adversary_real_sec3['t'][index],s_real_sec[index],marker='o',markersize=10, color='b')
+
+for index in range(len(s_esmini_sec)): 
+    plt.text(adversary_esmini_sec3['t'][index]+0.1, s_esmini_sec[index]-1,str(index+1), fontsize=10, color='w')
+    plt.plot(adversary_esmini_sec3['t'][index],s_esmini_sec[index],marker='o',markersize=10,color='g')
+
+
 plt.legend(['Real-world', 'OpenSCENARIO'])
 plt.savefig(name)
 plt.close()

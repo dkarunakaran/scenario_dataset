@@ -61,59 +61,12 @@ for _file in _dir:
         count = 1 
         filename = loc+'scenario_files/'+fileDetails[0]+"_"+_type+"_"
         for param in file_data['parameter']: 
-            
-            #if count == 2 or count == 3:
-            #    count += 1
-            #    continue
-
             param_relative_lane_pos = param['param_relative_lane_pos']
             carid = param['param_lane_change_carid']
-            
             ego_traj = {}
             other_traj = {}
             last_sec_count = 1
             
-            
-            manual_trigger = False
-            if manual_trigger == True:
-                param_relative_lane_pos = []
-                with open('manual_data1.json') as f:
-                    data = json.loads(f.read())
-
-                param_relative_lane_pos = []
-                ego_speed = data['speed']
-                ego_d = data['d']
-                ego_s = data['s']
-                ego_start_to_current_dist=data['start_to_current_dist']
-                ego_sec_count = data['sec_count']
-                with open('manual_data2.json') as f:
-                    data = json.loads(f.read())
-
-                param_relative_lane_pos = []
-                other_speed = data['speed']
-                other_d = data['d']
-                other_s = data['s']
-                other_start_to_current_dist=data['start_to_current_dist']
-                other_sec_count = data['sec_count']
-                for index in range(len(ego_speed)):
-                    data = {
-                        'ego': {
-                            's': ego_s[index],
-                            'd': ego_d[index],
-                            'speed': ego_speed[index],
-                            'start_to_current_dist': ego_start_to_current_dist[index],
-                            'sec_count': ego_sec_count[index]
-                        },
-                        'other': {
-                            's': other_s[index],
-                            'd': other_d[index],
-                            'speed': other_speed[index],
-                            'start_to_current_dist':other_start_to_current_dist[index],
-                            'sec_count': other_sec_count[index]
-                        }
-                    }
-                    param_relative_lane_pos.append(data)
- 
             for item in param_relative_lane_pos:
                 #print(item['ego']['sec_count'])
                 ego_traj[item['ego']['sec_count']] = {
@@ -236,7 +189,7 @@ for _file in _dir:
                     for j in range(se.SE_GetNumberOfObjects()):
                         se.SE_GetObjectState(j, ctypes.byref(obj_state))
                         sec = int(obj_state.timestamp)+1
-                        if sec >= 15:
+                        if sec >= last_sec_count:
                             continue
                         if j == 0:
                             if sec not in sec_store['ego']:
@@ -322,6 +275,42 @@ if exist is False or data_exist is False:
 
     with open('esmini_real_plot_data.json', 'w') as outfile:
         json.dump(final_data, outfile)
+
+#-----------------complete data---------------
+
+exist = False
+data_exist = False
+if os.path.exists('esmini_plot_data_complete.json'):
+    exist = True
+
+if exist:
+    # Opening JSON file
+    f = open('esmini_plot_data_complete.json')
+
+    # returns JSON object as
+    # a dictionary
+    esmini_file_data = json.load(f)
+
+    if 'data' in esmini_file_data:
+        for each in all_data:
+            esmini_file_data['data'].append(each)
+        with open('esmini_plot_data_complete.json', 'w') as outfile:
+            json.dump(esmini_file_data, outfile)
+        data_exist = True
+
+if exist is False or data_exist is False:
+    f_data = []
+    for each in all_data:
+        f_data.append(each)
+    final_data = {
+        'data': f_data
+    }
+
+    with open('esmini_plot_data_complete.json', 'w') as outfile:
+        json.dump(final_data, outfile)
+
+
+    print("created")            
 
 print("Saved")
 

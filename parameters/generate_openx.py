@@ -285,6 +285,9 @@ class Generate:
             adv_cutend_to_scenario_end_time=param['param_adv_cutend_to_scenario_end_time']
             adv_speed_final= param['param_adv_speed_final']
 
+            print(adv_to_cut_start_dist)
+            print(adv_to_cutend_dist)
+
             paramdec = xosc.ParameterDeclarations()
             paramdec.add_parameter(xosc.Parameter('$egoVehicle',xosc.ParameterType.string, ego_vehicle))
             paramdec.add_parameter(xosc.Parameter('$egoVelocityInit',xosc.ParameterType.double, ego_velocity_init))
