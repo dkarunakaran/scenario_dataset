@@ -314,9 +314,9 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
         auto laneLaneletPair = getTheLaneNo(map, point);
         if(egoCenterls.size() > 0 && currentEgoSpeed > 0.5){
           float d = std::abs(lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point));
-          //if(standalone_run && objPtr->object_id == 140)
-          //  ROS_INFO_STREAM("Car_id: "<<objPtr->object_id<<" d: "<<d<<" lane no: "<<laneLaneletPair.first);
-          if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo == laneLaneletPair.first){
+          if(standalone_run && objPtr->object_id == 104)
+            ROS_INFO_STREAM("Car_id: "<<objPtr->object_id<<" d: "<<d<<" lane no: "<<laneLaneletPair.first);
+          if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo == laneLaneletPair.first && d < 0.375){
             if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), objPtr->object_id) != cutInScenarioCar.end()){
 
             }else{
@@ -447,11 +447,11 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           
           //For constructing ego path as reference line in Frenet frame
           auto egoCenter = lanelet::geometry::project(egoCenterLine, point3d);
-          /*auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
+          auto egoCenterls = getTheRoadLineString(egoCenterLine, lanelet::Point3d{lanelet::utils::getId(), egoCenter.x(), egoCenter.y(), 0});
           auto frenetSOEgo = getFrenetSEgoRef(frenetJsonOtherEgoRef, car, egoCenterLine, point3d, lanelet::BasicPoint2d(egoCenter.x(), egoCenter.y()));
           float d_ego_ref = lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point); 
           if(egoDataCount > 10 && positiveDir > negativeDir && d_ego_ref < 0)
-            d_ego_ref *= -1;*/
+            d_ego_ref *= -1;
         
           auto laneOffset = findThelaneOffset(map, point);
           //auto laneOffset1 = findThelaneOffset1(map, egoPoint);
@@ -461,8 +461,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           jData["lane_offset"] = laneOffset;
           if(car == 20)
             ROS_INFO_STREAM("car: "<<car<<" offset: "<<laneOffset);
-          //jData["s_ego_ref"] = frenetSOEgo;
-          //jData["d_ego_ref"] = d_ego_ref;
+          jData["s_ego_ref"] = frenetSOEgo;
+          jData["d_ego_ref"] = d_ego_ref;
           jData["sec"] = objPtr->header.stamp.sec;
           odomJdata["x"] = posX;
           odomJdata["y"] = posY;

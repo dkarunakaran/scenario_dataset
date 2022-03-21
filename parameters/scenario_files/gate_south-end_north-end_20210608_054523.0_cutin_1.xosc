@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
-    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-03-03T01:22:41.010550"/>
+    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-03-16T14:50:57.945271"/>
     <ParameterDeclarations>
         <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
         <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="2.6777777671813965"/>
@@ -11,12 +11,12 @@
         <ParameterDeclaration name="$adversaryPos" parameterType="double" value="30.748717291515284"/>
         <ParameterDeclaration name="$adversaryLane" parameterType="double" value="-1"/>
         <ParameterDeclaration name="$adversaryCutinSpeed" parameterType="double" value="40"/>
-        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="9.174664125590667"/>
-        <ParameterDeclaration name="$adversaryCutinDist" parameterType="double" value="38.84113579808544"/>
+        <ParameterDeclaration name="$adversaryCutinTriggerDist" parameterType="double" value="10.2822292748262"/>
+        <ParameterDeclaration name="$adversaryCutinDist" parameterType="double" value="54.155344240863975"/>
         <ParameterDeclaration name="$lanechangeCarId" parameterType="double" value="20"/>
         <ParameterDeclaration name="$laneOffsetStart" parameterType="double" value="-0.21927943552756443"/>
-        <ParameterDeclaration name="$laneOffsetEnd" parameterType="double" value="0.19560548949409057"/>
-        <ParameterDeclaration name="$totalDuration" parameterType="double" value="10"/>
+        <ParameterDeclaration name="$laneOffsetEnd" parameterType="double" value="0.20078831116793758"/>
+        <ParameterDeclaration name="$totalDuration" parameterType="double" value="12"/>
     </ParameterDeclarations>
     <CatalogLocations>
         <VehicleCatalog>
@@ -174,9 +174,9 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="5" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="4" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="8.83055591583252"/>
+                                                <AbsoluteTargetSpeed value="7.255555629730225"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -221,9 +221,9 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="5" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="4" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="9.990555882453918"/>
+                                                <AbsoluteTargetSpeed value="11.265555381774902"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -268,9 +268,9 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="3" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="5" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="10.211111068725586"/>
+                                                <AbsoluteTargetSpeed value="10.355555534362793"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -284,7 +284,7 @@
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="29.227882699685708"/>
+                                                <TraveledDistanceCondition value="17.303081200002453"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -315,9 +315,9 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="3" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="5" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="10.991111040115356"/>
+                                                <AbsoluteTargetSpeed value="11.405555486679077"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -331,7 +331,7 @@
                                                 <EntityRef entityRef="$adversaryVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="43.40855535602249"/>
+                                                <TraveledDistanceCondition value="32.59131900557477"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -362,9 +362,9 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="0" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="0" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="10.211111068725586"/>
+                                                <AbsoluteTargetSpeed value="10.355555534362793"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -378,7 +378,7 @@
                                                 <EntityRef entityRef="$egoVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="54.338487575838286"/>
+                                                <TraveledDistanceCondition value="64.19557503446347"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>
@@ -409,9 +409,9 @@
                                 <PrivateAction>
                                     <LongitudinalAction>
                                         <SpeedAction>
-                                            <SpeedActionDynamics dynamicsShape="sinusoidal" value="2" dynamicsDimension="time"/>
+                                            <SpeedActionDynamics dynamicsShape="linear" value="3" dynamicsDimension="time"/>
                                             <SpeedActionTarget>
-                                                <AbsoluteTargetSpeed value="11.618333220481873"/>
+                                                <AbsoluteTargetSpeed value="11.336666405200958"/>
                                             </SpeedActionTarget>
                                         </SpeedAction>
                                     </LongitudinalAction>
@@ -425,7 +425,7 @@
                                                 <EntityRef entityRef="$adversaryVehicle"/>
                                             </TriggeringEntities>
                                             <EntityCondition>
-                                                <TraveledDistanceCondition value="75.7634261991541"/>
+                                                <TraveledDistanceCondition value="86.74666324643874"/>
                                             </EntityCondition>
                                         </ByEntityCondition>
                                     </Condition>

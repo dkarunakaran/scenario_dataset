@@ -28,7 +28,7 @@ class FeatureModel:
         self.window = 1
         self.rss = RSS()
         rospy.Subscriber('/finish_extraction', String, self.process)
-        #self.process("true")
+        self.process("true")
         rospy.on_shutdown(self.shutdown)  
         rospy.spin()
     
@@ -157,18 +157,19 @@ class FeatureModel:
         elif _type == "cutout":
             cut_start = scenario['cutout_start']
             cut_end = scenario['cutout_end']
-            
+          
         # lane_offset_threshold, around 0.375 m is the comes UNECE's lateral
         # minimum movement. In IBEO data, there are some fluctation in other
         # vehicle's pos, so have use as 0.50 as the threshold. Choosing this
         # valuse was mainly through the experimentation. 
         # UNECE Proposal for a New UN Regulation on Uniform Provisions Concerning the Approval
         # of Vehicles with Regards to Automated Lane Keeping System - https://unece.org/sites/default/files/2021-03/R157e.pdf
-        lane_offset_threshold = 0.50
+        lane_offset_threshold = 0.375
         param_lane_offset_start = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['lane_offset']
         # cut-start
         cut_start_sub_sec = 0
         cut_end_sub_sec = 0
+        ''' 
         side = 1
         for sec in lane_change_car_data_by_sec.keys():
             if self.group_ego_by_sec[sec][0]['other']['long_speed'] < 0.1:
@@ -208,11 +209,36 @@ class FeatureModel:
             if found == True:
                 cut_end = sec
                 break
+        ''' 
+        '''
+        initial_lane_no = lane_change_car_data_by_sec[lane_change_start_time][0]['other']['lane_no'] 
+        for sec in lane_change_car_data_by_sec.keys():
+            if self.group_ego_by_sec[sec][0]['other']['long_speed'] < 0.1:
+                continue
+            found = False
+            count = 0;
+            for index in range(len(lane_change_car_data_by_sec[sec])):
+                d_from_ego = lane_change_car_data_by_sec[sec][index]['frenet_data']['d_ego_ref']
+                lane_offset  = lane_change_car_data_by_sec[sec][index]['frenet_data']['lane_offset']
+                if abs(d_from_ego) > 1.5:
+                    cut_start_sub_sec = index
+                    count += 1
+                if count > 2:
+                    found = True
+                    break
+            if found == True:
+                cut_start = sec-1
+                break
+        
 
         if cut_start < lane_change_start_time:
             proceed = False
-
-
+        
+        '''
+        cut_start += 1
+        print(lane_change_start_time)
+        print(cut_start)
+        print(cut_end)
 
         if found == True and proceed == True:
             start_time =  scenario['scenario_start']
@@ -317,8 +343,9 @@ class FeatureModel:
 
             param_cut_time = cut_end-cut_start
             if cut_start in lane_change_car_data_by_sec.keys() and cut_end in lane_change_car_data_by_sec.keys():
-                end_sec = len(lane_change_car_data_by_sec[cut_end])-1
-                param_cut_distance=lane_change_car_data_by_sec[cut_end][end_sec]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][0]['frenet_data']['s']
+                #end_sec = len(lane_change_car_data_by_sec[cut_end])-1
+                #end_sec = 0
+                param_cut_distance=lane_change_car_data_by_sec[cut_end][cut_end_sub_sec]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][cut_start_sub_sec]['frenet_data']['s']
             else:
                 time_is_not_found = True
             
@@ -395,6 +422,7 @@ class FeatureModel:
                 param_adv_to_cut_start_dist = adv_cut_start-param_adv_start_pos
                 param_adv_to_cut_start_time = lane_change_car_data_by_sec[adv_cut_start_time][0]['frenet_data']['sec'] - lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec']
                 param_adv_to_cut_start_speed = self.group_ego_by_sec[adv_cut_start_time][cut_start_sub_sec]['other']['long_speed'] + lane_change_car_data_by_sec[adv_cut_start_time][cut_start_sub_sec]['other']['long_speed']
+                print("param_adv_to_cut_start_speed: {}, param_adv_to_cut_start_time: {}".format(param_adv_to_cut_start_speed, param_adv_to_cut_start_time))
                 #---------new ends------
 
                 #---------Adversary middle to cut start speed, distance from adv to cutstart, time taken till cut start from last point
@@ -404,7 +432,6 @@ class FeatureModel:
                 param_adv_to_middle_time = int(adv_to_cut_start_time/2) 
                 middle_time_sec = lane_change_car_data_by_sec[lane_change_start_time][0]['frenet_data']['sec']+param_adv_to_middle_time
                 param_adv_to_middle_speed = self.group_ego_by_sec[middle_time_sec][0]['other']['long_speed'] + lane_change_car_data_by_sec[middle_time_sec][0]['other']['long_speed']
-                print("param_adv_to_middle_speed: {}, param_adv_to_middle_time: {}".format(param_adv_to_middle_speed, param_adv_to_middle_time))
                 
 
                 #---------Adversary cut start speed, distance from adv to cutstart, time taken till cut start from last point

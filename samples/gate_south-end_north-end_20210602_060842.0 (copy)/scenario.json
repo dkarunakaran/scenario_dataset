@@ -1,0 +1,35 @@
+{
+    "cut-in scenario": [
+        {
+            "cutin_car": 38,
+            "cutin_end": 1622614812,
+            "cutin_start": 1622614806,
+            "scenario_end": 1622614815,
+            "scenario_start": 1622614803
+        },
+        {
+            "cutin_car": 99,
+            "cutin_end": 1622614819,
+            "cutin_start": 1622614813,
+            "scenario_end": 1622614822,
+            "scenario_start": 1622614810
+        },
+        {
+            "cutin_car": 23,
+            "cutin_end": 1622614825,
+            "cutin_start": 1622614819,
+            "scenario_end": 1622614828,
+            "scenario_start": 1622614816
+        }
+    ],
+    "cut-out scenario": [
+        {
+            "cutout_car": 180,
+            "cutout_end": 1622614728,
+            "cutout_start": 1622614722,
+            "scenario_end": 1622614731,
+            "scenario_start": 1622614719
+        }
+    ],
+    "file": "/data/ibeo/others/gate_south-end_north-end_20210602_060842.0.bag"
+}
