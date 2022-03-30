@@ -316,7 +316,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           float d = std::abs(lanelet::geometry::signedDistance(lanelet::utils::to2D(egoCenterls), point));
           if(standalone_run && objPtr->object_id == 104)
             ROS_INFO_STREAM("Car_id: "<<objPtr->object_id<<" d: "<<d<<" lane no: "<<laneLaneletPair.first);
-          if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo == laneLaneletPair.first && d < 0.375){
+          if(std::find(cutInScenarioNoDetect.begin(), cutInScenarioNoDetect.end(), objPtr->object_id) != cutInScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo == laneLaneletPair.first && d < 0.2){
             if(std::find(cutInScenarioCar.begin(), cutInScenarioCar.end(), objPtr->object_id) != cutInScenarioCar.end()){
 
             }else{
@@ -335,7 +335,7 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           //Cut-out scenario detection
           //If the d >2 for the car that was on the same line as ego, then we
           //can identify it as the cut-out scenario
-          else if(std::find(cutOutScenarioNoDetect.begin(), cutOutScenarioNoDetect.end(), objPtr->object_id) != cutOutScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo != laneLaneletPair.first){
+          else if(std::find(cutOutScenarioNoDetect.begin(), cutOutScenarioNoDetect.end(), objPtr->object_id) != cutOutScenarioNoDetect.end() && laneLaneletPair.first != 0 && currentEgoLaneNo != laneLaneletPair.first && d > 1.5){
             if(std::find(cutOutScenarioCar.begin(), cutOutScenarioCar.end(), objPtr->object_id) != cutOutScenarioCar.end()){
 
             }else{
@@ -459,8 +459,8 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
           jData["s"] = frenetSO;
           jData["d"] = d;
           jData["lane_offset"] = laneOffset;
-          if(car == 20)
-            ROS_INFO_STREAM("car: "<<car<<" offset: "<<laneOffset);
+          //if(car == 20)
+            //ROS_INFO_STREAM("car: "<<car<<" offset: "<<laneOffset);
           jData["s_ego_ref"] = frenetSOEgo;
           jData["d_ego_ref"] = d_ego_ref;
           jData["sec"] = objPtr->header.stamp.sec;
@@ -500,12 +500,14 @@ class Extraction : public dataset_toolkit::h264_bag_playback {
       std::vector<json> cutinScenarioJdata;
       for(size_t i =0; i<cutInScenarios.size(); i++){
         auto jData = cutInScenarios[i]; 
+        findAndUpdatecutinEventStart(jData, frenetJson, frenetJsonEgo);
         cutinScenarioJdata.push_back(jData);    
       }
       json j3(cutinScenarioJdata);
       std::vector<json> cutoutScenarioJdata;
       for(size_t i =0; i<cutOutScenarios.size(); i++){
         auto jData = cutOutScenarios[i]; 
+        findAndUpdatecutoutEventStart(jData, frenetJson, frenetJsonEgo);
         cutoutScenarioJdata.push_back(jData);    
       }
       json j4(cutoutScenarioJdata);

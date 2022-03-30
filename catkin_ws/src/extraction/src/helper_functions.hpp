@@ -1009,4 +1009,107 @@ double findThelaneOffset(lanelet::LaneletMapPtr map, lanelet::BasicPoint2d start
   return dist;
 }
 
+void findAndUpdatecutinEventStart(json& jData, std::vector<std::pair<int, std::vector<json>>> frenetJson, std::vector<json> frenetJsonEgo){
+  int car = jData["cutin_car"];
+  bool found = false;
+  size_t index = 0;
+  for(size_t i=0; i<frenetJson.size(); i++){
+    auto pair = frenetJson[i];
+    if(pair.first == car){
+      found = true;
+      index = i;
+    }
+  }
+  if(found){
+    auto pair = frenetJson[index]; 
+    auto vec = pair.second;
+    uint32_t s_start = jData["scenario_start"].get<uint32_t>();
+    int count = 0;
+    bool enable = false;
+    double prev = 0.;
+    uint32_t selected_sec = s_start; 
+    for(size_t i=0; i<vec.size(); i++){
+      json carJData = vec[i];
+      if(carJData["frenet_data"]["sec"].get<uint32_t>() < s_start)
+        continue;
+
+      //ROS_INFO_STREAM(carJData["frenet_data"]["sec"].get<uint32_t>()<<" "<<carJData["frenet_data"]["d_ego_ref"].get<double>());
+       
+      if(std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>()) < 1.5 && enable == false){
+        enable = true;
+        prev = std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>());
+      }
+      if(std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>()) <= prev && enable == true){
+        count++;        
+        prev = std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>());
+      }else{
+        count = 0;
+        enable = false;
+      }
+
+      //ROS_INFO_STREAM(count);
+
+      if(count == 5){
+        selected_sec = carJData["frenet_data"]["sec"].get<uint32_t>();
+        jData["cutin_start"] = carJData["frenet_data"]["sec"];
+        break;
+      }
+    }
+
+    ROS_INFO_STREAM("car_id: "<<car<<" scenario_start:"<<s_start<<" new cut_start: "<<selected_sec<<" old cut_start: "<<jData["cutin_start"].get<uint32_t>());
+  }
+}
+
+void findAndUpdatecutoutEventStart(json& jData, std::vector<std::pair<int, std::vector<json>>> frenetJson, std::vector<json> frenetJsonEgo){
+  int car = jData["cutout_car"];
+  bool found = false;
+  size_t index = 0;
+  for(size_t i=0; i<frenetJson.size(); i++){
+    auto pair = frenetJson[i];
+    if(pair.first == car){
+      found = true;
+      index = i;
+    }
+  }
+  if(found){
+    auto pair = frenetJson[index]; 
+    auto vec = pair.second;
+    uint32_t s_start = jData["scenario_start"].get<uint32_t>();
+    int count = 0;
+    bool enable = false;
+    double prev = 0.;
+    uint32_t selected_sec = s_start; 
+    for(size_t i=0; i<vec.size(); i++){
+      json carJData = vec[i];
+      if(carJData["frenet_data"]["sec"].get<uint32_t>() < s_start)
+        continue;
+
+      ROS_INFO_STREAM(carJData["frenet_data"]["sec"].get<uint32_t>()<<" "<<carJData["frenet_data"]["d_ego_ref"].get<double>());
+       
+      if(std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>()) > 0.375 && enable == false){
+        enable = true;
+        prev = std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>());
+      }
+      if(std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>()) >= prev && enable == true){
+        count++;        
+        prev = std::abs(carJData["frenet_data"]["d_ego_ref"].get<double>());
+      }else{
+        count = 0;
+        enable = false;
+      }
+
+      ROS_INFO_STREAM(count);
+
+      if(count == 5){
+        selected_sec = carJData["frenet_data"]["sec"].get<uint32_t>();
+        jData["cutout_start"] = carJData["frenet_data"]["sec"];
+        break;
+      }
+    }
+
+    ROS_INFO_STREAM("car_id: "<<car<<" scenario_start:"<<s_start<<" new cut_start: "<<selected_sec<<" old cut_start: "<<jData["cutout_start"].get<uint32_t>());
+  }
+}
+
+
 #endif //APPLICATIONS_HELPER_FUNCTIONS_HPP

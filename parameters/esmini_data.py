@@ -75,7 +75,7 @@ for _file in _dir:
             # 5 - reducing 2 m/s
             # 3 - adding 2 m/s #4
             # 2 - adding 4 m/s
-            param_cut_time = 2#param['param_adv_to_cut_start_time']+1 
+            param_cut_time = 4#param['param_adv_to_cut_start_time']+1 
             for item in param_relative_lane_pos:
                 print(item['ego']['sec_count'])
                 ego_traj[item['ego']['sec_count']] = {

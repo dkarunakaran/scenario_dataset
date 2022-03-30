@@ -32,8 +32,8 @@ print("s_cut_diff: {}".format(s_cut_diff))
 print("cut-time real: {}, cut-time esmini: {}".format(adversary_real_sec3['cut_time'], adversary_esmini_sec3['cut_time']))
 
 # No noise
-#adversary_real_sec3['cut_time'] = 5 #5
-#adversary_esmini_sec3['cut_time'] = 5 #5
+#adversary_real_sec3['cut_time'] = 4 #5
+#adversary_esmini_sec3['cut_time'] = 4 #5
 
 # reducing 2 m/s
 #adversary_real_sec3['cut_time'] = 5
@@ -44,8 +44,8 @@ print("cut-time real: {}, cut-time esmini: {}".format(adversary_real_sec3['cut_t
 #adversary_esmini_sec3['cut_time'] = 4 #5
 
 # adding 4 m/s
-adversary_real_sec3['cut_time'] = 5
-adversary_esmini_sec3['cut_time'] = 4
+#adversary_real_sec3['cut_time'] = 5
+#adversary_esmini_sec3['cut_time'] = 4
 
 
 #s_cut_diff = 0
@@ -136,6 +136,9 @@ for index in range(len(adversary_esmini_sec3['speed'])):
 '''
 
 for index in range(len(s_cut_real)):
+    if index >= len(s_cut_esmini):
+        continue
+
     s_actual = s_cut_real[index]
     s_pred = s_cut_esmini[index]
     t_actual = t_cut_real[index]
@@ -319,10 +322,13 @@ plt.close()
 rss_real = []
 rss_esmini = []
 rel_long = []
+real_secs = []
+real_sec = 0
 for index in range(len(adversary_real_sec3['rss'])):
     if index >= adversary_real_sec3['cut_time']-1:
         rss_real.append(adversary_real_sec3['rss'][index])
-
+        real_secs.append(real_sec)
+        real_sec += 1
 '''
 s_cut_diff = 2
 for index in range(len(adversary_esmini_sec3['rss'])):
@@ -355,7 +361,7 @@ if rel_long_diff < 0:
 rss_real_ego_esmini_challenging = []
 
 for index in range(len(adversary_esmini_sec3['rss'])):
-    if index > 10:
+    if index > 16:
         break
     if index >= adversary_esmini_sec3['cut_time']-1:
         rss = adversary_esmini_sec3['rss'][index]+rss_diff
@@ -374,7 +380,7 @@ plt.figure()
 plt.figure(figsize=(10,10))
 plt.xlabel("second",size=25)
 plt.ylabel("distance (m)",size=25)
-plt.plot(secs, rss_real, color='b', linewidth=5)
+plt.plot(real_secs, rss_real, color='b', linewidth=5)
 plt.plot(secs, rss_esmini,'--',color='r', linewidth=5)
 plt.tick_params(axis='x', labelsize=25)
 plt.tick_params(axis='y', labelsize=25)
@@ -398,7 +404,6 @@ plt.tick_params(axis='y', labelsize=30)
 plt.legend(['RSS distance', 'Relative distance'], prop={'size':25})
 plt.savefig(name)
 plt.close()
-
 
 exit()
 

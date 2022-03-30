@@ -28,7 +28,7 @@ class FeatureModel:
         self.window = 1
         self.rss = RSS()
         rospy.Subscriber('/finish_extraction', String, self.process)
-        self.process("true")
+        #self.process("true")
         rospy.on_shutdown(self.shutdown)  
         rospy.spin()
     
@@ -122,6 +122,12 @@ class FeatureModel:
         while True:
             if count > 20:
                 break
+            
+            if lane_change_start_time not in self.group_ego_by_sec.keys():
+                lane_change_start_time += 1
+                count +=1
+                continue
+
             if self.group_ego_by_sec[lane_change_start_time][0]['other']['long_speed'] < 0.1:
                 lane_change_start_time += 1
                 count +=1
@@ -169,6 +175,14 @@ class FeatureModel:
         # cut-start
         cut_start_sub_sec = 0
         cut_end_sub_sec = 0
+                
+        count = 0 
+        while cut_start not in lane_change_car_data_by_sec.keys():
+            if count > 10:
+                break
+            cut_start += 1 
+            count += 1 
+        
         ''' 
         side = 1
         for sec in lane_change_car_data_by_sec.keys():
@@ -235,10 +249,13 @@ class FeatureModel:
             proceed = False
         
         '''
-        cut_start += 1
-        print(lane_change_start_time)
-        print(cut_start)
-        print(cut_end)
+        #cut_start += 1
+        if cut_start < lane_change_start_time:
+            cut_start = lane_change_start_time
+
+        print("start: {}".format(lane_change_start_time))
+        print("cut_start: {}".format(cut_start))
+        print("cut_end: {}".format(cut_end))
 
         if found == True and proceed == True:
             start_time =  scenario['scenario_start']
@@ -348,6 +365,8 @@ class FeatureModel:
                 param_cut_distance=lane_change_car_data_by_sec[cut_end][cut_end_sub_sec]['frenet_data']['s']-lane_change_car_data_by_sec[cut_start][cut_start_sub_sec]['frenet_data']['s']
             else:
                 time_is_not_found = True
+
+            print("param_cut_time: {} and param_cut_distance:{}".format(param_cut_time, param_cut_distance))
             
             # Finding final lane number
             param_adv_lane_no_final = param_adv_lane_no_init

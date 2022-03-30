@@ -1,0 +1,13 @@
+{
+    "cut-in scenario": [
+        {
+            "cutin_car": 127,
+            "cutin_end": 1517469161,
+            "cutin_start": 1517469157,
+            "scenario_end": 1517469164,
+            "scenario_start": 1517469152
+        }
+    ],
+    "cut-out scenario": [],
+    "file": "/data/ibeo/others1/gate_south-end_north-end_20180201_070554.0.bag"
+}
