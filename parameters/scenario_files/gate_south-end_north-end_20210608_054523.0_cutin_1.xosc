@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
-    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-03-29T19:16:37.584362"/>
+    <FileHeader description="cutinScenario" author="Dhanoop" revMajor="1" revMinor="1" date="2022-03-30T18:53:56.953224"/>
     <ParameterDeclarations>
         <ParameterDeclaration name="$egoVehicle" parameterType="string" value="hero"/>
         <ParameterDeclaration name="$egoVelocityInit" parameterType="double" value="4.252777576446533"/>
@@ -24,7 +24,7 @@
         </VehicleCatalog>
     </CatalogLocations>
     <RoadNetwork>
-        <LogicFile filepath="gate_south-end_north-end_20210608_054523.0.xodr"/>
+        <LogicFile filepath="lanchange_first_location.xodr"/>
     </RoadNetwork>
     <Entities>
         <ScenarioObject name="$egoVehicle">
